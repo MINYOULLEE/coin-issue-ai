@@ -422,6 +422,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     init_db(); threading.Thread(target=market_loop,daemon=True).start(); threading.Thread(target=monitor,daemon=True).start()
-    port=int(CFG.get("dashboard_port",8765)); print(f"\nCoin Issue AI 실행 중: http://127.0.0.1:{port}\n종료: Ctrl+C\n")
-    ThreadingHTTPServer(("127.0.0.1",port),Handler).serve_forever()
+    port=int(CFG.get("dashboard_port",8765)); host=os.getenv("DASHBOARD_HOST","127.0.0.1")
+    print(f"\nCoin Issue AI 실행 중: http://{host}:{port}\n종료: Ctrl+C\n")
+    ThreadingHTTPServer((host,port),Handler).serve_forever()
 if __name__=="__main__": main()
