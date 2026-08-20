@@ -1,0 +1,10 @@
+.env
+coin_issues.db
+*.db
+__pycache__/
+*.py[cod]
+.DS_Store
+Thumbs.db
+*.log
+.venv/
+venv/
