@@ -1,0 +1,17 @@
+{
+  "name": "Coin Issue AI",
+  "image": "mcr.microsoft.com/devcontainers/python:1-3.12-bookworm",
+  "containerEnv": {
+    "DASHBOARD_HOST": "0.0.0.0"
+  },
+  "forwardPorts": [8765],
+  "portsAttributes": {
+    "8765": {
+      "label": "Coin Issue AI",
+      "onAutoForward": "openBrowser",
+      "visibility": "private"
+    }
+  },
+  "postCreateCommand": "python -m py_compile app.py",
+  "postStartCommand": "bash .devcontainer/start.sh"
+}
