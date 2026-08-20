@@ -1,0 +1,25 @@
+{
+  "poll_seconds": 15,
+  "dashboard_port": 8765,
+  "timezone": "Asia/Bangkok",
+  "first_run_alerts": false,
+  "minimum_telegram_grade": "A",
+  "market_refresh_seconds": 10,
+  "max_item_age_hours": 24,
+  "minimum_issue_score": 45,
+  "sources": [
+    {"name":"CFTC Press Releases","url":"https://www.cftc.gov/RSS/RSSGP/rssgp.xml","type":"official","weight":5,"enabled":true},
+    {"name":"CFTC Speeches & Testimony","url":"https://www.cftc.gov/RSS/RSSST/rssst.xml","type":"official","weight":5,"enabled":true},
+    {"name":"SEC Press Releases","url":"https://www.sec.gov/news/pressreleases.rss","type":"official","weight":5,"enabled":true},
+    {"name":"Federal Reserve Press Releases","url":"https://www.federalreserve.gov/feeds/press_all.xml","type":"official","weight":5,"enabled":true},
+    {"name":"Federal Reserve Speeches","url":"https://www.federalreserve.gov/feeds/speeches.xml","type":"official","weight":5,"enabled":true},
+    {"name":"CoinDesk","url":"https://www.coindesk.com/arc/outboundfeeds/rss/","type":"media","weight":3,"enabled":true},
+    {"name":"Cointelegraph","url":"https://cointelegraph.com/rss","type":"media","weight":2,"enabled":true},
+    {"name":"Decrypt","url":"https://decrypt.co/feed","type":"media","weight":2,"enabled":true},
+    {"name":"Coinbase 공지","url":"https://www.coinbase.com/blog/rss.xml","type":"exchange","weight":4,"enabled":true},
+    {"name":"Kraken 공지","url":"https://blog.kraken.com/feed","type":"exchange","weight":4,"enabled":true},
+    {"name":"Bybit 공지","url":"https://announcements.bybit.com/en-US/rss.xml","type":"exchange","weight":4,"enabled":true},
+    {"name":"OKX 공지","url":"https://www.okx.com/help/rss","type":"exchange","weight":4,"enabled":true},
+    {"name":"Binance 공지","url":"https://www.binance.com/bapi/composite/v1/public/cms/article/list/query?type=1&pageNo=1&pageSize=20","format":"binance_json","type":"exchange","weight":5,"enabled":true}
+  ]
+}
