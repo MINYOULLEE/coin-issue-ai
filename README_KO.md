@@ -2,6 +2,10 @@
 
 > v7: 로컬 수집기가 분석하고 Supabase를 통해 GitHub Pages에 결과를 표시합니다. Codespaces는 운영에 사용하지 않습니다. 먼저 `SETUP_24H_GITHUB_PAGES_KO.md`를 확인하세요.
 
+## 가장 쉬운 Supabase 연결
+
+Windows에서 `SETUP_SUPABASE_WINDOWS.bat`을 실행하고 Supabase의 `sb_secret_...` 키를 붙여넣으면 `.env`가 자동 생성되고 수집기가 시작됩니다. 비밀키는 이 PC의 `.env`에만 저장되며 GitHub에는 업로드되지 않습니다.
+
 공식기관, 주요 코인 매체, 거래소 공지의 새 게시물을 15초마다 확인합니다. 코인과 직접 관련된 내용만 통과시키고 BTC·ETH·XRP·SOL·BNB 등으로 자동 분류합니다. 실시간 가격과 24시간 등락률을 함께 확인해 뉴스의 예상 방향과 실제 시장 반응을 구분합니다.
 
 ## Windows 실행
