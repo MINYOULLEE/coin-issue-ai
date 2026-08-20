@@ -2,6 +2,10 @@
 
 실시간 암호화폐 이슈, 공식기관 발표, 거래소 공지와 시장 데이터를 한 화면에서 확인하는 로컬 대시보드입니다.
 
+[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/MINYOULLEE/coin-issue-ai?quickstart=1)
+
+위 버튼을 누르면 다운로드 없이 전용 Codespace가 생성되고 Coin Issue AI가 자동 실행됩니다. 처음 생성할 때는 컨테이너 준비에 몇 분이 걸릴 수 있습니다.
+
 ## 주요 기능
 
 - CFTC, SEC, Federal Reserve 공식 발표 감시
