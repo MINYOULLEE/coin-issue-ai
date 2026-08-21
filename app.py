@@ -436,7 +436,14 @@ def cloud_sync_loop():
     interval=max(5,int(os.getenv("CLOUD_SYNC_SECONDS","10")))
     while True:
         try:
-            snap=build_snapshot(200); raw=json.dumps(snap,ensure_ascii=False)
+            snap=build_snapshot(200)
+            required_markets={"BTC","ETH","XRP","SOL","BNB"}
+            ready_markets={symbol for symbol,value in snap.get("market",{}).items() if value.get("price")}
+            if not required_markets.issubset(ready_markets):
+                STATUS["클라우드 동기화"]={"ok":False,"checked":snap["heartbeat"],"items":0,"new":0,"error":"시세 초기화 중 · 기존 정상 스냅샷 유지"}
+                time.sleep(interval)
+                continue
+            raw=json.dumps(snap,ensure_ascii=False)
             tmp=SNAPSHOT_FILE.with_suffix(".tmp"); tmp.write_text(raw,encoding="utf-8"); tmp.replace(SNAPSHOT_FILE)
             if url and key:
                 body=json.dumps([{"id":"live","payload":snap,"updated_at":snap["heartbeat"]}],ensure_ascii=False).encode("utf-8")
