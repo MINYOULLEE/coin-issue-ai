@@ -329,6 +329,16 @@ def market_loop():
                     except Exception as e: STATUS["예측 "+sym]={"ok":False,"checked":datetime.now(timezone.utc).isoformat(),"items":0,"new":0,"error":str(e)[:160]}
                 last_prediction=time.time()
         except Exception as e: STATUS["실시간 시세"]={"ok":False,"checked":datetime.now(timezone.utc).isoformat(),"items":0,"new":0,"error":str(e)[:160]}
+        try:
+            upbit_req=urllib.request.Request("https://api.upbit.com/v1/ticker?markets=KRW-USDT",headers={"User-Agent":"CoinIssueAI/7.0","Accept":"application/json"})
+            with urllib.request.urlopen(upbit_req,timeout=10) as r: upbit_rows=json.loads(r.read())
+            if upbit_rows:
+                x=upbit_rows[0]
+                with LOCK:
+                    MARKET["USDT"]={"price":float(x["trade_price"]),"change":float(x["signed_change_rate"])*100,"quoteVolume":float(x.get("acc_trade_price_24h",0)),"currency":"KRW","source":"Upbit","updated":datetime.now(timezone.utc).isoformat()}
+                STATUS["업비트 USDT/KRW"]={"ok":True,"checked":datetime.now(timezone.utc).isoformat(),"items":1,"new":0,"error":""}
+        except Exception as e:
+            STATUS["업비트 USDT/KRW"]={"ok":False,"checked":datetime.now(timezone.utc).isoformat(),"items":0,"new":0,"error":str(e)[:160]}
         time.sleep(max(5,int(CFG.get("market_refresh_seconds",10))))
 
 def ai_summary(title, body):
