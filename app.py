@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-import hashlib, html, json, math, os, re, sqlite3, statistics, threading, time
+import hashlib, html, json, math, os, re, sqlite3, statistics, sys, threading, time
 import urllib.error, urllib.parse, urllib.request
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta, timezone
@@ -450,8 +450,19 @@ def cloud_sync_loop():
         time.sleep(interval)
 
 def main():
-    init_db(); threading.Thread(target=market_loop,daemon=True).start(); threading.Thread(target=monitor,daemon=True).start(); threading.Thread(target=cloud_sync_loop,daemon=True).start()
+    for stream in (sys.stdout,sys.stderr):
+        if hasattr(stream,"reconfigure"):
+            stream.reconfigure(encoding="utf-8",errors="replace")
     port=int(CFG.get("dashboard_port",8765)); host=os.getenv("DASHBOARD_HOST","127.0.0.1")
-    print(f"\nCoin Issue AI 로컬 수집기 실행 중: http://{host}:{port}\n클라우드 동기화: {'설정됨' if os.getenv('SUPABASE_URL') else '설정 전'}\n종료: Ctrl+C\n",flush=True)
-    ThreadingHTTPServer((host,port),Handler).serve_forever()
-if __name__=="__main__": main()
+    try:
+        server=ThreadingHTTPServer((host,port),Handler)
+    except OSError as e:
+        if getattr(e,"winerror",None)==10048 or getattr(e,"errno",None) in (48,98):
+            print("Coin Issue AI collector is already running.",flush=True)
+            return 10
+        raise
+    init_db(); threading.Thread(target=market_loop,daemon=True).start(); threading.Thread(target=monitor,daemon=True).start(); threading.Thread(target=cloud_sync_loop,daemon=True).start()
+    print(f"\nCoin Issue AI collector running: http://{host}:{port}\nCloud sync: {'configured' if os.getenv('SUPABASE_URL') else 'not configured'}\nStop: Ctrl+C\n",flush=True)
+    server.serve_forever()
+    return 0
+if __name__=="__main__": raise SystemExit(main())
