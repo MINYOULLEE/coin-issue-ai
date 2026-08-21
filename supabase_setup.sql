@@ -39,3 +39,10 @@ create index if not exists trade_signals_recent_idx
   on public.trade_signals(created_at desc);
 alter table public.trade_signals enable row level security;
 revoke all on public.trade_signals from anon, authenticated;
+
+drop policy if exists "deny direct signal access" on public.trade_signals;
+create policy "deny direct signal access"
+  on public.trade_signals for all
+  to anon, authenticated
+  using (false)
+  with check (false);
