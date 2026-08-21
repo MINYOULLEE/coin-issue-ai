@@ -2,6 +2,9 @@
 setlocal EnableExtensions DisableDelayedExpansion
 cd /d "%~dp0"
 title Coin Issue AI - 24H Local Collector
+chcp 65001 >nul
+set "PYTHONIOENCODING=utf-8"
+set "PYTHONUTF8=1"
 set "LOG_FILE=%~dp0collector_runtime.log"
 set "PY_CMD="
 py -3 -c "import sys" >nul 2>&1 && set "PY_CMD=py -3"
@@ -24,6 +27,11 @@ echo If the app stops, it will restart after 5 seconds.
 :restart
 echo [%date% %time%] Collector process starting.>>"%LOG_FILE%"
 %PY_CMD% -u app.py >>"%LOG_FILE%" 2>&1
-echo [%date% %time%] Collector stopped with code %ERRORLEVEL%. Restarting in 5 seconds.>>"%LOG_FILE%"
+set "EXIT_CODE=%ERRORLEVEL%"
+if "%EXIT_CODE%"=="10" (
+  echo [%date% %time%] Another collector instance is already running.>>"%LOG_FILE%"
+  exit /b 0
+)
+echo [%date% %time%] Collector stopped with code %EXIT_CODE%. Restarting in 5 seconds.>>"%LOG_FILE%"
 timeout /t 5 /nobreak >nul
 goto restart
