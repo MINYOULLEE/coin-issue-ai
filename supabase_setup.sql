@@ -17,7 +17,7 @@ create table if not exists public.trade_signals (
   id bigint generated always as identity primary key,
   symbol text not null check (symbol in ('BTC','ETH','XRP','SOL','BNB')),
   side text not null check (side in ('long','short')),
-  status text not null default 'active' check (status in ('active','weakening','expired','invalidated')),
+  status text not null default 'active' check (status in ('active','weakening','success','failure','neutral','expired','invalidated')),
   entry_price numeric not null check (entry_price > 0),
   invalidation_price numeric not null check (invalidation_price > 0),
   target_price numeric not null check (target_price > 0),
