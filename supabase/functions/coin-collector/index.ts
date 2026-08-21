@@ -86,7 +86,7 @@ function signalView(s,price){
   return {...s,entry_price:entry,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
 async function manageSignals(market,old){
-  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const now=new Date(),bySymbol=Object.fromEntries(active.map(x=>[x.symbol,x]));
+  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const now=new Date(),bySymbol=Object.fromEntries(active.map(x=>[x.symbol,x]));
   for(const symbol of COINS){
     const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;
     let s=bySymbol[symbol];
@@ -96,10 +96,11 @@ async function manageSignals(market,old){
       if(expired||invalid){
         const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
         await patchSignal(s.id,{status:invalid?"invalidated":"expired",closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:invalid?"손상 기준 도달":"24시간 만료",updated_at:now.toISOString()});
-        delete bySymbol[symbol];delete candidates[symbol];s=null;
+        delete bySymbol[symbol];delete candidates[symbol];delete health[symbol];s=null;
       }else{
-        const liveSide=candidateSide(m),weak=liveSide!==s.side;
-        const next=weak?"weakening":"active";
+        const liveSide=candidateSide(m),supported=liveSide===s.side,h=health[symbol]||{support_fail:0,support_ok:0};
+        h.support_fail=supported?0:Number(h.support_fail||0)+1;h.support_ok=supported?Number(h.support_ok||0)+1:0;h.last_checked=now.toISOString();health[symbol]=h;
+        let next=s.status;if(s.status==="active"&&h.support_fail>=3)next="weakening";if(s.status==="weakening"&&h.support_ok>=2)next="active";
         if(next!==s.status)s=await patchSignal(s.id,{status:next,updated_at:now.toISOString()});
         bySymbol[symbol]=s;delete candidates[symbol];
       }
@@ -132,7 +133,7 @@ async function manageSignals(market,old){
     }
   }
   active=Object.values(bySymbol).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
-  return {active,candidates};
+  return {active,candidates,health};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
@@ -147,7 +148,7 @@ Deno.serve(async req=>{
     for(const x of merged.sort((a,b)=>Date.parse(b.detected||b.published||0)-Date.parse(a.detected||a.published||0))){const key=x.url||x.id||x.title;if(seen.has(key))continue;seen.add(key);const ts=Date.parse(x.detected||x.published||0);if(Number.isFinite(ts)&&ts<cutoff)continue;issues.push(x);if(issues.length>=200)break}
     const today=new Date().toISOString().slice(0,10),day=issues.filter(x=>(x.detected||"").startsWith(today));
     const status=Object.fromEntries(feeds.map(x=>[x.name,x.status]));status["클라우드 수집기"]={ok:true,checked:new Date().toISOString(),items:issues.length,new:feeds.reduce((a,x)=>a+x.issues.length,0),error:""};
-    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
+    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
     await save(payload);
     return Response.json({ok:true,heartbeat:payload.heartbeat,issues:issues.length,markets:Object.keys(market),active_signals:signalState.active.length,candidates:signalState.candidates});
   }catch(e){console.error(e);return Response.json({ok:false,error:String(e)},{status:500})}
