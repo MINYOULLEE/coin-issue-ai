@@ -67,6 +67,10 @@ async function activeSignals(){
   const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(active,weakening)&select=*&order=created_at.desc";
   const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("signal fetch "+r.status+" "+await r.text());return await r.json();
 }
+async function recentSignals(){
+  const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(success,failure,neutral,expired,invalidated)&select=*&order=closed_at.desc&limit=50";
+  const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("history fetch "+r.status+" "+await r.text());return await r.json();
+}
 async function patchSignal(id,body){
   const r=await fetch(PROJECT_URL+"/rest/v1/trade_signals?id=eq."+id,{method:"PATCH",headers:adminHeaders({Prefer:"return=representation"}),body:JSON.stringify(body)});
   if(!r.ok)throw Error("signal patch "+r.status+" "+await r.text());const rows=await r.json();return rows[0]||{...body,id};
@@ -93,9 +97,12 @@ async function manageSignals(market,old){
     if(s){
       const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
       const invalid=s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price);
-      if(expired||invalid){
+      const target=s.side==="long"?price>=Number(s.target_price):price<=Number(s.target_price);
+      if(expired||invalid||target){
         const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
-        await patchSignal(s.id,{status:invalid?"invalidated":"expired",closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:invalid?"손상 기준 도달":"24시간 만료",updated_at:now.toISOString()});
+        const outcome=target?"success":invalid?"failure":result>=.5?"success":result<=-.5?"failure":"neutral";
+        const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?"24시간 만료·수익 종료":outcome==="failure"?"24시간 만료·손실 종료":"24시간 만료·보합";
+        await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:reason,updated_at:now.toISOString()});
         delete bySymbol[symbol];delete candidates[symbol];delete health[symbol];s=null;
       }else{
         const liveSide=candidateSide(m),supported=liveSide===s.side,h=health[symbol]||{support_fail:0,support_ok:0};
@@ -133,7 +140,8 @@ async function manageSignals(market,old){
     }
   }
   active=Object.values(bySymbol).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
-  return {active,candidates,health};
+  const recent=await recentSignals();
+  return {active,candidates,health,recent};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
@@ -148,7 +156,7 @@ Deno.serve(async req=>{
     for(const x of merged.sort((a,b)=>Date.parse(b.detected||b.published||0)-Date.parse(a.detected||a.published||0))){const key=x.url||x.id||x.title;if(seen.has(key))continue;seen.add(key);const ts=Date.parse(x.detected||x.published||0);if(Number.isFinite(ts)&&ts<cutoff)continue;issues.push(x);if(issues.length>=200)break}
     const today=new Date().toISOString().slice(0,10),day=issues.filter(x=>(x.detected||"").startsWith(today));
     const status=Object.fromEntries(feeds.map(x=>[x.name,x.status]));status["클라우드 수집기"]={ok:true,checked:new Date().toISOString(),items:issues.length,new:feeds.reduce((a,x)=>a+x.issues.length,0),error:""};
-    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
+    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,recent_signals:signalState.recent,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
     await save(payload);
     return Response.json({ok:true,heartbeat:payload.heartbeat,issues:issues.length,markets:Object.keys(market),active_signals:signalState.active.length,candidates:signalState.candidates});
   }catch(e){console.error(e);return Response.json({ok:false,error:String(e)},{status:500})}
