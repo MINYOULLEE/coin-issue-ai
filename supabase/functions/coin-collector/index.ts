@@ -145,11 +145,11 @@ function signalView(s,price){
   const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),net=notional?notional*pnl/100-fee:null;
   return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,current_net_pnl_usd:net,current_leveraged_return_pct:margin&&net!=null?net/margin*100:null,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
-function positionPlan(entry,invalidation,confidence,type,microVol){
+function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000){
   const equity=1000,stopPct=Math.max(.001,Math.abs(entry-invalidation)/entry);
   const leverage=confidence>=82&&Number(microVol||0)<=.6?5:confidence>=72?3:2;
   const riskPct=type==="tactical"?.75:1.25,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
-  const margin=Math.round(Math.min(marginCap,riskUsd/(stopPct*leverage))*100)/100;
+  const margin=Math.round(Math.max(0,Math.min(marginCap,availableMargin,riskUsd/(stopPct*leverage)))*100)/100;
   const notional=Math.round(margin*leverage*100)/100,fee=Math.round(notional*.001*100)/100;
   return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
 }
@@ -194,7 +194,8 @@ async function manageSignals(market,old){
             if(type==="swing"){const sc=m.scenarios24;invalidation=sideNow==="long"?Number(sc.base.low):Number(sc.base.high);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=m.reasons||[]}
             else{const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100;target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=entry*(sideNow==="long"?1-sl:1+sl);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`]}
             try{
-              const plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct);
+              const usedMargin=Object.values(byKey).reduce((sum,x)=>sum+Number(x.margin_usd||0),0),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,1000-usedMargin);
+              if(plan.margin_usd<25){candidates[k].blocked="담보 부족";continue}
               s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
             }catch(e){if(!String(e).includes("409"))throw e}
