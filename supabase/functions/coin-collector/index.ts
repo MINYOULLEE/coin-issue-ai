@@ -37,17 +37,18 @@ async function fetchMarket(){
   const tickers=await json("https://api.binance.com/api/v3/ticker/24hr?symbols="+symbols);
   const entries=await Promise.all(tickers.map(async t=>{
     const s=t.symbol.replace("USDT",""),price=Number(t.lastPrice),change=Number(t.priceChangePercent);
-    let closes=[],vols=[];
-    try{const rows=await json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=200");closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]))}catch{}
-    let rsi=50,vr=1,mom=change,trend=0;
+    let closes=[],vols=[],fast=[];
+    try{const [rows,fastRows]=await Promise.all([json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=200"),json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=5m&limit=30")]);closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]));fast=fastRows}catch{}
+    let rsi=50,vr=1,mom=change,trend=0,momentum5=0,momentum15=0,sellRatio=1,fastVolume=1,shortPressure=0;
     if(closes.length>30){
       let gain=0,loss=0;for(let i=closes.length-14;i<closes.length;i++){const d=closes[i]-closes[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0)}rsi=loss?100-100/(1+gain/loss):100;
       const v1=vols.slice(-24).reduce((a,b)=>a+b,0),v0=vols.slice(-48,-24).reduce((a,b)=>a+b,0)||1;vr=v1/v0;
       mom=(closes.at(-1)/closes.at(-25)-1)*100;trend=(ema(closes.slice(-80),12)/ema(closes.slice(-80),26)-1)*100;
     }
-    const direction=trend+mom*.08,confidence=clamp(Math.round(55+Math.abs(direction)*10+Math.min(vr,3)*4-Math.max(0,rsi-75)*1.2),40,88);
+    if(fast.length>=20){const fc=fast.map(x=>Number(x[4])),fv=fast.map(x=>Number(x[5]));momentum5=(fc.at(-1)/fc.at(-2)-1)*100;momentum15=(fc.at(-1)/fc.at(-4)-1)*100;const recent=fast.slice(-3),buy=recent.reduce((a,x)=>a+Number(x[9]||0),0),total=recent.reduce((a,x)=>a+Number(x[5]||0),0);sellRatio=(total-buy)/(buy||1);const recentV=fv.slice(-3).reduce((a,b)=>a+b,0)/3,baseV=fv.slice(-15,-3).reduce((a,b)=>a+b,0)/12||1;fastVolume=recentV/baseV;const below=price<ema(fc.slice(-20),20);shortPressure=clamp(Math.round(Math.max(0,-momentum5)*28+Math.max(0,-momentum15)*20+Math.max(0,sellRatio-1)*22+Math.max(0,fastVolume-1)*14+(below?15:0)),0,100)}
+    const direction=trend+mom*.08,confidence=clamp(Math.round(55+Math.abs(direction)*10+Math.min(vr,3)*4-Math.max(0,rsi-75)*1.2-Math.max(0,shortPressure-55)*.25),40,88);
     const rec=direction>.2?(rsi>75?"상승 추세·과열 주의":"상승 우세"):direction<-.2?(rsi<28?"하락 추세·과매도 주의":"하락 우세"):"중립·확인 대기";
-    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),risks:[rsi>75?"단기 과열·차익실현":rsi<28?"과매도 변동성":"급등락·뉴스 변수"],reasons:[`24시간 ${change>=0?"+":""}${change.toFixed(2)}%`,`거래량 ${vr.toFixed(2)}배`,`RSI ${rsi.toFixed(1)}`],updated:new Date().toISOString()}];
+    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_5m:momentum5,momentum_15m:momentum15,short_pressure:shortPressure,fast_volume_ratio:fastVolume,sell_buy_ratio:sellRatio,risks:[shortPressure>=65?"강한 단기 숏 압력·신규 롱 차단":rsi>75?"단기 과열·차익실현":rsi<28?"과매도 변동성":"급등락·뉴스 변수"],reasons:[`24시간 ${change>=0?"+":""}${change.toFixed(2)}%`,`거래량 ${vr.toFixed(2)}배`,`RSI ${rsi.toFixed(1)}`],updated:new Date().toISOString()}];
   }));
   const market=Object.fromEntries(entries);
   try{const u=(await json("https://api.upbit.com/v1/ticker?markets=KRW-USDT"))[0];market.USDT={price:Number(u.trade_price),change:Number(u.signed_change_rate)*100,quoteVolume:Number(u.acc_trade_price_24h||0),currency:"KRW",source:"Upbit",updated:new Date().toISOString()}}catch{}
@@ -81,7 +82,7 @@ async function insertSignal(body){
 }
 function candidateSide(m){
   const rec=String(m.live_recommendation||m.recommendation||"");
-  const long=rec.startsWith("상승")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58;
+  const long=rec.startsWith("상승")&&!m.long_entry_blocked&&Number(m.short_pressure||0)<60&&Number(m.momentum_15m||0)>=-.25&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58;
   const short=rec.startsWith("하락")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=28&&m.rsi<=65&&m.trend_strength<=42;
   return long?"long":short?"short":null;
 }
@@ -90,9 +91,9 @@ function signalView(s,price){
   return {...s,entry_price:entry,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
 async function manageSignals(market,old){
-  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const now=new Date(),bySymbol=Object.fromEntries(active.map(x=>[x.symbol,x]));
+  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date(),bySymbol=Object.fromEntries(active.map(x=>[x.symbol,x]));const pressureCoins=COINS.filter(x=>Number(market[x]?.short_pressure||0)>=65),marketShock=pressureCoins.length>=3||Number(market.BTC?.short_pressure||0)>=75||Number(market.ETH?.short_pressure||0)>=75;for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
   for(const symbol of COINS){
-    const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;
+    const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;const cooldown=Date.parse(String(cooldowns[symbol]||0))>Date.now();m.long_entry_blocked=marketShock||cooldown||Number(m.short_pressure||0)>=60;m.long_entry_block_reason=marketShock?"시장 전체 숏 충격":cooldown?"손절 후 60분 재진입 대기":Number(m.short_pressure||0)>=60?"단기 숏 압력 강함":"";
     let s=bySymbol[symbol];
     if(s){
       const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
@@ -103,6 +104,7 @@ async function manageSignals(market,old){
         const outcome=target?"success":invalid?"failure":result>=.5?"success":result<=-.5?"failure":"neutral";
         const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?"24시간 만료·수익 종료":outcome==="failure"?"24시간 만료·손실 종료":"24시간 만료·보합";
         await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:reason,updated_at:now.toISOString()});
+        if(outcome==="failure"){cooldowns[symbol]=new Date(now.getTime()+3600000).toISOString();m.long_entry_blocked=true;m.long_entry_block_reason="손절 후 60분 재진입 대기"}
         delete bySymbol[symbol];delete candidates[symbol];delete health[symbol];s=null;
       }else{
         const liveSide=candidateSide(m),supported=liveSide===s.side,h=health[symbol]||{support_fail:0,support_ok:0};
@@ -124,7 +126,7 @@ async function manageSignals(market,old){
           const target=side==="long"?Number(sc.bull.center):Number(sc.bear.center);
           const created=now.toISOString(),expires=new Date(now.getTime()+86400000).toISOString();
           try{
-            s=await insertSignal({symbol,side,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:Number(m.direction_confidence),reasons:m.reasons||[],entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,live_recommendation:m.live_recommendation},created_at:created,expires_at:expires,updated_at:created});
+            s=await insertSignal({symbol,side,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:Number(m.direction_confidence),reasons:m.reasons||[],entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,live_recommendation:m.live_recommendation,short_pressure:m.short_pressure,momentum_5m:m.momentum_5m,momentum_15m:m.momentum_15m,sell_buy_ratio:m.sell_buy_ratio},created_at:created,expires_at:expires,updated_at:created});
             bySymbol[symbol]=s;delete candidates[symbol];
           }catch(e){if(!String(e).includes("409"))throw e}
         }
@@ -136,12 +138,12 @@ async function manageSignals(market,old){
       m.recommendation=s.side==="long"?(s.status==="weakening"?"24H 롱 유지·근거 약화":"24H 롱 유지"):(s.status==="weakening"?"24H 숏 유지·근거 약화":"24H 숏 유지");
       m.direction_confidence=Number(s.confidence);
     }else{
-      const c=candidates[symbol];m.trade_signal=null;m.recommendation=c?("진입 확인 중 "+c.count+"/3"):"진입 대기";
+      const c=candidates[symbol];m.trade_signal=null;m.recommendation=m.long_entry_blocked?("롱 진입 차단·"+m.long_entry_block_reason):c?("진입 확인 중 "+c.count+"/3"):"진입 대기";
     }
   }
   active=Object.values(bySymbol).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   const recent=await recentSignals();
-  return {active,candidates,health,recent};
+  return {active,candidates,health,recent,cooldowns,regime:{short_shock:marketShock,pressure_coins:pressureCoins,checked_at:now.toISOString()}};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
@@ -170,7 +172,7 @@ Deno.serve(async req=>{
     for(const x of merged.sort((a,b)=>Date.parse(b.detected||b.published||0)-Date.parse(a.detected||a.published||0))){const key=x.url||x.id||x.title;if(seen.has(key))continue;seen.add(key);const ts=Date.parse(x.detected||x.published||0);if(Number.isFinite(ts)&&ts<cutoff)continue;issues.push(x);if(issues.length>=200)break}
     const today=new Date().toISOString().slice(0,10),day=issues.filter(x=>(x.detected||"").startsWith(today));
     const status=Object.fromEntries(feeds.map(x=>[x.name,x.status]));status["클라우드 수집기"]={ok:true,checked:new Date().toISOString(),items:issues.length,new:feeds.reduce((a,x)=>a+x.issues.length,0),error:""};
-    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,recent_signals:signalState.recent,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
+    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,signal_cooldowns:signalState.cooldowns,market_regime:signalState.regime,recent_signals:signalState.recent,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
     await save(payload);
     return Response.json({ok:true,heartbeat:payload.heartbeat,issues:issues.length,markets:Object.keys(market),active_signals:signalState.active.length,candidates:signalState.candidates});
   }catch(e){console.error(e);return Response.json({ok:false,error:String(e)},{status:500})}
