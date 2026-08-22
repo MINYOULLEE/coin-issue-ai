@@ -206,14 +206,26 @@ async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snap
 async function save(payload){const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?on_conflict=id",{method:"POST",headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{id:"live",payload,updated_at:payload.heartbeat}])});if(!r.ok)throw Error("Supabase save "+r.status+" "+await r.text())}
 
 function publicSignal(s){return {id:s.id,symbol:s.symbol,side:s.side,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),status:s.status,entry_price:Number(s.entry_price),invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),confidence:Number(s.confidence),created_at:s.created_at,expires_at:s.expires_at,closed_at:s.closed_at,exit_price:s.exit_price==null?null:Number(s.exit_price),result_pct:s.result_pct==null?null:Number(s.result_pct),close_reason:s.close_reason}}
+async function historyStats(symbol=""){
+  let offset=0,all=[];
+  while(true){
+    let url=PROJECT_URL+"/rest/v1/trade_signals?select=status,result_pct&status=in.(success,failure,neutral)&order=id.asc&limit=1000&offset="+offset;
+    if(COINS.includes(symbol))url+="&symbol=eq."+symbol;
+    const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("history stats "+r.status+" "+await r.text());
+    const batch=await r.json();all.push(...batch);if(batch.length<1000)break;offset+=1000;
+  }
+  const success=all.filter(x=>x.status==="success").length,failure=all.filter(x=>x.status==="failure").length,neutral=all.filter(x=>x.status==="neutral").length,decided=success+failure;
+  const totalReturn=all.reduce((sum,x)=>sum+(Number.isFinite(Number(x.result_pct))?Number(x.result_pct):0),0);
+  return {success,failure,neutral,decided,success_rate:decided?success/decided*100:0,failure_rate:decided?failure/decided*100:0,total_return_pct:totalReturn};
+}
 async function historyResponse(req){
   const u=new URL(req.url),page=Math.max(1,Number(u.searchParams.get("page")||1)),limit=Math.min(20,Math.max(1,Number(u.searchParams.get("limit")||20)));
   const symbol=String(u.searchParams.get("symbol")||"").toUpperCase(),offset=(page-1)*limit;
   let url=PROJECT_URL+"/rest/v1/trade_signals?select=id,symbol,side,signal_type,horizon_minutes,status,entry_price,invalidation_price,target_price,confidence,created_at,expires_at,closed_at,exit_price,result_pct,close_reason&order=created_at.desc&limit="+limit+"&offset="+offset;
   if(COINS.includes(symbol))url+="&symbol=eq."+symbol;
   const r=await fetch(url,{headers:adminHeaders({Prefer:"count=exact"})});if(!r.ok)throw Error("history page "+r.status+" "+await r.text());
-  const rows=(await r.json()).map(publicSignal),range=r.headers.get("content-range")||"",total=Number(range.split("/")[1]||rows.length);
-  return Response.json({ok:true,page,limit,total,pages:Math.max(1,Math.ceil(total/limit)),rows},{headers:{"Access-Control-Allow-Origin":"*","Cache-Control":"no-store"}});
+  const rows=(await r.json()).map(publicSignal),range=r.headers.get("content-range")||"",total=Number(range.split("/")[1]||rows.length),stats=await historyStats(symbol);
+  return Response.json({ok:true,page,limit,total,pages:Math.max(1,Math.ceil(total/limit)),rows,stats},{headers:{"Access-Control-Allow-Origin":"*","Cache-Control":"no-store"}});
 }
 
 Deno.serve(async req=>{
