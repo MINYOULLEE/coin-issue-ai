@@ -37,18 +37,44 @@ async function fetchMarket(){
   const tickers=await json("https://api.binance.com/api/v3/ticker/24hr?symbols="+symbols);
   const entries=await Promise.all(tickers.map(async t=>{
     const s=t.symbol.replace("USDT",""),price=Number(t.lastPrice),change=Number(t.priceChangePercent);
-    let closes=[],vols=[],fast=[];
-    try{const [rows,fastRows]=await Promise.all([json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=200"),json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=5m&limit=30")]);closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]));fast=fastRows}catch{}
-    let rsi=50,vr=1,mom=change,trend=0,momentum5=0,momentum15=0,sellRatio=1,fastVolume=1,shortPressure=0;
+    let closes=[],vols=[],micro=[],depth={bids:[],asks:[]};
+    try{
+      const [rows,oneMinute,book]=await Promise.all([
+        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=200"),
+        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1m&limit=60"),
+        json("https://api.binance.com/api/v3/depth?symbol="+s+"USDT&limit=20")
+      ]);
+      closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]));micro=oneMinute;depth=book;
+    }catch{}
+    let rsi=50,vr=1,mom=change,trend=0,m1=0,m3=0,volumePace=1,buySell=1,sellBuy=1,bookImbalance=0,microVol=.25,longPressure=0,shortPressure=0;
     if(closes.length>30){
       let gain=0,loss=0;for(let i=closes.length-14;i<closes.length;i++){const d=closes[i]-closes[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0)}rsi=loss?100-100/(1+gain/loss):100;
       const v1=vols.slice(-24).reduce((a,b)=>a+b,0),v0=vols.slice(-48,-24).reduce((a,b)=>a+b,0)||1;vr=v1/v0;
       mom=(closes.at(-1)/closes.at(-25)-1)*100;trend=(ema(closes.slice(-80),12)/ema(closes.slice(-80),26)-1)*100;
     }
-    if(fast.length>=20){const fc=fast.map(x=>Number(x[4])),fv=fast.map(x=>Number(x[5]));momentum5=(fc.at(-1)/fc.at(-2)-1)*100;momentum15=(fc.at(-1)/fc.at(-4)-1)*100;const recent=fast.slice(-3),buy=recent.reduce((a,x)=>a+Number(x[9]||0),0),total=recent.reduce((a,x)=>a+Number(x[5]||0),0);sellRatio=(total-buy)/(buy||1);const recentV=fv.slice(-3).reduce((a,b)=>a+b,0)/3,baseV=fv.slice(-15,-3).reduce((a,b)=>a+b,0)/12||1;fastVolume=recentV/baseV;const below=price<ema(fc.slice(-20),20);shortPressure=clamp(Math.round(Math.max(0,-momentum5)*28+Math.max(0,-momentum15)*20+Math.max(0,sellRatio-1)*22+Math.max(0,fastVolume-1)*14+(below?15:0)),0,100)}
-    const direction=trend+mom*.08,confidence=clamp(Math.round(55+Math.abs(direction)*10+Math.min(vr,3)*4-Math.max(0,rsi-75)*1.2-Math.max(0,shortPressure-55)*.25),40,88);
+    if(micro.length>=25){
+      const mc=micro.map(x=>Number(x[4])),mv=micro.map(x=>Number(x[5])),last=micro.at(-1);
+      m1=(mc.at(-1)/mc.at(-2)-1)*100;m3=(mc.at(-1)/mc.at(-4)-1)*100;
+      const elapsed=clamp((Date.now()-Number(last[0]))/1000,5,60),baseV=mv.slice(-21,-1).reduce((a,b)=>a+b,0)/20||1;
+      volumePace=clamp((Number(last[5])/baseV)*(60/elapsed),0,12);
+      const recent=micro.slice(-3),buy=recent.reduce((a,x)=>a+Number(x[9]||0),0),total=recent.reduce((a,x)=>a+Number(x[5]||0),0),sell=Math.max(0,total-buy);
+      buySell=buy/(sell||1);sellBuy=sell/(buy||1);
+      const returns=[];for(let i=mc.length-20;i<mc.length;i++)returns.push(Math.abs((mc[i]/mc[i-1]-1)*100));
+      microVol=clamp(returns.reduce((a,b)=>a+b,0)/(returns.length||1),.08,2);
+      const bid=(depth.bids||[]).reduce((a,x)=>a+Number(x[0])*Number(x[1]),0),ask=(depth.asks||[]).reduce((a,x)=>a+Number(x[0])*Number(x[1]),0);
+      bookImbalance=(bid-ask)/(bid+ask||1);
+      const impulse=Math.max(0,volumePace-1);
+      longPressure=clamp(Math.round(Math.max(0,m1)*42+Math.max(0,m3)*25+Math.max(0,buySell-1)*18+impulse*10+Math.max(0,bookImbalance)*35),0,100);
+      shortPressure=clamp(Math.round(Math.max(0,-m1)*42+Math.max(0,-m3)*25+Math.max(0,sellBuy-1)*18+impulse*10+Math.max(0,-bookImbalance)*35),0,100);
+    }
+    let flowAction="wait",flowConfidence=Math.max(longPressure,shortPressure);
+    if(volumePace>=1.5&&longPressure>=65&&(m1>=.08||bookImbalance>=.12))flowAction="long";
+    if(volumePace>=1.5&&shortPressure>=65&&(m1<=-.08||bookImbalance<=-.12))flowAction="short";
+    const extreme=flowAction!=="wait"&&flowConfidence>=80&&volumePace>=2.5&&((flowAction==="long"?buySell:sellBuy)>=1.5);
+    const direction=trend+mom*.08,confidence=clamp(Math.round(55+Math.abs(direction)*10+Math.min(vr,3)*4-Math.max(0,rsi-75)*1.2),40,88);
     const rec=direction>.2?(rsi>75?"상승 추세·과열 주의":"상승 우세"):direction<-.2?(rsi<28?"하락 추세·과매도 주의":"하락 우세"):"중립·확인 대기";
-    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_5m:momentum5,momentum_15m:momentum15,short_pressure:shortPressure,fast_volume_ratio:fastVolume,sell_buy_ratio:sellRatio,risks:[shortPressure>=65?"강한 단기 숏 압력·신규 롱 차단":rsi>75?"단기 과열·차익실현":rsi<28?"과매도 변동성":"급등락·뉴스 변수"],reasons:[`24시간 ${change>=0?"+":""}${change.toFixed(2)}%`,`거래량 ${vr.toFixed(2)}배`,`RSI ${rsi.toFixed(1)}`],updated:new Date().toISOString()}];
+    const flowReason=flowAction==="long"?"1분 거래량·매수 체결·호가가 동시 우세":flowAction==="short"?"1분 거래량·매도 체결·호가가 동시 우세":"1분 방향 합의 부족·대기";
+    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:longPressure,short_pressure:shortPressure,flow_action:flowAction,flow_confidence:flowConfidence,flow_extreme:extreme,flow_reason:flowReason,risks:[flowAction==="short"?"1분 매도 급증·전술 숏 조건 감지":flowAction==="long"?"1분 매수 급증·전술 롱 조건 감지":rsi>75?"단기 과열·차익실현":rsi<28?"과매도 변동성":"급등락·뉴스 변수"],reasons:[`24시간 ${change>=0?"+":""}${change.toFixed(2)}%`,`1분 거래량 속도 ${volumePace.toFixed(2)}배`,`호가 불균형 ${(bookImbalance*100).toFixed(1)}%`],updated:new Date().toISOString()}];
   }));
   const market=Object.fromEntries(entries);
   try{const u=(await json("https://api.upbit.com/v1/ticker?markets=KRW-USDT"))[0];market.USDT={price:Number(u.trade_price),change:Number(u.signed_change_rate)*100,quoteVolume:Number(u.acc_trade_price_24h||0),currency:"KRW",source:"Upbit",updated:new Date().toISOString()}}catch{}
@@ -80,80 +106,83 @@ async function insertSignal(body){
   const r=await fetch(PROJECT_URL+"/rest/v1/trade_signals",{method:"POST",headers:adminHeaders({Prefer:"return=representation"}),body:JSON.stringify(body)});
   if(!r.ok)throw Error("signal insert "+r.status+" "+await r.text());const rows=await r.json();return rows[0];
 }
-function candidateSide(m){
+function swingSide(m){
   const rec=String(m.live_recommendation||m.recommendation||"");
-  const long=rec.startsWith("상승")&&!m.long_entry_blocked&&Number(m.short_pressure||0)<60&&Number(m.momentum_15m||0)>=-.25&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58;
+  const long=rec.startsWith("상승")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58;
   const short=rec.startsWith("하락")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=28&&m.rsi<=65&&m.trend_strength<=42;
   return long?"long":short?"short":null;
 }
+function tacticalSide(m){return m.flow_action==="long"||m.flow_action==="short"?m.flow_action:null}
 function signalView(s,price){
   const side=s.side,entry=Number(s.entry_price),pnl=(price/entry-1)*100*(side==="long"?1:-1);
-  return {...s,entry_price:entry,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
+  return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
 async function manageSignals(market,old){
-  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date(),bySymbol=Object.fromEntries(active.map(x=>[x.symbol,x]));const pressureCoins=COINS.filter(x=>Number(market[x]?.short_pressure||0)>=65),marketShock=pressureCoins.length>=3||Number(market.BTC?.short_pressure||0)>=75||Number(market.ETH?.short_pressure||0)>=75;for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
+  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
+  const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));
+  for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
   for(const symbol of COINS){
-    const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;const cooldown=Date.parse(String(cooldowns[symbol]||0))>Date.now();m.long_entry_blocked=marketShock||cooldown||Number(m.short_pressure||0)>=60;m.long_entry_block_reason=marketShock?"시장 전체 숏 충격":cooldown?"손절 후 60분 재진입 대기":Number(m.short_pressure||0)>=60?"단기 숏 압력 강함":"";
-    let s=bySymbol[symbol];
-    if(s){
-      const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
-      const invalid=s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price);
-      const target=s.side==="long"?price>=Number(s.target_price):price<=Number(s.target_price);
-      if(expired||invalid||target){
-        const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
-        const outcome=target?"success":invalid?"failure":result>=.5?"success":result<=-.5?"failure":"neutral";
-        const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?"24시간 만료·수익 종료":outcome==="failure"?"24시간 만료·손실 종료":"24시간 만료·보합";
-        await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:reason,updated_at:now.toISOString()});
-        if(outcome==="failure"){cooldowns[symbol]=new Date(now.getTime()+3600000).toISOString();m.long_entry_blocked=true;m.long_entry_block_reason="손절 후 60분 재진입 대기"}
-        delete bySymbol[symbol];delete candidates[symbol];delete health[symbol];s=null;
-      }else{
-        const liveSide=candidateSide(m),supported=liveSide===s.side,h=health[symbol]||{support_fail:0,support_ok:0};
-        h.support_fail=supported?0:Number(h.support_fail||0)+1;h.support_ok=supported?Number(h.support_ok||0)+1:0;h.last_checked=now.toISOString();health[symbol]=h;
-        let next=s.status;if(s.status==="active"&&h.support_fail>=3)next="weakening";if(s.status==="weakening"&&h.support_ok>=2)next="active";
-        if(next!==s.status)s=await patchSignal(s.id,{status:next,updated_at:now.toISOString()});
-        bySymbol[symbol]=s;delete candidates[symbol];
-      }
-    }
-    if(!s){
-      const side=candidateSide(m),prev=candidates[symbol];
-      if(!side){delete candidates[symbol]}
-      else{
-        const count=prev?.side===side?Number(prev.count||0)+1:1;
-        candidates[symbol]={side,count,first_seen:prev?.side===side?prev.first_seen:now.toISOString(),last_seen:now.toISOString()};
-        if(count>=3){
-          const sc=m.scenarios24,entry=Number(m.price);
-          const invalidation=side==="long"?Number(sc.base.low):Number(sc.base.high);
-          const target=side==="long"?Number(sc.bull.center):Number(sc.bear.center);
-          const created=now.toISOString(),expires=new Date(now.getTime()+86400000).toISOString();
-          try{
-            s=await insertSignal({symbol,side,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:Number(m.direction_confidence),reasons:m.reasons||[],entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,live_recommendation:m.live_recommendation,short_pressure:m.short_pressure,momentum_5m:m.momentum_5m,momentum_15m:m.momentum_15m,sell_buy_ratio:m.sell_buy_ratio},created_at:created,expires_at:expires,updated_at:created});
-            bySymbol[symbol]=s;delete candidates[symbol];
-          }catch(e){if(!String(e).includes("409"))throw e}
+    const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;
+    for(const type of ["swing","tactical"]){
+      const k=key(symbol,type),sideNow=type==="swing"?swingSide(m):tacticalSide(m),horizon=type==="swing"?1440:60;
+      let s=byKey[k];
+      if(s){
+        const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
+        const invalid=s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price);
+        const target=s.side==="long"?price>=Number(s.target_price):price<=Number(s.target_price);
+        if(expired||invalid||target){
+          const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
+          const threshold=type==="tactical"?.2:.5,outcome=target?"success":invalid?"failure":result>=threshold?"success":result<=-threshold?"failure":"neutral";
+          const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?horizon+"분 만료·수익 종료":outcome==="failure"?horizon+"분 만료·손실 종료":horizon+"분 만료·보합";
+          await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:reason,updated_at:now.toISOString()});
+          if(outcome==="failure")cooldowns[k+":"+s.side]=new Date(now.getTime()+(type==="tactical"?900000:3600000)).toISOString();
+          delete byKey[k];delete candidates[k];delete health[k];s=null;
+        }else{
+          const supported=sideNow===s.side,h=health[k]||{support_fail:0,support_ok:0};
+          h.support_fail=supported?0:Number(h.support_fail||0)+1;h.support_ok=supported?Number(h.support_ok||0)+1:0;h.last_checked=now.toISOString();health[k]=h;
+          const failLimit=type==="tactical"?2:3,recoverLimit=type==="tactical"?1:2;let next=s.status;
+          if(s.status==="active"&&h.support_fail>=failLimit)next="weakening";if(s.status==="weakening"&&h.support_ok>=recoverLimit)next="active";
+          if(next!==s.status)s=await patchSignal(s.id,{status:next,updated_at:now.toISOString()});
+          byKey[k]=s;delete candidates[k];
         }
       }
+      if(!s&&sideNow){
+        const cooldownKey=k+":"+sideNow,cooling=Date.parse(String(cooldowns[cooldownKey]||0))>Date.now();
+        if(!cooling){
+          const prev=candidates[k],count=prev?.side===sideNow?Number(prev.count||0)+1:1,required=type==="tactical"?(m.flow_extreme?1:2):3;
+          candidates[k]={side:sideNow,count,required,first_seen:prev?.side===sideNow?prev.first_seen:now.toISOString(),last_seen:now.toISOString()};
+          if(count>=required){
+            const entry=Number(m.price),created=now.toISOString(),expires=new Date(now.getTime()+horizon*60000).toISOString();
+            let invalidation,target,confidence,reasons;
+            if(type==="swing"){const sc=m.scenarios24;invalidation=sideNow==="long"?Number(sc.base.low):Number(sc.base.high);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=m.reasons||[]}
+            else{const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100;target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=entry*(sideNow==="long"?1-sl:1+sl);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`]}
+            try{
+              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure},created_at:created,expires_at:expires,updated_at:created});
+              byKey[k]=s;delete candidates[k];
+            }catch(e){if(!String(e).includes("409"))throw e}
+          }
+        }
+      }else if(!s&&!sideNow)delete candidates[k];
     }
-    s=bySymbol[symbol];
-    if(s){
-      m.trade_signal=signalView(s,Number(m.price));
-      m.recommendation=s.side==="long"?(s.status==="weakening"?"24H 롱 유지·근거 약화":"24H 롱 유지"):(s.status==="weakening"?"24H 숏 유지·근거 약화":"24H 숏 유지");
-      m.direction_confidence=Number(s.confidence);
-    }else{
-      const c=candidates[symbol];m.trade_signal=null;m.recommendation=m.long_entry_blocked?("롱 진입 차단·"+m.long_entry_block_reason):c?("진입 확인 중 "+c.count+"/3"):"진입 대기";
-    }
+    const swing=byKey[key(symbol,"swing")],tactical=byKey[key(symbol,"tactical")];
+    m.trade_signal=swing?signalView(swing,Number(m.price)):null;m.tactical_signal=tactical?signalView(tactical,Number(m.price)):null;
+    m.tactical_response={side:tactical?.side||m.flow_action,status:tactical?.status||"watch",confidence:Number(tactical?.confidence||m.flow_confidence||0),reason:m.flow_reason,required_checks:m.flow_extreme?1:2};
+    if(swing){m.recommendation=swing.side==="long"?(swing.status==="weakening"?"24H 롱 유지·근거 약화":"24H 롱 유지"):(swing.status==="weakening"?"24H 숏 유지·근거 약화":"24H 숏 유지");m.direction_confidence=Number(swing.confidence)}
+    else{const c=candidates[key(symbol,"swing")];m.recommendation=c?("24H "+(c.side==="long"?"롱":"숏")+" 확인 "+c.count+"/3"):"24H 진입 대기"}
   }
-  active=Object.values(bySymbol).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
-  const recent=await recentSignals();
-  return {active,candidates,health,recent,cooldowns,regime:{short_shock:marketShock,pressure_coins:pressureCoins,checked_at:now.toISOString()}};
+  active=Object.values(byKey).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
+  const recent=await recentSignals(),actions=COINS.reduce((o,x)=>{o[x]=market[x]?.flow_action||"wait";return o},{});
+  return {active,candidates,health,recent,cooldowns,regime:{mode:"symmetric_1m_flow",actions,checked_at:now.toISOString()}};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
 async function save(payload){const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?on_conflict=id",{method:"POST",headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{id:"live",payload,updated_at:payload.heartbeat}])});if(!r.ok)throw Error("Supabase save "+r.status+" "+await r.text())}
 
-function publicSignal(s){return {id:s.id,symbol:s.symbol,side:s.side,status:s.status,entry_price:Number(s.entry_price),invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),confidence:Number(s.confidence),created_at:s.created_at,expires_at:s.expires_at,closed_at:s.closed_at,exit_price:s.exit_price==null?null:Number(s.exit_price),result_pct:s.result_pct==null?null:Number(s.result_pct),close_reason:s.close_reason}}
+function publicSignal(s){return {id:s.id,symbol:s.symbol,side:s.side,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),status:s.status,entry_price:Number(s.entry_price),invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),confidence:Number(s.confidence),created_at:s.created_at,expires_at:s.expires_at,closed_at:s.closed_at,exit_price:s.exit_price==null?null:Number(s.exit_price),result_pct:s.result_pct==null?null:Number(s.result_pct),close_reason:s.close_reason}}
 async function historyResponse(req){
   const u=new URL(req.url),page=Math.max(1,Number(u.searchParams.get("page")||1)),limit=Math.min(20,Math.max(1,Number(u.searchParams.get("limit")||20)));
   const symbol=String(u.searchParams.get("symbol")||"").toUpperCase(),offset=(page-1)*limit;
-  let url=PROJECT_URL+"/rest/v1/trade_signals?select=id,symbol,side,status,entry_price,invalidation_price,target_price,confidence,created_at,expires_at,closed_at,exit_price,result_pct,close_reason&order=created_at.desc&limit="+limit+"&offset="+offset;
+  let url=PROJECT_URL+"/rest/v1/trade_signals?select=id,symbol,side,signal_type,horizon_minutes,status,entry_price,invalidation_price,target_price,confidence,created_at,expires_at,closed_at,exit_price,result_pct,close_reason&order=created_at.desc&limit="+limit+"&offset="+offset;
   if(COINS.includes(symbol))url+="&symbol=eq."+symbol;
   const r=await fetch(url,{headers:adminHeaders({Prefer:"count=exact"})});if(!r.ok)throw Error("history page "+r.status+" "+await r.text());
   const rows=(await r.json()).map(publicSignal),range=r.headers.get("content-range")||"",total=Number(range.split("/")[1]||rows.length);
