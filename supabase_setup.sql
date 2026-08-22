@@ -49,23 +49,11 @@ create policy "deny direct signal access"
 
 
 -- Separate 24-hour trend signals from 1-minute tactical long/short signals.
-alter table public.trade_signals
-  add column if not exists signal_type text not null default 'swing',
-  add column if not exists horizon_minutes integer not null default 1440;
-
+alter table public.trade_signals add column if not exists signal_type text not null default 'swing', add column if not exists horizon_minutes integer not null default 1440;
 alter table public.trade_signals drop constraint if exists trade_signals_signal_type_check;
-alter table public.trade_signals add constraint trade_signals_signal_type_check
-  check (signal_type in ('swing','tactical'));
-
+alter table public.trade_signals add constraint trade_signals_signal_type_check check (signal_type in ('swing','tactical'));
 alter table public.trade_signals drop constraint if exists trade_signals_horizon_minutes_check;
-alter table public.trade_signals add constraint trade_signals_horizon_minutes_check
-  check (horizon_minutes between 1 and 10080);
-
+alter table public.trade_signals add constraint trade_signals_horizon_minutes_check check (horizon_minutes between 1 and 10080);
 drop index if exists public.trade_signals_one_open_per_symbol;
 drop index if exists public.trade_signals_one_active_per_symbol;
-create unique index if not exists trade_signals_one_open_per_symbol_type
-  on public.trade_signals(symbol, signal_type)
-  where status in ('active','weakening');
-
-create index if not exists trade_signals_symbol_type_created_idx
-  on public.trade_signals(symbol, signal_type, created_at desc);
+create unique index if not exists trade_signals_one_open_per_symbol_type on public.trade_signals(symbol, signal_type) where status in ('active','weakening');
