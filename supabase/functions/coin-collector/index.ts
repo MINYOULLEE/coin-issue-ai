@@ -92,8 +92,8 @@ async function fetchMarket(){
     const rangeLong=(regime==="support_test"||regime==="false_breakout_down")&&longPressure>=62&&supportTouches>=1;
     const rangeShort=(regime==="resistance_test"||regime==="false_breakout_up")&&shortPressure>=62&&resistanceTouches>=1;
     if(breakoutLong||rangeLong)flowAction="long";if(breakoutShort||rangeShort)flowAction="short";
-    const longScore=clamp(longPressure+(regime==="breakout_up"?12:0)+(regime==="support_test"||regime==="false_breakout_down"?10:0)-profitTaking*.18,0,100);
-    const shortScore=clamp(shortPressure+(regime==="breakout_down"?12:0)+(regime==="resistance_test"||regime==="false_breakout_up"?10:0)-shortCovering*.18,0,100);
+    const longScore=clamp(5+longPressure+(regime==="breakout_up"?12:0)+(regime==="support_test"||regime==="false_breakout_down"?10:0)-profitTaking*.18,0,100);
+    const shortScore=clamp(5+shortPressure+(regime==="breakout_down"?12:0)+(regime==="resistance_test"||regime==="false_breakout_up"?10:0)-shortCovering*.18,0,100);
     const rangeScore=clamp(72-Math.abs(longScore-shortScore)-Math.max(longScore,shortScore)*.25+(regime==="range"?18:0),5,80);
     const totalScore=longScore+shortScore+rangeScore||1,longProb=Math.round(longScore/totalScore*100),shortProb=Math.round(shortScore/totalScore*100),rangeProb=100-longProb-shortProb;
     const flowConfidence=Math.max(longScore,shortScore),extreme=flowAction!=="wait"&&flowConfidence>=82&&volumePace>=2.5&&((flowAction==="long"?buySell:sellBuy)>=1.5);
