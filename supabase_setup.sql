@@ -69,6 +69,6 @@ alter table public.trade_signals
  add column if not exists net_pnl_usd numeric,
  add column if not exists leveraged_return_pct numeric;
 alter table public.trade_signals drop constraint if exists trade_signals_leverage_check;
-alter table public.trade_signals add constraint trade_signals_leverage_check check (leverage is null or leverage between 1 and 5);
+alter table public.trade_signals add constraint trade_signals_leverage_check check (leverage is null or leverage between 1 and 10);
 alter table public.trade_signals drop constraint if exists trade_signals_margin_check;
 alter table public.trade_signals add constraint trade_signals_margin_check check (margin_usd is null or margin_usd >= 0);

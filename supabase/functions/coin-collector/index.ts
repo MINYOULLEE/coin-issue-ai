@@ -145,17 +145,17 @@ function signalView(s,price){
   const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),net=notional?notional*pnl/100-fee:null;
   return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,current_net_pnl_usd:net,current_leveraged_return_pct:margin&&net!=null?net/margin*100:null,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
-function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000){
-  const equity=1000,stopPct=Math.max(.001,Math.abs(entry-invalidation)/entry);
-  const leverage=confidence>=82&&Number(microVol||0)<=.6?5:confidence>=72?3:2;
+function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000,equity=1000){
+  const stopPct=Math.max(.001,Math.abs(entry-invalidation)/entry);
+  const vol=Number(microVol||0),leverage=confidence>=90&&vol<=.35?10:confidence>=85&&vol<=.55?7:confidence>=78?5:confidence>=70?3:2;
   const riskPct=type==="tactical"?.75:1.25,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
   const margin=Math.round(Math.max(0,Math.min(marginCap,availableMargin,riskUsd/(stopPct*leverage)))*100)/100;
   const notional=Math.round(margin*leverage*100)/100,fee=Math.round(notional*.001*100)/100;
   return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
 }
 async function manageSignals(market,old){
-  let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
-  const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));
+  let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
+  const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
   for(const symbol of COINS){
     const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;
@@ -171,7 +171,7 @@ async function manageSignals(market,old){
           const threshold=type==="tactical"?.2:.5,outcome=target?"success":invalid?"failure":result>=threshold?"success":result<=-threshold?"failure":"neutral";
           const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?horizon+"분 만료·수익 종료":outcome==="failure"?horizon+"분 만료·손실 종료":horizon+"분 만료·보합";
           const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),gross=notional*result/100,net=gross-fee,leveraged=margin?net/margin*100:null;
-          await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});
+          await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});if(notional)realizedPnl+=net;
           if(outcome==="failure")cooldowns[k+":"+s.side]=new Date(now.getTime()+(type==="tactical"?900000:3600000)).toISOString();
           delete byKey[k];delete candidates[k];delete health[k];s=null;
         }else{
@@ -194,7 +194,7 @@ async function manageSignals(market,old){
             if(type==="swing"){const sc=m.scenarios24;invalidation=sideNow==="long"?Number(sc.base.low):Number(sc.base.high);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=m.reasons||[]}
             else{const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100;target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=entry*(sideNow==="long"?1-sl:1+sl);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`]}
             try{
-              const usedMargin=Object.values(byKey).reduce((sum,x)=>sum+Number(x.margin_usd||0),0),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,1000-usedMargin);
+              const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity);
               if(plan.margin_usd<25){candidates[k].blocked="담보 부족";continue}
               s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
@@ -210,8 +210,8 @@ async function manageSignals(market,old){
     else{const c=candidates[key(symbol,"swing")];m.recommendation=c?("24H "+(c.side==="long"?"롱":"숏")+" 확인 "+c.count+"/3"):"24H 진입 대기"}
   }
   active=Object.values(byKey).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
-  const recent=await recentSignals(),actions=COINS.reduce((o,x)=>{o[x]=market[x]?.flow_action||"wait";return o},{});
-  return {active,candidates,health,recent,cooldowns,regime:{mode:"symmetric_1m_flow",actions,checked_at:now.toISOString()}};
+  const recent=await recentSignals(),actions=COINS.reduce((o,x)=>{o[x]=market[x]?.flow_action||"wait";return o},{}),openFinal=Object.values(byKey),usedMargin=openFinal.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealizedPnl=openFinal.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealizedPnl),availableMargin=Math.max(0,equity-usedMargin),account={initial_balance_usd:1000,balance_usd:balance,realized_pnl_usd:realizedPnl,unrealized_pnl_usd:unrealizedPnl,equity_usd:equity,used_margin_usd:usedMargin,available_margin_usd:availableMargin,return_pct:(balance/1000-1)*100,open_positions:openFinal.length,updated_at:now.toISOString()};
+  return {active,candidates,health,recent,cooldowns,account,regime:{mode:"symmetric_1m_flow",actions,checked_at:now.toISOString()}};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
@@ -252,7 +252,7 @@ Deno.serve(async req=>{
     for(const x of merged.sort((a,b)=>Date.parse(b.detected||b.published||0)-Date.parse(a.detected||a.published||0))){const key=x.url||x.id||x.title;if(seen.has(key))continue;seen.add(key);const ts=Date.parse(x.detected||x.published||0);if(Number.isFinite(ts)&&ts<cutoff)continue;issues.push(x);if(issues.length>=200)break}
     const today=new Date().toISOString().slice(0,10),day=issues.filter(x=>(x.detected||"").startsWith(today));
     const status=Object.fromEntries(feeds.map(x=>[x.name,x.status]));status["클라우드 수집기"]={ok:true,checked:new Date().toISOString(),items:issues.length,new:feeds.reduce((a,x)=>a+x.issues.length,0),error:""};
-    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,signal_cooldowns:signalState.cooldowns,market_regime:signalState.regime,recent_signals:signalState.recent,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
+    const payload={...old,issues,market,status,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,signal_cooldowns:signalState.cooldowns,market_regime:signalState.regime,paper_account:signalState.account,recent_signals:signalState.recent,stats:{today:day.length,urgent:day.filter(x=>["S","A"].includes(x.grade)).length,good:day.filter(x=>x.direction==="호재").length,bad:day.filter(x=>x.direction==="악재").length},hot_themes:themes(issues),hot_events:old.hot_events||[],started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
     await save(payload);
     return Response.json({ok:true,heartbeat:payload.heartbeat,issues:issues.length,markets:Object.keys(market),active_signals:signalState.active.length,candidates:signalState.candidates});
   }catch(e){console.error(e);return Response.json({ok:false,error:String(e)},{status:500})}
