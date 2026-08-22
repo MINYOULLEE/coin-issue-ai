@@ -142,7 +142,16 @@ function swingSide(m){
 function tacticalSide(m){return m.flow_action==="long"||m.flow_action==="short"?m.flow_action:null}
 function signalView(s,price){
   const side=s.side,entry=Number(s.entry_price),pnl=(price/entry-1)*100*(side==="long"?1:-1);
-  return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
+  const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),net=notional?notional*pnl/100-fee:null;
+  return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,current_net_pnl_usd:net,current_leveraged_return_pct:margin&&net!=null?net/margin*100:null,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
+}
+function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000){
+  const equity=1000,stopPct=Math.max(.001,Math.abs(entry-invalidation)/entry);
+  const leverage=confidence>=82&&Number(microVol||0)<=.6?5:confidence>=72?3:2;
+  const riskPct=type==="tactical"?.75:1.25,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
+  const margin=Math.round(Math.max(0,Math.min(marginCap,availableMargin,riskUsd/(stopPct*leverage)))*100)/100;
+  const notional=Math.round(margin*leverage*100)/100,fee=Math.round(notional*.001*100)/100;
+  return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
 }
 async function manageSignals(market,old){
   let active=await activeSignals();const candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
@@ -161,7 +170,8 @@ async function manageSignals(market,old){
           const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
           const threshold=type==="tactical"?.2:.5,outcome=target?"success":invalid?"failure":result>=threshold?"success":result<=-threshold?"failure":"neutral";
           const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?horizon+"분 만료·수익 종료":outcome==="failure"?horizon+"분 만료·손실 종료":horizon+"분 만료·보합";
-          await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,close_reason:reason,updated_at:now.toISOString()});
+          const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),gross=notional*result/100,net=gross-fee,leveraged=margin?net/margin*100:null;
+          await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});
           if(outcome==="failure")cooldowns[k+":"+s.side]=new Date(now.getTime()+(type==="tactical"?900000:3600000)).toISOString();
           delete byKey[k];delete candidates[k];delete health[k];s=null;
         }else{
@@ -184,7 +194,9 @@ async function manageSignals(market,old){
             if(type==="swing"){const sc=m.scenarios24;invalidation=sideNow==="long"?Number(sc.base.low):Number(sc.base.high);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=m.reasons||[]}
             else{const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100;target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=entry*(sideNow==="long"?1-sl:1+sl);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`]}
             try{
-              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
+              const usedMargin=Object.values(byKey).reduce((sum,x)=>sum+Number(x.margin_usd||0),0),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,1000-usedMargin);
+              if(plan.margin_usd<25){candidates[k].blocked="담보 부족";continue}
+              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
             }catch(e){if(!String(e).includes("409"))throw e}
           }
@@ -205,23 +217,23 @@ async function manageSignals(market,old){
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
 async function save(payload){const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?on_conflict=id",{method:"POST",headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify([{id:"live",payload,updated_at:payload.heartbeat}])});if(!r.ok)throw Error("Supabase save "+r.status+" "+await r.text())}
 
-function publicSignal(s){return {id:s.id,symbol:s.symbol,side:s.side,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),status:s.status,entry_price:Number(s.entry_price),invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),confidence:Number(s.confidence),created_at:s.created_at,expires_at:s.expires_at,closed_at:s.closed_at,exit_price:s.exit_price==null?null:Number(s.exit_price),result_pct:s.result_pct==null?null:Number(s.result_pct),close_reason:s.close_reason}}
+function publicSignal(s){return {id:s.id,symbol:s.symbol,side:s.side,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),status:s.status,entry_price:Number(s.entry_price),invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),confidence:Number(s.confidence),created_at:s.created_at,expires_at:s.expires_at,closed_at:s.closed_at,exit_price:s.exit_price==null?null:Number(s.exit_price),result_pct:s.result_pct==null?null:Number(s.result_pct),close_reason:s.close_reason,account_equity_usd:Number(s.account_equity_usd||1000),margin_usd:s.margin_usd==null?null:Number(s.margin_usd),leverage:s.leverage==null?null:Number(s.leverage),notional_usd:s.notional_usd==null?null:Number(s.notional_usd),fee_usd:s.fee_usd==null?null:Number(s.fee_usd),net_pnl_usd:s.net_pnl_usd==null?null:Number(s.net_pnl_usd),leveraged_return_pct:s.leveraged_return_pct==null?null:Number(s.leveraged_return_pct)}}
 async function historyStats(symbol=""){
   let offset=0,all=[];
   while(true){
-    let url=PROJECT_URL+"/rest/v1/trade_signals?select=status,result_pct&status=in.(success,failure,neutral)&order=id.asc&limit=1000&offset="+offset;
+    let url=PROJECT_URL+"/rest/v1/trade_signals?select=status,result_pct,net_pnl_usd,leveraged_return_pct&status=in.(success,failure,neutral)&order=id.asc&limit=1000&offset="+offset;
     if(COINS.includes(symbol))url+="&symbol=eq."+symbol;
     const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("history stats "+r.status+" "+await r.text());
     const batch=await r.json();all.push(...batch);if(batch.length<1000)break;offset+=1000;
   }
   const success=all.filter(x=>x.status==="success").length,failure=all.filter(x=>x.status==="failure").length,neutral=all.filter(x=>x.status==="neutral").length,decided=success+failure;
-  const totalReturn=all.reduce((sum,x)=>sum+(Number.isFinite(Number(x.result_pct))?Number(x.result_pct):0),0);
-  return {success,failure,neutral,decided,success_rate:decided?success/decided*100:0,failure_rate:decided?failure/decided*100:0,total_return_pct:totalReturn};
+  const totalReturn=all.reduce((sum,x)=>sum+(Number.isFinite(Number(x.result_pct))?Number(x.result_pct):0),0),simulated=all.filter(x=>x.net_pnl_usd!=null),netPnl=simulated.reduce((sum,x)=>sum+Number(x.net_pnl_usd||0),0);
+  return {success,failure,neutral,decided,success_rate:decided?success/decided*100:0,failure_rate:decided?failure/decided*100:0,total_return_pct:totalReturn,simulated_trades:simulated.length,net_pnl_usd:netPnl,account_return_pct:netPnl/1000*100};
 }
 async function historyResponse(req){
   const u=new URL(req.url),page=Math.max(1,Number(u.searchParams.get("page")||1)),limit=Math.min(20,Math.max(1,Number(u.searchParams.get("limit")||20)));
   const symbol=String(u.searchParams.get("symbol")||"").toUpperCase(),offset=(page-1)*limit;
-  let url=PROJECT_URL+"/rest/v1/trade_signals?select=id,symbol,side,signal_type,horizon_minutes,status,entry_price,invalidation_price,target_price,confidence,created_at,expires_at,closed_at,exit_price,result_pct,close_reason&order=created_at.desc&limit="+limit+"&offset="+offset;
+  let url=PROJECT_URL+"/rest/v1/trade_signals?select=id,symbol,side,signal_type,horizon_minutes,status,entry_price,invalidation_price,target_price,confidence,created_at,expires_at,closed_at,exit_price,result_pct,close_reason,account_equity_usd,margin_usd,leverage,notional_usd,fee_usd,net_pnl_usd,leveraged_return_pct&order=created_at.desc&limit="+limit+"&offset="+offset;
   if(COINS.includes(symbol))url+="&symbol=eq."+symbol;
   const r=await fetch(url,{headers:adminHeaders({Prefer:"count=exact"})});if(!r.ok)throw Error("history page "+r.status+" "+await r.text());
   const rows=(await r.json()).map(publicSignal),range=r.headers.get("content-range")||"",total=Number(range.split("/")[1]||rows.length),stats=await historyStats(symbol);

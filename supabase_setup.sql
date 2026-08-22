@@ -57,3 +57,18 @@ alter table public.trade_signals add constraint trade_signals_horizon_minutes_ch
 drop index if exists public.trade_signals_one_open_per_symbol;
 drop index if exists public.trade_signals_one_active_per_symbol;
 create unique index if not exists trade_signals_one_open_per_symbol_type on public.trade_signals(symbol, signal_type) where status in ('active','weakening');
+
+
+-- $1,000 risk-sized leveraged paper-trading performance.
+alter table public.trade_signals
+ add column if not exists account_equity_usd numeric not null default 1000,
+ add column if not exists margin_usd numeric,
+ add column if not exists leverage integer,
+ add column if not exists notional_usd numeric,
+ add column if not exists fee_usd numeric,
+ add column if not exists net_pnl_usd numeric,
+ add column if not exists leveraged_return_pct numeric;
+alter table public.trade_signals drop constraint if exists trade_signals_leverage_check;
+alter table public.trade_signals add constraint trade_signals_leverage_check check (leverage is null or leverage between 1 and 5);
+alter table public.trade_signals drop constraint if exists trade_signals_margin_check;
+alter table public.trade_signals add constraint trade_signals_margin_check check (margin_usd is null or margin_usd >= 0);
