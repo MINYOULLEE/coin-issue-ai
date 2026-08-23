@@ -174,26 +174,31 @@ Deno.serve(async(req:Request)=>{
 
  if(body.action==="trade_history"){
    try{
-     const sync=await syncActualBingxHistory();
      const page=Math.max(1,Math.floor(Number(body.page||1))),limit=Math.max(1,Math.min(50,Math.floor(Number(body.limit||20)))),offset=(page-1)*limit;
-     const all=await db("bingx_trade_history?status=in.(open,closed)&select=*&order=opened_at.desc.nullslast,synced_at.desc&limit=10000");
+     const all=await db("real_trades?status=in.(open,closed)&select=*&order=created_at.desc&limit=2000");
      const mapped=(all||[]).map((x:any)=>{
-       const entry=n(x.entry_price),close=n(x.close_price),margin=n(x.margin_usd),qty=Math.abs(n(x.quantity)),pnl=x.realized_pnl_usd==null?null:n(x.realized_pnl_usd);
-       const base=entry>0&&close>0?((close/entry-1)*(x.side==="long"?1:-1)*100):null;
+       const entry=n(x.entry_price),stop=n(x.stop_price),target=n(x.target_price),margin=n(x.margin_usd),lev=n(x.leverage)||1;
+       const notional=n(x.notional_usd),fee=n(x.fee_usd),pnl=x.net_pnl_usd==null?null:n(x.net_pnl_usd);
+       // 계획했던 손절폭(진입가 대비 %) × 레버리지 × 담보금 = 이 거래에서 원래 감수하기로 한 리스크금액.
+       // R배수 = 실제 순손익 ÷ 이 리스크금액. "손절 1번 만큼의 손실"을 1R로 보는 표준 정의.
+       const stopPct=entry>0&&stop>0?Math.abs(entry-stop)/entry:0;
+       const riskUsd=margin*lev*stopPct;
+       const rMultiple=riskUsd>0&&pnl!=null?pnl/riskUsd:null;
        const roi=margin>0&&pnl!=null?pnl/margin*100:null;
-       return {id:x.external_id,signal_id:null,symbol:String(x.symbol||"").replace("-USDT",""),bingx_symbol:x.symbol,side:x.side,
-         signal_type:"exchange",status:x.status,test_mode:false,margin_usd:margin||null,leverage:n(x.leverage)||null,
-         notional_usd:entry&&qty?entry*qty:null,quantity:qty||null,entry_price:entry||null,stop_price:null,target_price:null,
-         fill_price:entry||null,fee_usd:x.fee_usd,close_price:close||null,close_reason:x.status==="closed"?"BingX 실제 포지션 종료":null,
-         net_pnl_usd:pnl,reject_reason:null,created_at:x.opened_at||x.synced_at,updated_at:x.synced_at,closed_at:x.closed_at,
-         unrealized_pnl_usd:x.unrealized_pnl_usd,base_return_pct:base,margin_return_pct:roi,r_multiple:null,
+       const base=notional>0&&pnl!=null?(pnl+fee)/notional*100:null;
+       return {id:x.bingx_order_id||("trade:"+x.id),signal_id:x.signal_id,symbol:x.symbol,bingx_symbol:x.bingx_symbol,side:x.side,
+         signal_type:x.signal_type,status:x.status,test_mode:!!x.test_mode,margin_usd:margin||null,leverage:lev||null,
+         notional_usd:notional||null,quantity:n(x.quantity)||null,entry_price:entry||null,stop_price:stop||null,target_price:target||null,
+         fill_price:entry||null,fee_usd:fee||null,close_price:n(x.close_price)||null,close_reason:x.close_reason,
+         net_pnl_usd:pnl,reject_reason:x.reject_reason,created_at:x.created_at,updated_at:x.updated_at,closed_at:x.closed_at,
+         unrealized_pnl_usd:null,base_return_pct:base,margin_return_pct:roi,r_multiple:rMultiple,
          evaluation:x.status==="open"?"진행 중":pnl!=null&&pnl>0?"성공":pnl!=null&&pnl<0?"실패":"중립"};
      });
      const rows=mapped.slice(offset,offset+limit),closed=mapped.filter((x:any)=>x.status==="closed"&&x.net_pnl_usd!=null);
      const pnls=closed.map((x:any)=>n(x.net_pnl_usd)),rois=closed.filter((x:any)=>n(x.margin_usd)>0).map((x:any)=>n(x.net_pnl_usd)/n(x.margin_usd)*100);
      const wins=pnls.filter((x:number)=>x>0),losses=pnls.filter((x:number)=>x<0),totalPnl=pnls.reduce((a:number,v:number)=>a+v,0);
      let equity=100,peak=100,maxDd=0;[...closed].reverse().forEach((x:any)=>{equity+=n(x.net_pnl_usd);peak=Math.max(peak,equity);if(peak>0)maxDd=Math.max(maxDd,(peak-equity)/peak*100)});
-     return Response.json({ok:true,page,limit,total:mapped.length,pages:Math.max(1,Math.ceil(mapped.length/limit)),rows,sync,stats:{
+     return Response.json({ok:true,page,limit,total:mapped.length,pages:Math.max(1,Math.ceil(mapped.length/limit)),rows,stats:{
        closed:closed.length,wins:wins.length,losses:losses.length,win_rate:closed.length?wins.length/closed.length*100:0,
        total_pnl_usd:totalPnl,avg_pnl_usd:closed.length?totalPnl/closed.length:0,
        avg_margin_return_pct:rois.length?rois.reduce((a:number,v:number)=>a+v,0)/rois.length:0,
