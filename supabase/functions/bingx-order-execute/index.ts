@@ -130,6 +130,56 @@ function roundTo(v: number, precision: number) {
   return Math.round(v * f) / f;
 }
 
+// real_trades.status='open'인데 실제 BingX 포지션은 이미 손절/익절로 종료된 경우를
+// 찾아 'closed'로 정리한다. 이게 없으면 종료된 포지션이 동시 포지션 한도를 영원히
+// 차지해서, 초기 몇 건 이후로 신규 진입이 전부 거부되는 문제가 생긴다.
+async function reconcileOpenTrades(): Promise<void> {
+  let liveKeys = new Set<string>();
+  try {
+    const positions = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { recvWindow: 5000 });
+    const rows = Array.isArray(positions) ? positions : (positions?.positions || []);
+    for (const p of rows) {
+      const amt = Number(p.positionAmt ?? p.positionAmount ?? 0);
+      if (Math.abs(amt) <= 0) continue;
+      const symbol = String(p.symbol || ""), side = String(p.positionSide || (amt >= 0 ? "LONG" : "SHORT"));
+      liveKeys.add(symbol + "|" + side);
+    }
+  } catch (e) {
+    // 포지션 조회 자체가 실패하면 잘못 닫아버릴 위험이 있으니 이번 실행은 정산을 건너뛴다.
+    console.error("reconcile: position fetch failed, skipping:", e instanceof Error ? e.message : String(e));
+    return;
+  }
+  let openRows: any[] = [];
+  try {
+    openRows = await db("real_trades?status=eq.open&select=id,symbol,bingx_symbol,side,created_at");
+  } catch (e) {
+    console.error("reconcile: failed to load open trades:", e instanceof Error ? e.message : String(e));
+    return;
+  }
+  for (const row of openRows) {
+    const posSide = row.side === "long" ? "LONG" : "SHORT";
+    if (liveKeys.has(row.bingx_symbol + "|" + posSide)) continue;
+    let netPnl: number | null = null;
+    try {
+      const startMs = Date.parse(row.created_at) - 60000;
+      const income = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/income", { symbol: row.bingx_symbol, startTime: startMs, limit: 200 });
+      const list = Array.isArray(income) ? income : [];
+      const relevant = list.filter((x: any) => ["REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"].includes(x.incomeType));
+      if (relevant.length) netPnl = relevant.reduce((sum: number, x: any) => sum + Number(x.income || 0), 0);
+    } catch (e) {
+      console.error("reconcile: income fetch failed for", row.bingx_symbol, e instanceof Error ? e.message : String(e));
+    }
+    try {
+      await db("real_trades?id=eq." + row.id, {
+        method: "PATCH",
+        body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString(), net_pnl_usd: netPnl, close_reason: "거래소 포지션 종료 확인(자동 정산)" }),
+      });
+    } catch (e) {
+      console.error("reconcile: failed to close real_trades row", row.id, e instanceof Error ? e.message : String(e));
+    }
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405 });
   if (!INTERNAL_KEY || req.headers.get("x-internal-key") !== INTERNAL_KEY) {
@@ -186,7 +236,8 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: false, error: "account must be switched to Hedge (dual-side) position mode on BingX before live trading" });
     }
 
-    // 6. 현재 열려있는 실거래 포지션 기준으로 위험 한도 계산
+    // 6. 현재 열려있는 실거래 포지션 기준으로 위험 한도 계산 (먼저 종료된 포지션 정리)
+    await reconcileOpenTrades();
     const open = await db("real_trades?status=eq.open&select=symbol,side,margin_usd");
     if (open.length >= state.max_concurrent_positions) {
       await insertRejected(signal, "동시 포지션 한도 초과");
@@ -197,22 +248,46 @@ Deno.serve(async (req: Request) => {
       await insertRejected(signal, "동일 방향 포지션 한도 초과");
       return Response.json({ ok: true, skipped: "max same-direction positions reached" });
     }
+
+    // 6-1. 실시간 BingX 잔고 조회 — 담보금을 고정 달러가 아니라 "지금 이 순간의 실제 잔고 비율"로 계산한다.
+    //      수익이 나서 잔고가 늘면 다음 신호부터 자동으로 담보금도 커진다.
+    let equity = 0;
+    try {
+      const balanceData = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v3/user/balance", { recvWindow: 5000 });
+      const balRows = Array.isArray(balanceData) ? balanceData : (Array.isArray(balanceData?.balance) ? balanceData.balance : [balanceData?.balance || balanceData || {}]);
+      const usdt = balRows.find((x: any) => String(x?.asset || "").toUpperCase() === "USDT") || balRows[0] || {};
+      equity = Number(usdt?.equity ?? usdt?.balance ?? 0);
+    } catch (e) {
+      console.error("balance fetch failed:", e instanceof Error ? e.message : String(e));
+    }
+    if (!(equity > 0)) {
+      await insertRejected(signal, "실시간 잔고 조회 실패");
+      return Response.json({ ok: true, skipped: "balance unavailable" });
+    }
+
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
-    const remainingTotal = Math.max(0, Number(state.total_margin_cap_usd) - usedTotal);
-    const remainingSymbol = Math.max(0, Number(state.per_symbol_margin_cap_usd) - usedSymbol);
+    const totalCapUsd = equity * (Number(state.total_margin_cap_pct ?? 70) / 100);
+    const perSymbolCapUsd = equity * (Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
+    const remainingTotal = Math.max(0, totalCapUsd - usedTotal);
+    const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
-    let marginUsd: number;
-    if (state.test_mode) {
-      marginUsd = Math.min(Number(state.test_margin_usd), remainingTotal, remainingSymbol);
-    } else {
-      marginUsd = Math.min(Number(signal.margin_usd || 0), remainingTotal, remainingSymbol);
-    }
+    const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
+
+    // 6-2. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N%)" ÷ (손절폭% × 레버리지)
+    //      손절폭이 넓을수록, 레버리지가 낮을수록 같은 리스크금액에 담보금이 커진다.
+    const entryForRisk = Number(signal.entry_price);
+    const stopPct = Math.max(0.001, Math.abs(entryForRisk - Number(signal.invalidation_price)) / entryForRisk);
+    const riskPct = signal.signal_type === "tactical" ? Number(state.tactical_risk_pct ?? 1.0) : Number(state.swing_risk_pct ?? 1.5);
+    const riskUsd = equity * (riskPct / 100);
+    const rawMargin = riskUsd / (stopPct * leverage);
+
+    let marginUsd = Math.min(rawMargin, remainingTotal, remainingSymbol);
+    if (state.test_mode) marginUsd = Math.min(marginUsd, Number(state.test_margin_usd || marginUsd));
     if (!(marginUsd > 0)) {
       await insertRejected(signal, "담보 여유 없음");
       return Response.json({ ok: true, skipped: "no margin headroom" });
     }
-    const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
 
     // 7. 계약 정밀도 조회 후 수량 계산
     const bxSymbol = signal.symbol + "-USDT";
@@ -261,7 +336,7 @@ Deno.serve(async (req: Request) => {
         test_mode: !!state.test_mode, margin_usd: marginUsd, leverage: finalLeverage,
         notional_usd: roundTo(quantity * entry, 2), quantity, entry_price: entry,
         stop_price: stopPrice, target_price: targetPrice,
-        bingx_order_id: String(order?.orderID ?? order?.orderId ?? ""),
+        bingx_order_id: String(order?.orderID ?? order?.orderId ?? order?.order?.orderID ?? order?.order?.orderId ?? ""),
       }),
     });
 

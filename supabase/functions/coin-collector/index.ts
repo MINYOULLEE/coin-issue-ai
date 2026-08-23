@@ -189,7 +189,7 @@ function positionPlan(entry,invalidation,confidence,type,microVol,availableMargi
   const vol=Number(microVol||0),baseLeverage=confidence>=90&&vol<=.35?10:confidence>=85&&vol<=.55?7:confidence>=78?5:confidence>=70?3:2;
   const macroMixed=market.trend_4h==="neutral"||market.trend_1d==="neutral"||market.trend_4h!==market.trend_1d;
   const leverage=Math.min(baseLeverage,market.funding_extreme||macroMixed?5:10);
-  const riskPct=type==="tactical"?.75:1.25,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
+  const riskPct=type==="tactical"?1.0:1.5,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
   const margin=Math.round(Math.max(0,Math.min(marginCap,availableMargin,riskUsd/(stopPct*leverage)))*100)/100;
   const notional=Math.round(margin*leverage*100)/100,fee=Math.round(notional*.001*100)/100;
   return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
@@ -233,12 +233,21 @@ async function manageSignals(market,old){
             const entry=Number(m.price),created=now.toISOString(),expires=new Date(now.getTime()+horizon*60000).toISOString();
             let invalidation,target,confidence,reasons;
             if(type==="swing"){
-              const sc=m.scenarios24,scenarioStop=sideNow==="long"?Number(sc.base.low):Number(sc.base.high),atrStop=entry+(sideNow==="long"?-1:1)*Number(m.atr_1h||0)*1.5;
-              invalidation=sideNow==="long"?Math.min(scenarioStop,atrStop):Math.max(scenarioStop,atrStop);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=[...(m.reasons||[]),`ATR14(1H) 손절 ${Number(m.atr_1h_pct||0).toFixed(2)}%`]
+              // 장기(24H) 관점: 레버리지 거래 노이즈를 견딜 수 있게 손절·목표 모두 넓게 잡는다.
+              // ATR14(1H) 기반 %와 시나리오 기반 값 중 더 넓은/더 야심찬 쪽을 택한다.
+              const atrPct=Number(m.atr_1h_pct||0),slPct=clamp(atrPct*2.2,1.5,6.0)/100,tpPct=clamp(atrPct*4.5,3.0,12.0)/100;
+              const sc=m.scenarios24,scenarioStop=sideNow==="long"?Number(sc.base.low):Number(sc.base.high),pctStop=entry*(sideNow==="long"?1-slPct:1+slPct);
+              invalidation=sideNow==="long"?Math.min(scenarioStop,pctStop):Math.max(scenarioStop,pctStop);
+              const scenarioTarget=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center),pctTarget=entry*(sideNow==="long"?1+tpPct:1-tpPct);
+              target=sideNow==="long"?Math.max(scenarioTarget,pctTarget):Math.min(scenarioTarget,pctTarget);
+              confidence=Number(m.direction_confidence);
+              reasons=[...(m.reasons||[]),`장기 손절 ${(slPct*100).toFixed(2)}% · 목표 ${(tpPct*100).toFixed(2)}%(ATR14 1H 기반)`]
             }
             else{
-              const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100,percentStop=entry*(sideNow==="long"?1-sl:1+sl),atrStop=entry+(sideNow==="long"?-1:1)*Number(m.atr_1m||0)*1.5;
-              target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=sideNow==="long"?Math.min(percentStop,atrStop):Math.max(percentStop,atrStop);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`,`ATR14(1M) 손절 ${Number(m.atr_1m_pct||0).toFixed(3)}%`]
+              // 단기(60분) 관점: 1분 미시 변동성 기반이되, 예전보다 폭을 넓혀 레버리지 노이즈에 덜 흔들리게 한다.
+              const vol=Number(m.micro_volatility_pct||.25),slPct=clamp(vol*1.5,0.4,2.0)/100,tpPct=clamp(vol*3.2,1.0,4.5)/100;
+              const percentStop=entry*(sideNow==="long"?1-slPct:1+slPct),atrStop=entry+(sideNow==="long"?-1:1)*Number(m.atr_1m||0)*1.5;
+              target=entry*(sideNow==="long"?1+tpPct:1-tpPct);invalidation=sideNow==="long"?Math.min(percentStop,atrStop):Math.max(percentStop,atrStop);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`,`단기 손절 ${(slPct*100).toFixed(2)}% · 목표 ${(tpPct*100).toFixed(2)}%`]
             }
             try{
               const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m);
