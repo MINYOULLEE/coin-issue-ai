@@ -180,6 +180,17 @@ async function triggerReprice(signal){
     if(!j.ok)console.error("reprice not applied:",signal.symbol,signal.side,j.error||j.skipped);
   }catch(e){console.error("triggerReprice failed:",e instanceof Error?e.message:String(e))}
 }
+// 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출한다. 새 주문이 없어도 실거래
+// 포지션이 실제로 끝났는지 즉시 확인해서 real_trades를 최신 상태로 맞춘다. 이게 없으면
+// 새 신호가 한동안 안 나올 때 이미 끝난 실거래가 계속 '진행 중'으로 남는 빈틈이 생긴다.
+async function triggerSync(){
+  if(!INTERNAL_TRADE_SECRET)return;
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"sync"})});
+    const j=await r.json().catch(()=>({}));
+    if(!j.ok)console.error("sync failed:",j.error);
+  }catch(e){console.error("triggerSync failed:",e instanceof Error?e.message:String(e))}
+}
 async function activeSignals(){
   const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(active,weakening)&select=*&order=created_at.desc";
   const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("signal fetch "+r.status+" "+await r.text());return await r.json();
@@ -226,6 +237,7 @@ function positionPlan(entry,invalidation,confidence,type,microVol,availableMargi
   return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
 }
 async function manageSignals(market,old){
+  await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
   const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
@@ -249,6 +261,7 @@ async function manageSignals(market,old){
           const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),gross=notional*result/100,net=gross-fee,leveraged=margin?net/margin*100:null;
           await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});if(notional)realizedPnl+=net;
           if(outcome==="failure")cooldowns[k+":"+s.side]=new Date(now.getTime()+(type==="tactical"?900000:3600000)).toISOString();
+          await triggerSync();
           delete byKey[k];delete candidates[k];delete health[k];s=null;
         }else{
           if(expired&&canExtend){

@@ -250,6 +250,16 @@ Deno.serve(async (req: Request) => {
   // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
   if (signal?.action === "reprice") return await handleReprice(signal);
 
+  // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출된다. 새 주문 없이 신호만
+  // 끝나는 경우(우리 쪽 시뮬레이션이 먼저 손절/익절을 감지한 경우 등)에도 실거래
+  // 포지션이 실제로 종료됐는지 즉시 확인해서 real_trades를 최신 상태로 맞춘다. 기존에는
+  // 새 주문이 들어올 때만 정산이 돌아서, 새 신호가 한동안 없으면 이미 끝난 실거래가
+  // 계속 '진행 중'으로 남는 빈틈이 있었다.
+  if (signal?.action === "sync") {
+    await reconcileOpenTrades();
+    return Response.json({ ok: true, synced: true });
+  }
+
   try {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
