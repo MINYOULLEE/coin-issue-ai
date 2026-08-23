@@ -23,6 +23,22 @@ function link(block){const direct=tag(block,["link"]);if(direct)return direct;co
 function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return (h>>>0).toString(16)}
 function ema(a,n){const k=2/(n+1);return a.reduce((v,x,i)=>i?x*k+v*(1-k):x,0)}
 function clamp(n,a,b){return Math.max(a,Math.min(b,n))}
+function atrFromKlines(rows,period=14){
+  if(!Array.isArray(rows)||rows.length<period+1)return 0;
+  const tr=[];for(let i=1;i<rows.length;i++){const high=Number(rows[i][2]),low=Number(rows[i][3]),prev=Number(rows[i-1][4]);tr.push(Math.max(high-low,Math.abs(high-prev),Math.abs(low-prev)))}
+  return tr.slice(-period).reduce((a,b)=>a+b,0)/period;
+}
+function emaTrend(rows){
+  const closes=(rows||[]).map(x=>Number(x[4])).filter(Number.isFinite);
+  if(closes.length<30)return "neutral";
+  const fast=ema(closes.slice(-80),12),slow=ema(closes.slice(-80),26),gap=(fast/slow-1)*100;
+  return gap>.08?"up":gap<-.08?"down":"neutral";
+}
+function fundingGuard(ratePct,side){
+  const extreme=Math.abs(Number(ratePct||0))>=.05;
+  const crowded=extreme&&((side==="long"&&ratePct>0)||(side==="short"&&ratePct<0));
+  return {extreme,crowded};
+}
 function scenarios(price,change,rsi,vr,days){
   let bias=clamp(change*(days===1?.18:.35)+(vr-1)*1.2+(50-rsi)*.015,-8,8);
   const vol=clamp(Math.abs(change)*.45+2.2,2.5,12)*(days===1?1:2.2);
@@ -37,17 +53,22 @@ async function fetchMarket(){
   const tickers=await json("https://api.binance.com/api/v3/ticker/24hr?symbols="+symbols);
   const entries=await Promise.all(tickers.map(async t=>{
     const s=t.symbol.replace("USDT",""),price=Number(t.lastPrice),change=Number(t.priceChangePercent);
-    let closes=[],vols=[],micro=[],depth={bids:[],asks:[]};
+    let closes=[],vols=[],micro=[],hourRows=[],fourHourRows=[],dayRows=[],depth={bids:[],asks:[]},fundingRaw=0;
     try{
-      const [rows,oneMinute,book]=await Promise.all([
+      const [rows,oneMinute,book,fourHour,day,premium]=await Promise.all([
         json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=200"),
         json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1m&limit=60"),
-        json("https://api.binance.com/api/v3/depth?symbol="+s+"USDT&limit=20")
+        json("https://api.binance.com/api/v3/depth?symbol="+s+"USDT&limit=20"),
+        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=4h&limit=120"),
+        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1d&limit=90"),
+        json("https://open-api.bingx.com/openApi/swap/v2/quote/premiumIndex?symbol="+s+"-USDT")
       ]);
-      closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]));micro=oneMinute;depth=book;
+      hourRows=rows;fourHourRows=fourHour;dayRows=day;closes=rows.map(x=>Number(x[4]));vols=rows.map(x=>Number(x[5]));micro=oneMinute;depth=book;
+      const pd=premium?.data||premium||{};fundingRaw=Number(pd.lastFundingRate??pd.fundingRate??pd.rate??0)||0;
     }catch{}
     let rsi=50,vr=1,mom=change,trend=0,m1=0,m3=0,volumePace=1,buySell=1,sellBuy=1,bookImbalance=0,microVol=.25,longPressure=0,shortPressure=0;
     let support=price*.99,resistance=price*1.01,boxPosition=.5,boxWidth=2,supportTouches=0,resistanceTouches=0,regime="range",profitTaking=0,shortCovering=0,falseBreakout="none",poc=price;
+    const atr1h=atrFromKlines(hourRows),atr1m=atrFromKlines(micro),trend4h=emaTrend(fourHourRows),trend1d=emaTrend(dayRows),fundingRatePct=fundingRaw*100,fundingExtreme=Math.abs(fundingRatePct)>=.05;
     if(closes.length>30){
       let gain=0,loss=0;for(let i=closes.length-14;i<closes.length;i++){const d=closes[i]-closes[i-1];gain+=Math.max(d,0);loss+=Math.max(-d,0)}rsi=loss?100-100/(1+gain/loss):100;
       const v1=vols.slice(-24).reduce((a,b)=>a+b,0),v0=vols.slice(-48,-24).reduce((a,b)=>a+b,0)||1;vr=v1/v0;
@@ -92,6 +113,7 @@ async function fetchMarket(){
     const rangeLong=(regime==="support_test"||regime==="false_breakout_down")&&longPressure>=62&&supportTouches>=1;
     const rangeShort=(regime==="resistance_test"||regime==="false_breakout_up")&&shortPressure>=62&&resistanceTouches>=1;
     if(breakoutLong||rangeLong)flowAction="long";if(breakoutShort||rangeShort)flowAction="short";
+    if(flowAction!=="wait"&&fundingGuard(fundingRatePct,flowAction).crowded)flowAction="wait";
     const longScore=clamp(5+longPressure+(regime==="breakout_up"?12:0)+(regime==="support_test"||regime==="false_breakout_down"?10:0)-profitTaking*.18,0,100);
     const shortScore=clamp(5+shortPressure+(regime==="breakout_down"?12:0)+(regime==="resistance_test"||regime==="false_breakout_up"?10:0)-shortCovering*.18,0,100);
     const rangeScore=clamp(72-Math.abs(longScore-shortScore)-Math.max(longScore,shortScore)*.25+(regime==="range"?18:0),5,80);
@@ -101,7 +123,7 @@ async function fetchMarket(){
     const rec=direction>.2?(rsi>75?"상승 추세·과열 주의":"상승 우세"):direction<-.2?(rsi<28?"하락 추세·과매도 주의":"하락 우세"):"중립·확인 대기";
     const regimeLabel={breakout_up:"상단 돌파",breakout_down:"하단 이탈",false_breakout_up:"상단 가짜 돌파",false_breakout_down:"하단 가짜 이탈",support_test:"지지 테스트",resistance_test:"저항 테스트",trend_up:"상승 추세",trend_down:"하락 추세",range:"박스 횡보"}[regime]||regime;
     const flowReason=flowAction==="long"?regimeLabel+"·매수 체결 확인":flowAction==="short"?regimeLabel+"·매도 체결 확인":regimeLabel+"·확정 대기";
-    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:Math.round(longScore),short_pressure:Math.round(shortScore),flow_action:flowAction,flow_confidence:Math.round(flowConfidence),flow_extreme:extreme,flow_reason:flowReason,market_structure:{regime,label:regimeLabel,support,resistance,poc,box_position:boxPosition,box_width_pct:boxWidth,support_touches:supportTouches,resistance_touches:resistanceTouches,false_breakout:falseBreakout,profit_taking_risk:profitTaking,short_covering_risk:shortCovering},micro_scenarios:{long:longProb,short:shortProb,range:rangeProb},risks:[profitTaking>=60?"차익실현 압력 높음":shortCovering>=60?"숏커버 반등 위험 높음":falseBreakout!=="none"?"가짜 돌파 감지":regime==="range"?"박스 중앙 추격 금지":"급등락·뉴스 변수"],reasons:[regimeLabel,`지지 ${support.toFixed(price<10?4:2)} / 저항 ${resistance.toFixed(price<10?4:2)}`,`1분 거래량 ${volumePace.toFixed(2)}배`],updated:new Date().toISOString()}];
+    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),trend_4h:trend4h,trend_1d:trend1d,atr_1h:atr1h,atr_1h_pct:price?atr1h/price*100:0,atr_1m:atr1m,atr_1m_pct:price?atr1m/price*100:0,funding_rate:fundingRaw,funding_rate_pct:fundingRatePct,funding_extreme:fundingExtreme,funding_bias:fundingRatePct>0?"long_crowded":fundingRatePct<0?"short_crowded":"neutral",scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:Math.round(longScore),short_pressure:Math.round(shortScore),flow_action:flowAction,flow_confidence:Math.round(flowConfidence),flow_extreme:extreme,flow_reason:flowReason,market_structure:{regime,label:regimeLabel,support,resistance,poc,box_position:boxPosition,box_width_pct:boxWidth,support_touches:supportTouches,resistance_touches:resistanceTouches,false_breakout:falseBreakout,profit_taking_risk:profitTaking,short_covering_risk:shortCovering},micro_scenarios:{long:longProb,short:shortProb,range:rangeProb},risks:[fundingExtreme?(fundingRatePct>0?"롱 펀딩 과열·롱 신규 차단":"숏 펀딩 과열·숏 신규 차단"):profitTaking>=60?"차익실현 압력 높음":shortCovering>=60?"숏커버 반등 위험 높음":falseBreakout!=="none"?"가짜 돌파 감지":regime==="range"?"박스 중앙 추격 금지":"급등락·뉴스 변수"],reasons:[regimeLabel,`4H ${trend4h} / 1D ${trend1d}`,`펀딩 ${fundingRatePct.toFixed(4)}%`,`지지 ${support.toFixed(price<10?4:2)} / 저항 ${resistance.toFixed(price<10?4:2)}`,`1분 거래량 ${volumePace.toFixed(2)}배`],updated:new Date().toISOString()}];
   }));
   const market=Object.fromEntries(entries);
   try{const u=(await json("https://api.upbit.com/v1/ticker?markets=KRW-USDT"))[0];market.USDT={price:Number(u.trade_price),change:Number(u.signed_change_rate)*100,quoteVolume:Number(u.acc_trade_price_24h||0),currency:"KRW",source:"Upbit",updated:new Date().toISOString()}}catch{}
@@ -147,19 +169,26 @@ async function insertSignal(body){
 }
 function swingSide(m){
   const rec=String(m.live_recommendation||m.recommendation||"");
-  const long=rec.startsWith("상승")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58;
-  const short=rec.startsWith("하락")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=28&&m.rsi<=65&&m.trend_strength<=42;
+  const macroLong=m.trend_4h!=="down"&&m.trend_1d!=="down",macroShort=m.trend_4h!=="up"&&m.trend_1d!=="up";
+  const longFundingOk=!fundingGuard(Number(m.funding_rate_pct||0),"long").crowded,shortFundingOk=!fundingGuard(Number(m.funding_rate_pct||0),"short").crowded;
+  const long=rec.startsWith("상승")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=35&&m.rsi<=72&&m.trend_strength>=58&&macroLong&&longFundingOk;
+  const short=rec.startsWith("하락")&&m.direction_confidence>=70&&m.volume_ratio>=.9&&m.rsi>=28&&m.rsi<=65&&m.trend_strength<=42&&macroShort&&shortFundingOk;
   return long?"long":short?"short":null;
 }
-function tacticalSide(m){return m.flow_action==="long"||m.flow_action==="short"?m.flow_action:null}
+function tacticalSide(m){
+  const side=m.flow_action==="long"||m.flow_action==="short"?m.flow_action:null;
+  return side&&!fundingGuard(Number(m.funding_rate_pct||0),side).crowded?side:null;
+}
 function signalView(s,price){
   const side=s.side,entry=Number(s.entry_price),pnl=(price/entry-1)*100*(side==="long"?1:-1);
   const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),net=notional?notional*pnl/100-fee:null;
   return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,current_net_pnl_usd:net,current_leveraged_return_pct:margin&&net!=null?net/margin*100:null,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
-function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000,equity=1000){
+function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000,equity=1000,market={}){
   const stopPct=Math.max(.001,Math.abs(entry-invalidation)/entry);
-  const vol=Number(microVol||0),leverage=confidence>=90&&vol<=.35?10:confidence>=85&&vol<=.55?7:confidence>=78?5:confidence>=70?3:2;
+  const vol=Number(microVol||0),baseLeverage=confidence>=90&&vol<=.35?10:confidence>=85&&vol<=.55?7:confidence>=78?5:confidence>=70?3:2;
+  const macroMixed=market.trend_4h==="neutral"||market.trend_1d==="neutral"||market.trend_4h!==market.trend_1d;
+  const leverage=Math.min(baseLeverage,market.funding_extreme||macroMixed?5:10);
   const riskPct=type==="tactical"?.75:1.25,riskUsd=equity*riskPct/100,marginCap=equity*(type==="tactical"?.25:.35);
   const margin=Math.round(Math.max(0,Math.min(marginCap,availableMargin,riskUsd/(stopPct*leverage)))*100)/100;
   const notional=Math.round(margin*leverage*100)/100,fee=Math.round(notional*.001*100)/100;
@@ -203,12 +232,18 @@ async function manageSignals(market,old){
           if(count>=required){
             const entry=Number(m.price),created=now.toISOString(),expires=new Date(now.getTime()+horizon*60000).toISOString();
             let invalidation,target,confidence,reasons;
-            if(type==="swing"){const sc=m.scenarios24;invalidation=sideNow==="long"?Number(sc.base.low):Number(sc.base.high);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=m.reasons||[]}
-            else{const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100;target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=entry*(sideNow==="long"?1-sl:1+sl);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`]}
+            if(type==="swing"){
+              const sc=m.scenarios24,scenarioStop=sideNow==="long"?Number(sc.base.low):Number(sc.base.high),atrStop=entry+(sideNow==="long"?-1:1)*Number(m.atr_1h||0)*1.5;
+              invalidation=sideNow==="long"?Math.min(scenarioStop,atrStop):Math.max(scenarioStop,atrStop);target=sideNow==="long"?Number(sc.bull.center):Number(sc.bear.center);confidence=Number(m.direction_confidence);reasons=[...(m.reasons||[]),`ATR14(1H) 손절 ${Number(m.atr_1h_pct||0).toFixed(2)}%`]
+            }
+            else{
+              const vol=Number(m.micro_volatility_pct||.25),tp=clamp(vol*2.2,.5,2.5)/100,sl=clamp(vol*1.2,.35,1.5)/100,percentStop=entry*(sideNow==="long"?1-sl:1+sl),atrStop=entry+(sideNow==="long"?-1:1)*Number(m.atr_1m||0)*1.5;
+              target=entry*(sideNow==="long"?1+tp:1-tp);invalidation=sideNow==="long"?Math.min(percentStop,atrStop):Math.max(percentStop,atrStop);confidence=Number(m.flow_confidence);reasons=[m.flow_reason,`1분 거래량 속도 ${Number(m.one_minute_volume_pace).toFixed(2)}배`,`호가 불균형 ${(Number(m.orderbook_imbalance)*100).toFixed(1)}%`,`ATR14(1M) 손절 ${Number(m.atr_1m_pct||0).toFixed(3)}%`]
+            }
             try{
-              const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity);
+              const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m);
               if(plan.margin_usd<25){candidates[k].blocked="담보 부족";continue}
-              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
+              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,trend_4h:m.trend_4h,trend_1d:m.trend_1d,atr_1h:m.atr_1h,atr_1m:m.atr_1m,funding_rate_pct:m.funding_rate_pct,funding_extreme:m.funding_extreme,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
               await triggerRealTrade(s);
             }catch(e){if(!String(e).includes("409"))throw e}
