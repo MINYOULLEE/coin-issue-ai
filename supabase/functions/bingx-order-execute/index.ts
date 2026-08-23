@@ -180,6 +180,60 @@ async function reconcileOpenTrades(): Promise<void> {
   }
 }
 
+// coin-collector의 20분 재점검에서 손절/익절이 바뀌었을 때 호출된다. 기존 SL/TP 조건부 주문을
+// 취소하고 새 가격으로 다시 등록한다. closePosition을 써서 수량 오차와 무관하게 포지션 전체를 정리한다.
+async function handleReprice(payload: any): Promise<Response> {
+  try {
+    if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
+    const rows = await db(`real_trades?signal_id=eq.${payload.id}&status=eq.open&select=*&limit=1`);
+    const row = rows?.[0];
+    if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
+    const newStop = Number(payload.invalidation_price), newTarget = Number(payload.target_price);
+    if (!(newStop > 0) || !(newTarget > 0)) return Response.json({ ok: false, error: "invalid reprice values" });
+
+    const bxSymbol = String(row.bingx_symbol);
+    const positionSide = row.side === "long" ? "LONG" : "SHORT";
+    const closeSide = row.side === "long" ? "SELL" : "BUY";
+    const contract = await getContract(bxSymbol);
+    const pricePrecision = Number(contract.pricePrecision ?? 2);
+    const stopPrice = roundTo(newStop, pricePrecision);
+    const targetPrice = roundTo(newTarget, pricePrecision);
+    if (stopPrice === Number(row.stop_price) && targetPrice === Number(row.target_price)) {
+      return Response.json({ ok: true, skipped: "no change" });
+    }
+
+    const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
+    const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
+    const mine = list.filter((o: any) => String(o.positionSide) === positionSide && ["STOP_MARKET", "TAKE_PROFIT_MARKET"].includes(String(o.type)));
+    for (const o of mine) {
+      try {
+        await fetchSigned(API_KEY, SECRET_KEY, "DELETE", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId: o.orderId ?? o.orderID, recvWindow: 5000 });
+      } catch (e) {
+        console.error("reprice: cancel failed", o.orderId ?? o.orderID, e instanceof Error ? e.message : String(e));
+      }
+    }
+
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+      symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
+      stopPrice, closePosition: "true", workingType: "MARK_PRICE", recvWindow: 5000,
+    });
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+      symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
+      stopPrice: targetPrice, closePosition: "true", workingType: "MARK_PRICE", recvWindow: 5000,
+    });
+
+    await db(`real_trades?id=eq.${row.id}`, {
+      method: "PATCH",
+      body: JSON.stringify({ stop_price: stopPrice, target_price: targetPrice, updated_at: new Date().toISOString() }),
+    });
+
+    return Response.json({ ok: true, repriced: true, stop_price: stopPrice, target_price: targetPrice });
+  } catch (e) {
+    console.error("reprice failed:", e instanceof Error ? e.message : String(e));
+    return Response.json({ ok: false, error: "reprice failed" }, { status: 502 });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405 });
   if (!INTERNAL_KEY || req.headers.get("x-internal-key") !== INTERNAL_KEY) {
@@ -188,6 +242,10 @@ Deno.serve(async (req: Request) => {
 
   let signal: any;
   try { signal = await req.json(); } catch { return Response.json({ ok: false, error: "invalid json" }, { status: 400 }); }
+
+  // coin-collector의 20분 재점검에서 손절/익절이 바뀌면 여기로 온다. 새 주문이 아니라 기존
+  // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
+  if (signal?.action === "reprice") return await handleReprice(signal);
 
   try {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
@@ -274,11 +332,25 @@ Deno.serve(async (req: Request) => {
 
     const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
 
-    // 6-2. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N%)" ÷ (손절폭% × 레버리지)
+    // 6-2. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
+    //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.
+    let riskMultiplier = 1.0;
+    try {
+      const recent = await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&select=net_pnl_usd&order=closed_at.desc&limit=20`);
+      const closed = (recent || []).filter((x: any) => x.net_pnl_usd != null);
+      if (closed.length >= 8) {
+        const winRate = closed.filter((x: any) => Number(x.net_pnl_usd) > 0).length / closed.length;
+        riskMultiplier = winRate >= 0.6 ? 1.2 : winRate >= 0.5 ? 1.0 : winRate >= 0.35 ? 0.8 : 0.6;
+      }
+    } catch (e) {
+      console.error("recent performance lookup failed:", e instanceof Error ? e.message : String(e));
+    }
+
+    // 6-3. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N% × 성과배수)" ÷ (손절폭% × 레버리지)
     //      손절폭이 넓을수록, 레버리지가 낮을수록 같은 리스크금액에 담보금이 커진다.
     const entryForRisk = Number(signal.entry_price);
     const stopPct = Math.max(0.001, Math.abs(entryForRisk - Number(signal.invalidation_price)) / entryForRisk);
-    const riskPct = signal.signal_type === "tactical" ? Number(state.tactical_risk_pct ?? 1.0) : Number(state.swing_risk_pct ?? 1.5);
+    const riskPct = (signal.signal_type === "tactical" ? Number(state.tactical_risk_pct ?? 1.0) : Number(state.swing_risk_pct ?? 1.5)) * riskMultiplier;
     const riskUsd = equity * (riskPct / 100);
     const rawMargin = riskUsd / (stopPct * leverage);
 

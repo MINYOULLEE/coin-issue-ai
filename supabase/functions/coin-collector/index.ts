@@ -151,6 +151,35 @@ async function triggerRealTrade(signal){
     if(!j.ok)console.error("real trade not placed:",signal.symbol,signal.side,signal.signal_type,j.error||j.skipped);
   }catch(e){console.error("triggerRealTrade failed:",e instanceof Error?e.message:String(e))}
 }
+// 20분 재점검용 손절/익절 산출. 추세가 바뀌었으면 리스크를 줄이는 방향으로만 손절을 당기고(수익 중이면
+// 최소 본전 근처까지 보호), 추세가 여전히 살아있고 수익 중이면 손절은 트레일링으로 따라 올리고 목표는
+// 더 멀리 연장한다. 둘 다 아니면(추세 유지·아직 무손익) 손대지 않는다. 변경이 없으면 null 반환.
+function reviewPosition(s,m,price,pnlPct,supported,type){
+  const entry=Number(s.entry_price),side=s.side,oldStop=Number(s.invalidation_price),oldTarget=Number(s.target_price);
+  let newStop=oldStop,newTarget=oldTarget,changed=false;
+  if(!supported){
+    const protect=pnlPct>0?(side==="long"?Math.max(entry,price-(price-entry)*.3):Math.min(entry,price+(entry-price)*.3)):(oldStop+price)/2;
+    const candidate=side==="long"?Math.min(protect,price*.999):Math.max(protect,price*1.001);
+    if(side==="long"?candidate>oldStop:candidate<oldStop){newStop=candidate;changed=true}
+  }else if(pnlPct>0){
+    const vol=type==="tactical"?Number(m.micro_volatility_pct||.25):Number(m.atr_1h_pct||0)*.7;
+    const slPct=clamp(vol*(type==="tactical"?1.2:1.8),.3,type==="tactical"?2.0:5.0)/100;
+    const tpPct=clamp(vol*(type==="tactical"?2.6:3.6),.8,type==="tactical"?4.5:10.0)/100;
+    const trailStop=side==="long"?price*(1-slPct):price*(1+slPct),extTarget=side==="long"?price*(1+tpPct):price*(1-tpPct);
+    if(side==="long"?trailStop>oldStop:trailStop<oldStop){newStop=trailStop;changed=true}
+    if(side==="long"?extTarget>oldTarget:extTarget<oldTarget){newTarget=extTarget;changed=true}
+  }
+  return changed?{invalidation_price:newStop,target_price:newTarget}:null;
+}
+// 재점검으로 손절/익절이 바뀌면 실거래 쪽(bingx-order-execute)에도 알려서 실제 BingX 주문을 다시 건다.
+async function triggerReprice(signal){
+  if(!INTERNAL_TRADE_SECRET)return;
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"reprice",id:signal.id,symbol:signal.symbol,side:signal.side,invalidation_price:signal.invalidation_price,target_price:signal.target_price})});
+    const j=await r.json().catch(()=>({}));
+    if(!j.ok)console.error("reprice not applied:",signal.symbol,signal.side,j.error||j.skipped);
+  }catch(e){console.error("triggerReprice failed:",e instanceof Error?e.message:String(e))}
+}
 async function activeSignals(){
   const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(active,weakening)&select=*&order=created_at.desc";
   const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("signal fetch "+r.status+" "+await r.text());return await r.json();
@@ -177,7 +206,9 @@ function swingSide(m){
 }
 function tacticalSide(m){
   const side=m.flow_action==="long"||m.flow_action==="short"?m.flow_action:null;
-  return side&&!fundingGuard(Number(m.funding_rate_pct||0),side).crowded?side:null;
+  if(!side)return null;
+  if(!(Number(m.volume_ratio)>=.5))return null; // 조용한 저거래량 구간의 노이즈성 신호 필터링
+  return !fundingGuard(Number(m.funding_rate_pct||0),side).crowded?side:null;
 }
 function signalView(s,price){
   const side=s.side,entry=Number(s.entry_price),pnl=(price/entry-1)*100*(side==="long"?1:-1);
@@ -207,7 +238,11 @@ async function manageSignals(market,old){
         const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
         const invalid=s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price);
         const target=s.side==="long"?price>=Number(s.target_price):price<=Number(s.target_price);
-        if(expired||invalid||target){
+        const pnlPct=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1),supported=sideNow===s.side;
+        // 1순위: 수익 중이고 추세가 아직 살아있으면 시간만료를 늦춰서 승자를 더 태운다. 손실 중이면 그대로 시간 만료로 정리.
+        const canExtend=expired&&!invalid&&!target&&pnlPct>0&&supported&&Number(s.extensions||0)<2;
+        const trulyExpired=expired&&!canExtend;
+        if(trulyExpired||invalid||target){
           const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
           const threshold=type==="tactical"?.2:.5,outcome=target?"success":invalid?"failure":result>=threshold?"success":result<=-threshold?"failure":"neutral";
           const reason=target?"목표가 도달·익절":invalid?"손상 기준 도달·손절":outcome==="success"?horizon+"분 만료·수익 종료":outcome==="failure"?horizon+"분 만료·손실 종료":horizon+"분 만료·보합";
@@ -216,7 +251,19 @@ async function manageSignals(market,old){
           if(outcome==="failure")cooldowns[k+":"+s.side]=new Date(now.getTime()+(type==="tactical"?900000:3600000)).toISOString();
           delete byKey[k];delete candidates[k];delete health[k];s=null;
         }else{
-          const supported=sideNow===s.side,h=health[k]||{support_fail:0,support_ok:0};
+          if(expired&&canExtend){
+            const extendMs=(type==="tactical"?30:720)*60000;
+            s=await patchSignal(s.id,{expires_at:new Date(Date.parse(s.expires_at)+extendMs).toISOString(),extensions:Number(s.extensions||0)+1,updated_at:now.toISOString()});
+          }
+          // 20분마다 재점검: 추세가 바뀌었으면 손절을 당겨 리스크를 줄이고, 여전히 살아있고 수익 중이면
+          // 손절은 트레일링으로 따라 올리고 목표는 더 멀리 연장한다 (장기전 대응 트릭).
+          const lastReview=Date.parse(s.last_reviewed_at||s.created_at);
+          if(now.getTime()-lastReview>=20*60000){
+            const patch=reviewPosition(s,m,price,pnlPct,supported,type);
+            if(patch){s=await patchSignal(s.id,{...patch,last_reviewed_at:now.toISOString(),updated_at:now.toISOString()});await triggerReprice(s)}
+            else s=await patchSignal(s.id,{last_reviewed_at:now.toISOString()});
+          }
+          const h=health[k]||{support_fail:0,support_ok:0};
           h.support_fail=supported?0:Number(h.support_fail||0)+1;h.support_ok=supported?Number(h.support_ok||0)+1:0;h.last_checked=now.toISOString();health[k]=h;
           const failLimit=type==="tactical"?2:3,recoverLimit=type==="tactical"?1:2;let next=s.status;
           if(s.status==="active"&&h.support_fail>=failLimit)next="weakening";if(s.status==="weakening"&&h.support_ok>=recoverLimit)next="active";
@@ -227,10 +274,24 @@ async function manageSignals(market,old){
       if(!s&&sideNow){
         const cooldownKey=k+":"+sideNow,cooling=Date.parse(String(cooldowns[cooldownKey]||0))>Date.now();
         if(!cooling){
-          const prev=candidates[k],count=prev?.side===sideNow?Number(prev.count||0)+1:1,required=type==="tactical"?(m.flow_extreme?1:2):3;
-          candidates[k]={side:sideNow,count,required,first_seen:prev?.side===sideNow?prev.first_seen:now.toISOString(),last_seen:now.toISOString()};
+          const prev=candidates[k],sameSide=prev?.side===sideNow,count=sameSide?Number(prev.count||0)+1:1,required=type==="tactical"?(m.flow_extreme?1:2):3;
+          candidates[k]={side:sideNow,count,required,first_seen:sameSide?prev.first_seen:now.toISOString(),last_seen:now.toISOString(),armed:sameSide?!!prev.armed:false,armed_at:sameSide?prev.armed_at:undefined,armed_price:sameSide?prev.armed_price:undefined};
           if(count>=required){
-            const entry=Number(m.price),created=now.toISOString(),expires=new Date(now.getTime()+horizon*60000).toISOString();
+            // 3순위: 돌파를 그 자리에서 바로 추격매수하지 않고, 살짝 되돌림이 오길 8분간 기다렸다가 진입한다.
+            // 지지/저항 테스트 진입처럼 이미 좋은 자리인 경우는 대기 없이 그대로 진입한다.
+            const regime=m.market_structure?.regime,isChase=type==="tactical"&&(regime==="breakout_up"||regime==="breakout_down");
+            if(isChase&&!candidates[k].armed){
+              candidates[k].armed=true;candidates[k].armed_at=now.toISOString();candidates[k].armed_price=Number(m.price);
+              continue;
+            }
+            let entry=Number(m.price);
+            if(isChase&&candidates[k].armed){
+              const pullbackPct=clamp(Number(m.micro_volatility_pct||.25)*.5,.1,.6)/100,armedPrice=Number(candidates[k].armed_price||entry);
+              const pulledBack=sideNow==="long"?entry<=armedPrice*(1-pullbackPct):entry>=armedPrice*(1+pullbackPct);
+              const armedAgeMs=now.getTime()-Date.parse(candidates[k].armed_at||now.toISOString());
+              if(!pulledBack&&armedAgeMs<8*60000)continue; // 되돌림 대기 계속 (8분 넘으면 놓치지 않도록 시장가로 진입)
+            }
+            const created=now.toISOString(),expires=new Date(now.getTime()+horizon*60000).toISOString();
             let invalidation,target,confidence,reasons;
             if(type==="swing"){
               // 장기(24H) 관점: 레버리지 거래 노이즈를 견딜 수 있게 손절·목표 모두 넓게 잡는다.
