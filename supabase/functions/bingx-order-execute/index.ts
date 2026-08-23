@@ -63,16 +63,16 @@ async function fetchSigned(
   const signature = createHmac("sha256", secretKey).update(canonical).digest("hex");
   for (const base of urls) {
     try {
-      const url = method === "GET"
+      const url = method === "GET" || method === "DELETE"
         ? `${base}${path}?${canonical}&signature=${signature}`
         : `${base}${path}`;
-      const body = method === "GET" ? undefined : `${canonical}&signature=${signature}`;
+      const body = (method === "GET" || method === "DELETE") ? undefined : `${canonical}&signature=${signature}`;
       const res = await fetch(url, {
         method,
         headers: {
           "X-BX-APIKEY": apiKey,
           "X-SOURCE-KEY": "BX-AI-SKILL",
-          ...(method !== "GET" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
+          ...(method === "POST" ? { "Content-Type": "application/x-www-form-urlencoded" } : {}),
         },
         body,
         signal: AbortSignal.timeout(10000),
@@ -91,8 +91,11 @@ function adminHeaders(extra: Record<string, string> = {}) {
 }
 async function db(path: string, init: RequestInit = {}) {
   const r = await fetch(PROJECT_URL + "/rest/v1/" + path, { ...init, headers: { ...adminHeaders(), ...(init.headers || {}) } });
-  if (!r.ok) throw new Error("db " + path + " " + r.status + " " + await r.text());
-  return r.status === 204 ? null : await r.json();
+  const text = await r.text();
+  if (!r.ok) throw new Error("db " + path + " " + r.status + " " + text);
+  // Prefer: return=minimal 인 POST/PATCH는 201/200이어도 본문이 비어있다. 상태코드만으로 판단하지 않는다.
+  if (!text) return null;
+  try { return JSON.parse(text); } catch { throw new Error("db json parse failed on " + path + " (len=" + text.length + ")"); }
 }
 
 async function insertRejected(signal: any, reason: string) {
