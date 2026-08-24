@@ -290,6 +290,12 @@ async function manageSignals(market,old){
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   try{const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"audit"})});const j=await r.json().catch(()=>({}));console.error("AUDIT_RESULT",JSON.stringify(j))}catch(e){console.error("audit trigger failed:",e instanceof Error?e.message:String(e))} // TEMP: 전수검사 1회 실행용, 확인 후 제거 예정
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
+  // 전략 교체 시 이전 세대의 모의 신호가 후보군 A의 담보 계산을 차지하지 않도록 정리한다.
+  for(const legacy of active.filter(x=>![CANDIDATE_A_BIG,CANDIDATE_A_SMALL].includes(x.signal_type))){
+    await triggerClose(legacy,"후보군 A 전환으로 이전 전략 종료");
+    await patchSignal(legacy.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[legacy.symbol]?.price||legacy.entry_price),close_reason:"후보군 A 전환으로 이전 전략 종료",updated_at:now.toISOString()});
+  }
+  active=active.filter(x=>[CANDIDATE_A_BIG,CANDIDATE_A_SMALL].includes(x.signal_type));
   const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
   for(const symbol of COINS){
