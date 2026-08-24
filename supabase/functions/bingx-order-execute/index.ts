@@ -573,6 +573,48 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "balance unavailable" });
     }
 
+    // 6-2. 계좌 회로차단기: 한국시간 하루의 실제 순손실과 최근 연속 손실을 신규 진입 전에 확인한다.
+    // rejected/진행중 거래는 제외하고, 수수료·펀딩비가 반영된 net_pnl_usd만 사용한다.
+    const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
+    const kstDayStartUtc = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
+    const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
+    const dailyClosed = recentClosed.filter((x: any) => x.closed_at && Date.parse(x.closed_at) >= kstDayStartUtc.getTime());
+    const dailyNetPnl = dailyClosed.reduce((sum: number, x: any) => sum + Number(x.net_pnl_usd || 0), 0);
+    let consecutiveLosses = 0;
+    for (const x of recentClosed) {
+      if (Number(x.net_pnl_usd) < 0) consecutiveLosses++;
+      else break;
+    }
+    const dailyLossLimitPct = Number(state.daily_loss_limit_pct ?? 3.0);
+    const maxConsecutiveLosses = Number(state.max_consecutive_losses ?? 4);
+    const lossCooldownMinutes = Number(state.loss_cooldown_minutes ?? 360);
+    const estimatedDayStartEquity = Math.max(equity, equity - dailyNetPnl);
+    const dailyLossLimitUsd = estimatedDayStartEquity * dailyLossLimitPct / 100;
+    const lastClosedAt = recentClosed[0]?.closed_at ? Date.parse(recentClosed[0].closed_at) : 0;
+    const cooldownUntil = lastClosedAt ? lastClosedAt + lossCooldownMinutes * 60 * 1000 : 0;
+    const breakerMetrics = {
+      strategy_config: {
+        circuit_breaker: true,
+        kst_day_start: kstDayStartUtc.toISOString(),
+        daily_net_pnl_usd: roundTo(dailyNetPnl, 6),
+        daily_loss_limit_usd: roundTo(dailyLossLimitUsd, 6),
+        daily_loss_limit_pct: dailyLossLimitPct,
+        consecutive_losses: consecutiveLosses,
+        max_consecutive_losses: maxConsecutiveLosses,
+        loss_cooldown_minutes: lossCooldownMinutes,
+        cooldown_until: cooldownUntil ? new Date(cooldownUntil).toISOString() : null,
+      },
+    };
+    if (dailyNetPnl <= -dailyLossLimitUsd) {
+      await insertRejected(signal, `일일 손실 회로차단: ${dailyNetPnl.toFixed(2)} USDT / 한도 -${dailyLossLimitUsd.toFixed(2)} USDT (한국시간 자정까지)`, breakerMetrics);
+      return Response.json({ ok: true, skipped: "daily loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
+    }
+    if (consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
+      const remainingMinutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
+      await insertRejected(signal, `연속 손실 회로차단: ${consecutiveLosses}연패 / ${maxConsecutiveLosses}회, 재개까지 약 ${remainingMinutes}분`, breakerMetrics);
+      return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
+    }
+
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const totalCapUsd = equity * (Number(state.total_margin_cap_pct ?? 70) / 100);
@@ -582,7 +624,7 @@ Deno.serve(async (req: Request) => {
 
     const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
 
-    // 6-2. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
+    // 6-3. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
     //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.
     let riskMultiplier = 1.0;
     try {
@@ -600,7 +642,7 @@ Deno.serve(async (req: Request) => {
       console.error("recent performance lookup failed:", e instanceof Error ? e.message : String(e));
     }
 
-    // 6-3. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N% × 성과배수)" ÷ (손절폭% × 레버리지)
+    // 6-4. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N% × 성과배수)" ÷ (손절폭% × 레버리지)
     //      손절폭이 넓을수록, 레버리지가 낮을수록 같은 리스크금액에 담보금이 커진다.
     const entryForRisk = Number(signal.entry_price);
     const stopPct = Math.max(0.001, Math.abs(entryForRisk - Number(signal.invalidation_price)) / entryForRisk);
