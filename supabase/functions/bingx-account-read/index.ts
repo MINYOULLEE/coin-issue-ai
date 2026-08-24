@@ -185,7 +185,7 @@ Deno.serve(async(req:Request)=>{
        const base=notional>0&&pnl!=null?pnl/notional*100:null;
        return {id:x.external_id,position_id:x.position_id,signal_id:null,
          symbol:String(x.symbol||"").replace("-USDT",""),bingx_symbol:x.symbol,side:x.side,
-         signal_type:"actual",status:x.status,test_mode:false,margin_usd:margin||null,leverage:lev||null,
+         signal_type:"BingX API",status:x.status,test_mode:false,margin_usd:margin||null,leverage:lev||null,
          notional_usd:notional||null,quantity:qty||null,entry_price:entry||null,stop_price:null,target_price:null,
          fill_price:entry||null,fee_usd:fee||null,close_price:close||null,close_reason:closed?"BingX 포지션 종료":null,
          net_pnl_usd:pnl,reject_reason:null,created_at:x.opened_at,updated_at:x.synced_at,closed_at:x.closed_at,
