@@ -162,20 +162,28 @@ async function reconcileOpenTrades(): Promise<void> {
   for (const row of openRows) {
     const posSide = row.side === "long" ? "LONG" : "SHORT";
     if (liveKeys.has(row.bingx_symbol + "|" + posSide)) continue;
-    let netPnl: number | null = null;
+    let netPnl: number | null = null, feeUsd: number | null = null;
     try {
       const startMs = Date.parse(row.created_at) - 60000;
       const income = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/income", { symbol: row.bingx_symbol, startTime: startMs, limit: 200 });
       const list = Array.isArray(income) ? income : [];
       const relevant = list.filter((x: any) => ["REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"].includes(x.incomeType));
-      if (relevant.length) netPnl = relevant.reduce((sum: number, x: any) => sum + Number(x.income || 0), 0);
+      if (relevant.length) {
+        // 실현손익/수수료(체결)/펀딩비를 따로 합산한다. 수수료는 수동 시장가 청산이든 손절·익절 자동
+        // 체결이든 거래소 income 기록에 실제로 찍힌 값을 그대로 쓰므로 종료 방식과 무관하게 정확하다.
+        const realizedPnl = relevant.filter((x: any) => x.incomeType === "REALIZED_PNL").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        const tradingFee = relevant.filter((x: any) => x.incomeType === "TRADING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        const fundingFee = relevant.filter((x: any) => x.incomeType === "FUNDING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        netPnl = realizedPnl + tradingFee + fundingFee;
+        feeUsd = -(tradingFee + fundingFee); // BingX는 수수료를 음수로 내려주므로 부호를 뒤집어 "낸 비용"으로 저장
+      }
     } catch (e) {
       console.error("reconcile: income fetch failed for", row.bingx_symbol, e instanceof Error ? e.message : String(e));
     }
     try {
       await db("real_trades?id=eq." + row.id, {
         method: "PATCH",
-        body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString(), net_pnl_usd: netPnl, close_reason: "거래소 포지션 종료 확인(자동 정산)" }),
+        body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString(), net_pnl_usd: netPnl, fee_usd: feeUsd, close_reason: "거래소 포지션 종료 확인(자동 정산)" }),
       });
     } catch (e) {
       console.error("reconcile: failed to close real_trades row", row.id, e instanceof Error ? e.message : String(e));
@@ -199,6 +207,8 @@ async function handleReprice(payload: any): Promise<Response> {
     const closeSide = row.side === "long" ? "SELL" : "BUY";
     const contract = await getContract(bxSymbol);
     const pricePrecision = Number(contract.pricePrecision ?? 2);
+    const qtyPrecision = Number(contract.quantityPrecision ?? 3);
+    const qty = roundDown(Number(row.quantity), qtyPrecision);
     const stopPrice = roundTo(newStop, pricePrecision);
     const targetPrice = roundTo(newTarget, pricePrecision);
     if (stopPrice === Number(row.stop_price) && targetPrice === Number(row.target_price)) {
@@ -218,11 +228,11 @@ async function handleReprice(payload: any): Promise<Response> {
 
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
       symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
-      stopPrice, closePosition: "true", workingType: "MARK_PRICE", recvWindow: 5000,
+      stopPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
     });
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
       symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
-      stopPrice: targetPrice, closePosition: "true", workingType: "MARK_PRICE", recvWindow: 5000,
+      stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
     });
 
     await db(`real_trades?id=eq.${row.id}`, {
@@ -234,6 +244,58 @@ async function handleReprice(payload: any): Promise<Response> {
   } catch (e) {
     console.error("reprice failed:", e instanceof Error ? e.message : String(e));
     return Response.json({ ok: false, error: "reprice failed" }, { status: 502 });
+  }
+}
+
+// 손절/익절이 안 걸려있는 것으로 확인된 기존 열린 실거래에 즉시 조건부 주문을 걸어준다.
+// id를 주면 그 1건만, 안 주면 열려있는 전체를 대상으로 한다. 이미 걸려있는 건 건드리지 않고
+// 빠진 것만 채우기 때문에 매 주기 반복 호출해도 안전하다(불필요한 취소·재등록 없음).
+async function handleProtect(payload: any): Promise<Response> {
+  try {
+    if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
+    const path = payload.id ? `real_trades?id=eq.${payload.id}&status=eq.open&select=*` : "real_trades?status=eq.open&select=*";
+    const rows = (await db(path)) || [];
+    const results: any[] = [];
+    for (const row of rows) {
+      const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT", closeSide = row.side === "long" ? "SELL" : "BUY";
+      try {
+        const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
+        const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
+        const mine = list.filter((o: any) => String(o.positionSide) === positionSide);
+        const hasSl = mine.some((o: any) => String(o.type) === "STOP_MARKET");
+        const hasTp = mine.some((o: any) => String(o.type) === "TAKE_PROFIT_MARKET");
+        if (hasSl && hasTp) { results.push({ id: row.id, symbol: row.symbol, skipped: "already protected" }); continue; }
+
+        const contract = await getContract(bxSymbol);
+        const pricePrecision = Number(contract.pricePrecision ?? 2);
+        const qtyPrecision = Number(contract.quantityPrecision ?? 3);
+        const stopPrice = roundTo(Number(row.stop_price), pricePrecision);
+        const targetPrice = roundTo(Number(row.target_price), pricePrecision);
+        const qty = roundDown(Number(row.quantity), qtyPrecision);
+
+        let slOk = hasSl, tpOk = hasTp, slErr = "", tpErr = "";
+        if (!hasSl) {
+          try {
+            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET", stopPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000 });
+            slOk = true;
+          } catch (e) { slErr = e instanceof Error ? e.message : String(e); }
+        }
+        if (!hasTp) {
+          try {
+            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET", stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000 });
+            tpOk = true;
+          } catch (e) { tpErr = e instanceof Error ? e.message : String(e); }
+        }
+
+        results.push({ id: row.id, symbol: row.symbol, side: row.side, stopPrice, targetPrice, slOk, tpOk, slErr, tpErr });
+      } catch (e) {
+        results.push({ id: row.id, symbol: row.symbol, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    return Response.json({ ok: true, protected: results });
+  } catch (e) {
+    console.error("protect failed:", e instanceof Error ? e.message : String(e));
+    return Response.json({ ok: false, error: "protect failed" }, { status: 502 });
   }
 }
 
@@ -249,6 +311,9 @@ Deno.serve(async (req: Request) => {
   // coin-collector의 20분 재점검에서 손절/익절이 바뀌면 여기로 온다. 새 주문이 아니라 기존
   // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
   if (signal?.action === "reprice") return await handleReprice(signal);
+
+  // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
+  if (signal?.action === "protect") return await handleProtect(signal);
 
   // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출된다. 새 주문 없이 신호만
   // 끝나는 경우(우리 쪽 시뮬레이션이 먼저 손절/익절을 감지한 경우 등)에도 실거래
@@ -405,7 +470,9 @@ Deno.serve(async (req: Request) => {
     const positionSide = signal.side === "long" ? "LONG" : "SHORT";
     const side = signal.side === "long" ? "BUY" : "SELL";
 
-    // 8. 레버리지 설정 후 주문 전송 (시장가 진입 + 손절/익절 동시 첨부)
+    // 8. 레버리지 설정 후 시장가 진입 (손절/익절은 부착 파라미터가 조용히 실패하는 사례가 확인되어
+    //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걸고 각각
+    //    성공 여부를 직접 확인한다.)
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: finalLeverage });
 
     const order = await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
@@ -415,10 +482,40 @@ Deno.serve(async (req: Request) => {
       type: "MARKET",
       quantity,
       clientOrderId: `ciai${signal.id}`,
-      stopLoss: JSON.stringify({ type: "STOP_MARKET", stopPrice, workingType: "MARK_PRICE" }),
-      takeProfit: JSON.stringify({ type: "TAKE_PROFIT_MARKET", stopPrice: targetPrice, workingType: "MARK_PRICE" }),
       recvWindow: 5000,
     });
+
+    // 8-1. 손절/익절을 독립 조건부 주문으로 부착. closePosition 방식이 이 계정 환경에서
+    //      "parameter quantity or stopPrice is must" 오류로 계속 실패하는 게 확인되어,
+    //      더 안정적인 실제 수량 지정 방식으로 건다 (헤지 모드에서는 positionSide만으로
+    //      이미 포지션 축소 방향이 결정되므로 reduceOnly는 보내지 않는다).
+    const closeSide = signal.side === "long" ? "SELL" : "BUY";
+    let slAttached = false, tpAttached = false, slError = "", tpError = "";
+    try {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+        symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
+        stopPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+      });
+      slAttached = true;
+    } catch (e) { slError = e instanceof Error ? e.message : String(e); console.error("STOP_MARKET attach failed:", bxSymbol, slError); }
+    try {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+        symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
+        stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+      });
+      tpAttached = true;
+    } catch (e) { tpError = e instanceof Error ? e.message : String(e); console.error("TAKE_PROFIT_MARKET attach failed:", bxSymbol, tpError); }
+
+    // 손절이 안 걸리면 무방비 레버리지 포지션을 남겨둘 수 없으니 즉시 시장가로 안전 청산한다.
+    if (!slAttached) {
+      try {
+        await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+          symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000,
+        });
+      } catch (e) { console.error("EMERGENCY CLOSE FAILED after stop-loss attach failure:", bxSymbol, e instanceof Error ? e.message : String(e)); }
+      await insertRejected(signal, "손절 주문 부착 실패로 안전 청산: " + slError.slice(0, 300));
+      return Response.json({ ok: false, error: "stop-loss attach failed, position closed for safety" }, { status: 502 });
+    }
 
     await db("real_trades", {
       method: "POST",
