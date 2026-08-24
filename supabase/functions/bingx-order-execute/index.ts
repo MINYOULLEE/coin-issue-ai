@@ -27,11 +27,11 @@ const INTERNAL_KEY = Deno.env.get("INTERNAL_TRADE_SECRET") || "";
 const ENV_URLS: Record<string, string[]> = {
   "prod-live": ["https://open-api.bingx.com", "https://open-api.bingx.pro"],
 };
-const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB"];
-const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000 };
+const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "TON", "AAVE"];
+const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, candidate_a_big: 3600000, candidate_a_small: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 16;
-const DEFAULT_STRATEGY_EPOCH = "v27_profit_measurement_1";
+const EXECUTOR_VERSION = 17;
+const DEFAULT_STRATEGY_EPOCH = "candidate_a_v1";
 
 function isNetworkOrTimeout(e: unknown): boolean {
   if (e instanceof TypeError) return true;
@@ -285,6 +285,33 @@ async function handleReprice(payload: any): Promise<Response> {
   }
 }
 
+// 후보군 A는 큰 그림의 방향 전환과 작은 그림의 일일 리밸런싱 때 거래소 포지션도
+// 실제로 종료해야 한다. 보호 주문을 먼저 취소한 뒤 현재 수량 전부를 시장가로 닫는다.
+async function handleClose(payload: any): Promise<Response> {
+  try {
+    if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
+    const rows = await db(`real_trades?signal_id=eq.${payload.id}&status=eq.open&select=*&limit=1`);
+    const row = rows?.[0];
+    if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
+    const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT";
+    const closeSide = row.side === "long" ? "SELL" : "BUY";
+    const contract = await getContract(bxSymbol), qtyPrecision = Number(contract.quantityPrecision ?? 3);
+    const quantity = roundDown(Number(row.quantity), qtyPrecision);
+    const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
+    const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
+    for (const o of list.filter((x: any) => String(x.positionSide) === positionSide && ["STOP_MARKET", "TAKE_PROFIT_MARKET"].includes(String(x.type)))) {
+      try { await fetchSigned(API_KEY, SECRET_KEY, "DELETE", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId: o.orderId ?? o.orderID, recvWindow: 5000 }); }
+      catch (e) { console.error("close: protective cancel failed", e instanceof Error ? e.message : String(e)); }
+    }
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000 });
+    await reconcileOpenTrades();
+    return Response.json({ ok: true, closed: true, reason: payload.reason || "strategy exit" });
+  } catch (e) {
+    console.error("strategy close failed:", e instanceof Error ? e.message : String(e));
+    return Response.json({ ok: false, error: "strategy close failed" }, { status: 502 });
+  }
+}
+
 // 손절/익절이 안 걸려있는 것으로 확인된 기존 열린 실거래에 즉시 조건부 주문을 걸어준다.
 // id를 주면 그 1건만, 안 주면 열려있는 전체를 대상으로 한다. 이미 걸려있는 건 건드리지 않고
 // 빠진 것만 채우기 때문에 매 주기 반복 호출해도 안전하다(불필요한 취소·재등록 없음).
@@ -507,6 +534,7 @@ Deno.serve(async (req: Request) => {
   // coin-collector의 20분 재점검에서 손절/익절이 바뀌면 여기로 온다. 새 주문이 아니라 기존
   // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
   if (signal?.action === "reprice") return await handleReprice(signal);
+  if (signal?.action === "close") return await handleClose(signal);
 
   // 과거 종료 건들의 수수료를 한 번 소급 보정한다 (사람이 요청했을 때만 사용, 자동 반복 안 함).
   if (signal?.action === "backfill_fees") return await handleBackfillFees();
@@ -530,7 +558,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
-    if (!["swing", "tactical"].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
+    if (!["swing", "tactical", "candidate_a_big", "candidate_a_small"].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
     if (!(Number(signal.invalidation_price) > 0) || !(Number(signal.target_price) > 0)) {
       await insertRejected(signal, "손절가/목표가 없음");
       return Response.json({ ok: false, error: "missing stop or target price" });
@@ -696,14 +724,21 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "direction circuit breaker", direction: directionMetrics.strategy_config });
     }
 
+    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(signal.signal_type);
+    const signalStrategy = signal.entry_metrics?.strategy_config || {};
+    const exposureMultiplier = candidateA
+      ? Number(signalStrategy.exposure_multiplier ?? (signal.signal_type === "candidate_a_small" ? 0.5 : 1))
+      : 0;
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
-    const totalCapUsd = equity * (Number(state.total_margin_cap_pct ?? 70) / 100);
-    const perSymbolCapUsd = equity * (Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
+    // 후보군 A 최대 노출 9x를 거래소 레버리지 10x로 구현하면 최대 담보 사용률은 90%다.
+    // 큰 그림 BTC는 최대 80%, 작은 그림 각 leg는 5%로 고정해 백테스트의 비중을 그대로 보존한다.
+    const totalCapUsd = equity * (candidateA ? 0.90 : Number(state.total_margin_cap_pct ?? 70) / 100);
+    const perSymbolCapUsd = equity * (candidateA ? (signal.signal_type === "candidate_a_big" ? 0.80 : 0.05) : Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
     const remainingTotal = Math.max(0, totalCapUsd - usedTotal);
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
-    const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
+    const leverage = Math.max(1, Math.min(candidateA ? 10 : Number(signal.leverage || 1), Number(state.max_leverage)));
 
     // 6-4. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
     //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.
@@ -729,7 +764,7 @@ Deno.serve(async (req: Request) => {
     const stopPct = Math.max(0.001, Math.abs(entryForRisk - Number(signal.invalidation_price)) / entryForRisk);
     const riskPct = (signal.signal_type === "tactical" ? Number(state.tactical_risk_pct ?? 1.0) : Number(state.swing_risk_pct ?? 1.5)) * riskMultiplier;
     const riskUsd = equity * (riskPct / 100);
-    const rawMargin = riskUsd / (stopPct * leverage);
+    const rawMargin = candidateA ? equity * exposureMultiplier / leverage : riskUsd / (stopPct * leverage);
 
     let marginUsd = Math.min(rawMargin, remainingTotal, remainingSymbol);
     if (state.test_mode) marginUsd = Math.min(marginUsd, Number(state.test_margin_usd || marginUsd));
@@ -772,7 +807,7 @@ Deno.serve(async (req: Request) => {
       base_stop_price: baseStopPrice,
       base_target_price: baseTargetPrice,
     };
-    if (state.mfe_mae_optimization_enabled !== false) {
+    if (state.mfe_mae_optimization_enabled !== false && !candidateA) {
       try {
         const epoch = encodeURIComponent(String(signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH));
         const measuredRows = (await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&side=eq.${signal.side}&strategy_epoch=eq.${epoch}&measurement_updated_at=not.is.null&last_mark_price=not.is.null&select=net_pnl_usd,mfe_pct,mae_pct&order=closed_at.desc&limit=30`)) || [];
@@ -845,6 +880,7 @@ Deno.serve(async (req: Request) => {
       expected_net_rr: roundTo(expectedNetRrBeforeEntry, 4),
       strategy_config: {
         risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct,
+        candidate_a: candidateA, exposure_multiplier: exposureMultiplier || null,
         fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate,
         expected_trading_cost_usd: roundTo(expectedTradingCostUsd, 6),
         cost_coverage: roundTo(costCoverage, 3), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta,
@@ -955,7 +991,7 @@ Deno.serve(async (req: Request) => {
         protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
-        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
+        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, candidate_a: candidateA, exposure_multiplier: exposureMultiplier || null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
       }),
     });
 
