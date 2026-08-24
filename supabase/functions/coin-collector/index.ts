@@ -181,7 +181,7 @@ async function triggerReprice(signal){
   }catch(e){console.error("triggerReprice failed:",e instanceof Error?e.message:String(e))}
 }
 // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출한다. 새 주문이 없어도 실거래
-// 포지션이 실제로 끝났는지 즉시 확인해서 real_trades를 최신 상태로 맞춘다. 이게 없으면
+// 포지션이 실제로 끝났는지 즉시 확인해서 real_trades를 최신 상태로 맞추다. 이게 없으면
 // 새 신호가 한동안 안 나올 때 이미 끝난 실거래가 계속 '진행 중'으로 남는 빈틈이 생긴다.
 async function triggerSync(){
   if(!INTERNAL_TRADE_SECRET)return;
@@ -250,8 +250,13 @@ function positionPlan(entry,invalidation,confidence,type,microVol,availableMargi
   return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:notional,fee_usd:fee,risk_usd:riskUsd,risk_pct:riskPct};
 }
 async function manageSignals(market,old){
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-account-read",{method:"POST",headers:{"Content-Type":"application/json",apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"internal_history_sync"})});
+    if(!r.ok)console.error("BingX history background sync failed",r.status,await r.text());
+  }catch(e){console.error("BingX history background sync error",e instanceof Error?e.message:String(e))}
   await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
+  try{const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"audit"})});const j=await r.json().catch(()=>({}));console.error("AUDIT_RESULT",JSON.stringify(j))}catch(e){console.error("audit trigger failed:",e instanceof Error?e.message:String(e))} // TEMP: 전수검사 1회 실행용, 확인 후 제거 예정
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
   const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
@@ -283,7 +288,7 @@ async function manageSignals(market,old){
             s=await patchSignal(s.id,{expires_at:new Date(Date.parse(s.expires_at)+extendMs).toISOString(),extensions:Number(s.extensions||0)+1,updated_at:now.toISOString()});
           }
           // 20분마다 재점검: 추세가 바뀌었으면 손절을 당겨 리스크를 줄이고, 여전히 살아있고 수익 중이면
-          // 손절은 트레일링으로 따라 올리고 목표는 더 멀리 연장한다 (장기전 대응 트릭).
+          // 손절은 트레일링으로 따라 올리고 목표는 더 멀리 연장한다 (장기전 대응 특릭).
           const lastReview=Date.parse(s.last_reviewed_at||s.created_at);
           if(now.getTime()-lastReview>=20*60000){
             const patch=reviewPosition(s,m,price,pnlPct,supported,type);
