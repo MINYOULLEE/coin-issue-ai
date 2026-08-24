@@ -6,6 +6,7 @@ const API_KEY = Deno.env.get("BINGX_API_KEY") || "";
 const SECRET_KEY = Deno.env.get("BINGX_SECRET_KEY") || "";
 const PROJECT_URL = Deno.env.get("SUPABASE_URL") || "";
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+const INTERNAL_TRADE_SECRET = Deno.env.get("INTERNAL_TRADE_SECRET") || "";
 const BASE = {
   "prod-live": ["https://open-api.bingx.com", "https://open-api.bingx.pro"],
 };
@@ -118,8 +119,33 @@ async function syncActualBingxHistory(){
     if(i>0)await sleep(550);
     try{
       const data=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v1/trade/positionHistory",
-        {symbol,currency:"USDT",startTs:now-89*86400000,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
-      for(const v of listOf(data)){
+        {symbol,currency:"USDT",startTs:now-7*86400000,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
+      const historyItems=listOf(data);
+      if(!historyItems.length){
+        const orderData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/allOrders",
+          {symbol,startTime:now-7*86400000,endTime:now,limit:1000,recvWindow:5000});
+        const fills=listOf(orderData).filter((o:any)=>String(o?.status).toUpperCase()==="FILLED"&&n(o?.executedQty??o?.origQty)>0);
+        const groups=new Map<string,any[]>();
+        for(const o of fills){const pid=String(o?.positionID??o?.positionId??"");if(!pid)continue;const g=groups.get(pid)||[];g.push(o);groups.set(pid,g)}
+        for(const [pid,g] of groups){
+          const opens=g.filter((o:any)=>!Boolean(o?.reduceOnly));
+          const closes=g.filter((o:any)=>Boolean(o?.reduceOnly));
+          const openQty=opens.reduce((s:number,o:any)=>s+Math.abs(n(o?.executedQty??o?.origQty)),0);
+          const closeQty=closes.reduce((s:number,o:any)=>s+Math.abs(n(o?.executedQty??o?.origQty)),0);
+          if(!opens.length||!closes.length||closeQty+1e-12<openQty*0.999)continue;
+          const wavg=(xs:any[])=>{const q=xs.reduce((s,o)=>s+Math.abs(n(o?.executedQty??o?.origQty)),0);return q?xs.reduce((s,o)=>s+n(o?.avgPrice??o?.price)*Math.abs(n(o?.executedQty??o?.origQty)),0)/q:0};
+          const entry=wavg(opens),close=wavg(closes),lev=Math.max(1,Math.round(n(String(opens[0]?.leverage||"1").replace(/X/gi,""))||1));
+          const gross=g.reduce((s:number,o:any)=>s+n(o?.profit),0),commission=g.reduce((s:number,o:any)=>s+n(o?.commission),0);
+          const opened=Math.min(...opens.map((o:any)=>n(o?.time??o?.updateTime)).filter(Boolean));
+          const closed=Math.max(...closes.map((o:any)=>n(o?.updateTime??o?.time)).filter(Boolean));
+          const ps=String(opens[0]?.positionSide||"").toUpperCase();
+          closedRows.push({external_id:"position:"+pid,position_id:pid,symbol,side:ps==="SHORT"?"short":"long",status:"closed",
+            entry_price:entry||null,close_price:close||null,quantity:openQty||null,margin_usd:entry&&openQty?entry*openQty/lev:null,leverage:lev,
+            realized_pnl_usd:gross+commission,unrealized_pnl_usd:null,fee_usd:Math.abs(commission),opened_at:isoTime(opened),closed_at:isoTime(closed),
+            raw:{source:"allOrders",gross_pnl:gross,commission,open_order_ids:opens.map((o:any)=>String(o?.orderId||"")),close_order_ids:closes.map((o:any)=>String(o?.orderId||""))},synced_at:syncedAt});
+        }
+      }
+      for(const v of historyItems){
         const sym=symbolOf(v,symbol),side=sideOf(v),qty=Math.abs(n(v?.positionAmt??v?.positionAmount??v?.openPositionAmt??v?.closePositionAmt??v?.quantity??v?.amount));
         const entry=n(v?.avgPrice??v?.avgOpenPrice??v?.openPrice??v?.entryPrice),close=n(v?.closeAvgPrice??v?.avgClosePrice??v?.closePrice);
         const lev=Math.max(1,Math.round(n(v?.leverage)||1)),pnl=n(v?.netProfit??v?.realizedProfit??v?.realisedProfit??v?.realizedPnl??v?.profit);
@@ -131,12 +157,12 @@ async function syncActualBingxHistory(){
           realized_pnl_usd:pnl,unrealized_pnl_usd:null,fee_usd:fee||null,
           opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:closedAt,raw:v,synced_at:syncedAt});
       }
-    }catch(e){errors.push(symbol+": "+String(e instanceof Error?e.message:e))}
+    }catch(e){const msg=symbol+": "+String(e instanceof Error?e.message:e);errors.push(msg);console.error("BingX positionHistory:",msg)}
   }
   await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
   const rows=[...byId.values()];
-  if(rows.length)await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(rows)});
+  for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
   return {ok:true,open:openRows.length,closed:closedRows.length,errors};
 }
 
@@ -156,6 +182,12 @@ Deno.serve(async(req:Request)=>{
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405,headers:CORS});
  let body:Record<string,unknown>={};try{body=await req.json()}catch{}
  if(body.action==="login"){const ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown",now=Date.now(),a=attempts.get(ip);if(a&&a.reset>now&&a.count>=5)return Response.json({ok:false,error:"15분 후 다시 시도하세요."},{status:429,headers:{...CORS,"Retry-After":"900"}});const ok=same(await passwordHash(String(body.password||"")),PASSWORD_HASH);if(!ok){attempts.set(ip,{count:a&&a.reset>now?a.count+1:1,reset:now+900000});return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS})}attempts.delete(ip);return Response.json({ok:true,session:await issueSession(),expires_in:14400},{headers:CORS})}
+ if(body.action==="internal_history_sync"){
+   const supplied=req.headers.get("x-internal-key")||"";
+   if(!INTERNAL_TRADE_SECRET||!same(supplied,INTERNAL_TRADE_SECRET))return Response.json({ok:false,error:"forbidden"},{status:403,headers:CORS});
+   try{const result=await syncActualBingxHistory();if(Array.isArray(result?.errors)&&result.errors.length){console.error("internal_history_sync errors",JSON.stringify(result.errors));return Response.json(result,{status:502,headers:CORS})}return Response.json(result,{headers:CORS})}
+   catch(e){console.error("internal_history_sync failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:String(e instanceof Error?e.message:e)},{status:502,headers:CORS})}
+ }
  if(!await validSession(req.headers.get("x-dashboard-session")||""))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
 
  // 실거래 긴급 정지 스위치 상태 조회. test_mode 여부와 상관없이 지금 도는 실제 주문을 전부 보여준다.
