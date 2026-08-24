@@ -577,7 +577,7 @@ Deno.serve(async (req: Request) => {
     // rejected/진행중 거래는 제외하고, 수수료·펀딩비가 반영된 net_pnl_usd만 사용한다.
     const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
     const kstDayStartUtc = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
-    const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
+    const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,side,signal_type,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
     const dailyClosed = recentClosed.filter((x: any) => x.closed_at && Date.parse(x.closed_at) >= kstDayStartUtc.getTime());
     const dailyNetPnl = dailyClosed.reduce((sum: number, x: any) => sum + Number(x.net_pnl_usd || 0), 0);
     let consecutiveLosses = 0;
@@ -615,6 +615,49 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
 
+    // 6-3. 방향별 회로차단기: 반대 방향은 계속 허용하고, 부진한 LONG 또는 SHORT만 잠시 중단한다.
+    const directionWindow = recentClosed.filter((x: any) => x.side === signal.side).slice(0, 10);
+    const directionPnls = directionWindow.map((x: any) => Number(x.net_pnl_usd));
+    const directionWins = directionPnls.filter((x: number) => x > 0);
+    const directionLosses = directionPnls.filter((x: number) => x < 0);
+    const directionGrossProfit = directionWins.reduce((sum: number, x: number) => sum + x, 0);
+    const directionGrossLoss = -directionLosses.reduce((sum: number, x: number) => sum + x, 0);
+    const directionProfitFactor = directionGrossLoss > 0 ? directionGrossProfit / directionGrossLoss : (directionGrossProfit > 0 ? 9 : 1);
+    const directionExpectancy = directionPnls.length ? directionPnls.reduce((sum: number, x: number) => sum + x, 0) / directionPnls.length : 0;
+    let directionConsecutiveLosses = 0;
+    for (const pnl of directionPnls) {
+      if (pnl < 0) directionConsecutiveLosses++;
+      else break;
+    }
+    const directionMinSamples = Number(state.direction_min_samples ?? 8);
+    const directionProfitFactorFloor = Number(state.direction_profit_factor_floor ?? 0.70);
+    const directionMaxConsecutiveLosses = Number(state.direction_max_consecutive_losses ?? 3);
+    const directionCooldownMinutes = Number(state.direction_cooldown_minutes ?? 360);
+    const directionLastClosedAt = directionWindow[0]?.closed_at ? Date.parse(directionWindow[0].closed_at) : 0;
+    const directionCooldownUntil = directionLastClosedAt ? directionLastClosedAt + directionCooldownMinutes * 60 * 1000 : 0;
+    const latestDirectionWasLoss = directionPnls.length > 0 && directionPnls[0] < 0;
+    const directionPersistentlyWeak = directionPnls.length >= directionMinSamples && directionExpectancy < 0 && directionProfitFactor < directionProfitFactorFloor;
+    const directionLossStreak = directionConsecutiveLosses >= directionMaxConsecutiveLosses;
+    if (latestDirectionWasLoss && (directionPersistentlyWeak || directionLossStreak) && Date.now() < directionCooldownUntil) {
+      const remainingMinutes = Math.ceil((directionCooldownUntil - Date.now()) / 60000);
+      const sideLabel = signal.side === "long" ? "LONG" : "SHORT";
+      const directionMetrics = {
+        strategy_config: {
+          direction_circuit_breaker: true,
+          blocked_side: signal.side,
+          sample_size: directionPnls.length,
+          expectancy_usd: roundTo(directionExpectancy, 6),
+          profit_factor: roundTo(directionProfitFactor, 4),
+          profit_factor_floor: directionProfitFactorFloor,
+          consecutive_losses: directionConsecutiveLosses,
+          max_consecutive_losses: directionMaxConsecutiveLosses,
+          cooldown_until: new Date(directionCooldownUntil).toISOString(),
+        },
+      };
+      await insertRejected(signal, `${sideLabel} 방향 임시중단: 기대값 ${directionExpectancy.toFixed(2)} USDT, PF ${directionProfitFactor.toFixed(2)}, ${directionConsecutiveLosses}연패, 재개까지 약 ${remainingMinutes}분`, directionMetrics);
+      return Response.json({ ok: true, skipped: "direction circuit breaker", direction: directionMetrics.strategy_config });
+    }
+
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const totalCapUsd = equity * (Number(state.total_margin_cap_pct ?? 70) / 100);
@@ -624,7 +667,7 @@ Deno.serve(async (req: Request) => {
 
     const leverage = Math.max(1, Math.min(Number(signal.leverage || 1), Number(state.max_leverage)));
 
-    // 6-3. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
+    // 6-4. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
     //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.
     let riskMultiplier = 1.0;
     try {
@@ -642,7 +685,7 @@ Deno.serve(async (req: Request) => {
       console.error("recent performance lookup failed:", e instanceof Error ? e.message : String(e));
     }
 
-    // 6-4. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N% × 성과배수)" ÷ (손절폭% × 레버리지)
+    // 6-5. 리스크 기반 담보금 계산: "이 한 건에서 잃어도 되는 금액(잔고의 N% × 성과배수)" ÷ (손절폭% × 레버리지)
     //      손절폭이 넓을수록, 레버리지가 낮을수록 같은 리스크금액에 담보금이 커진다.
     const entryForRisk = Number(signal.entry_price);
     const stopPct = Math.max(0.001, Math.abs(entryForRisk - Number(signal.invalidation_price)) / entryForRisk);
