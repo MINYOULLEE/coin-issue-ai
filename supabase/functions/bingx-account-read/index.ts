@@ -100,11 +100,9 @@ function symbolOf(v:any,fallback=""):string{
   const s=String(v?.symbol||fallback).toUpperCase().replace("/","-");
   return s.includes("-")?s:s.endsWith("USDT")?s.slice(0,-4)+"-USDT":s;
 }
-const HISTORY_START_MS=Date.parse("2026-08-23T05:17:02.000Z"); // 2026-08-23 12:17:02 Thailand
-
 async function syncActualBingxHistory(){
   if(!API_KEY||!SECRET_KEY)throw new Error("BingX API key missing");
-  const now=Date.now(),historyStart=Math.max(HISTORY_START_MS,now-7*86400000),syncedAt=new Date(now).toISOString(),errors:string[]=[];
+  const now=Date.now(),syncedAt=new Date(now).toISOString(),errors:string[]=[];
   const openData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000});
   const openRows=listOf(openData).filter((v:any)=>Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount))>0).map((v:any)=>{
     const symbol=symbolOf(v),side=sideOf(v),qty=Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount));
@@ -121,11 +119,11 @@ async function syncActualBingxHistory(){
     if(i>0)await sleep(550);
     try{
       const data=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v1/trade/positionHistory",
-        {symbol,currency:"USDT",startTs:historyStart,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
+        {symbol,currency:"USDT",startTs:now-7*86400000,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
       const historyItems=listOf(data);
       if(!historyItems.length){
         const orderData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/allOrders",
-          {symbol,startTime:historyStart,endTime:now,limit:1000,recvWindow:5000});
+          {symbol,startTime:now-7*86400000,endTime:now,limit:1000,recvWindow:5000});
         const fills=listOf(orderData).filter((o:any)=>String(o?.status).toUpperCase()==="FILLED"&&n(o?.executedQty??o?.origQty)>0);
         const groups=new Map<string,any[]>();
         for(const o of fills){const pid=String(o?.positionID??o?.positionId??"");if(!pid)continue;const g=groups.get(pid)||[];g.push(o);groups.set(pid,g)}
@@ -163,7 +161,7 @@ async function syncActualBingxHistory(){
   }
   await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
-  const rows=[...byId.values()].filter((row:any)=>!row.opened_at||Date.parse(row.opened_at)>=HISTORY_START_MS);
+  const rows=[...byId.values()];
   for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
   return {ok:true,open:openRows.length,closed:closedRows.length,errors};
 }
@@ -229,13 +227,15 @@ Deno.serve(async(req:Request)=>{
      const rows=mapped.slice(offset,offset+limit),closed=mapped.filter((x:any)=>x.status==="closed"&&x.net_pnl_usd!=null);
      const pnls=closed.map((x:any)=>n(x.net_pnl_usd)),rois=closed.filter((x:any)=>n(x.margin_usd)>0).map((x:any)=>n(x.net_pnl_usd)/n(x.margin_usd)*100);
      const wins=pnls.filter((x:number)=>x>0),losses=pnls.filter((x:number)=>x<0),totalPnl=pnls.reduce((a:number,v:number)=>a+v,0);
+      const totalFee=closed.reduce((a:number,x:any)=>a+Math.abs(n(x.fee_usd)),0);
+      const currentMargin=mapped.filter((x:any)=>x.status==="open").reduce((a:number,x:any)=>a+n(x.margin_usd),0);
      let equity=100,peak=100,maxDd=0;[...closed].reverse().forEach((x:any)=>{equity+=n(x.net_pnl_usd);peak=Math.max(peak,equity);if(peak>0)maxDd=Math.max(maxDd,(peak-equity)/peak*100)});
      return Response.json({ok:true,source:"bingx_position_history",sync,page,limit,total:mapped.length,pages:Math.max(1,Math.ceil(mapped.length/limit)),rows,stats:{
        closed:closed.length,wins:wins.length,losses:losses.length,win_rate:closed.length?wins.length/closed.length*100:0,
        total_pnl_usd:totalPnl,avg_pnl_usd:closed.length?totalPnl/closed.length:0,
        avg_margin_return_pct:rois.length?rois.reduce((a:number,v:number)=>a+v,0)/rois.length:0,
        account_return_pct:totalPnl,profit_factor:losses.length?wins.reduce((a:number,v:number)=>a+v,0)/Math.abs(losses.reduce((a:number,v:number)=>a+v,0)):wins.length?null:0,
-       max_drawdown_pct:maxDd
+       max_drawdown_pct:maxDd,total_fee_usd:totalFee,current_margin_usd:currentMargin
      }},{headers:CORS});
    }catch(e){console.error("trade_history failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:"BingX 실제 포지션 기록 동기화 실패: "+(e instanceof Error?e.message:String(e))},{status:502,headers:CORS})}
  }
