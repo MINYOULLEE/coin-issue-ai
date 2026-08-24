@@ -1,6 +1,9 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB"];
+const COLLECTOR_VERSION = 27;
+const STRATEGY_EPOCH = "v27_profit_measurement_1";
+const SIGNAL_MODEL_VERSION = "signal_v27";
 const SOURCES = [
   ["CFTC Press","https://www.cftc.gov/RSS/RSSGP/rssgp.xml","official"],
   ["CFTC Speeches","https://www.cftc.gov/RSS/RSSST/rssst.xml","official"],
@@ -345,7 +348,7 @@ async function manageSignals(market,old){
             try{
               const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m);
               if(plan.margin_usd<25){candidates[k].blocked="담보 부족";continue}
-              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,trend_4h:m.trend_4h,trend_1d:m.trend_1d,atr_1h:m.atr_1h,atr_1m:m.atr_1m,funding_rate_pct:m.funding_rate_pct,funding_extreme:m.funding_extreme,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
+              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{rsi:m.rsi,volume_ratio:m.volume_ratio,trend_strength:m.trend_strength,trend_4h:m.trend_4h,trend_1d:m.trend_1d,atr_1h:m.atr_1h,atr_1m:m.atr_1m,funding_rate_pct:m.funding_rate_pct,funding_extreme:m.funding_extreme,momentum_1m:m.momentum_1m,momentum_3m:m.momentum_3m,one_minute_volume_pace:m.one_minute_volume_pace,buy_sell_ratio:m.buy_sell_ratio,sell_buy_ratio:m.sell_buy_ratio,orderbook_imbalance:m.orderbook_imbalance,long_pressure:m.long_pressure,short_pressure:m.short_pressure,market_structure:m.market_structure,micro_scenarios:m.micro_scenarios},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
               await triggerRealTrade(s);
             }catch(e){if(!String(e).includes("409"))throw e}
