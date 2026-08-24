@@ -100,9 +100,11 @@ function symbolOf(v:any,fallback=""):string{
   const s=String(v?.symbol||fallback).toUpperCase().replace("/","-");
   return s.includes("-")?s:s.endsWith("USDT")?s.slice(0,-4)+"-USDT":s;
 }
+const HISTORY_START_MS=Date.parse("2026-08-23T05:17:02.000Z"); // 2026-08-23 12:17:02 Thailand
+
 async function syncActualBingxHistory(){
   if(!API_KEY||!SECRET_KEY)throw new Error("BingX API key missing");
-  const now=Date.now(),syncedAt=new Date(now).toISOString(),errors:string[]=[];
+  const now=Date.now(),historyStart=Math.max(HISTORY_START_MS,now-7*86400000),syncedAt=new Date(now).toISOString(),errors:string[]=[];
   const openData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000});
   const openRows=listOf(openData).filter((v:any)=>Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount))>0).map((v:any)=>{
     const symbol=symbolOf(v),side=sideOf(v),qty=Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount));
@@ -119,11 +121,11 @@ async function syncActualBingxHistory(){
     if(i>0)await sleep(550);
     try{
       const data=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v1/trade/positionHistory",
-        {symbol,currency:"USDT",startTs:now-7*86400000,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
+        {symbol,currency:"USDT",startTs:historyStart,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
       const historyItems=listOf(data);
       if(!historyItems.length){
         const orderData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/allOrders",
-          {symbol,startTime:now-7*86400000,endTime:now,limit:1000,recvWindow:5000});
+          {symbol,startTime:historyStart,endTime:now,limit:1000,recvWindow:5000});
         const fills=listOf(orderData).filter((o:any)=>String(o?.status).toUpperCase()==="FILLED"&&n(o?.executedQty??o?.origQty)>0);
         const groups=new Map<string,any[]>();
         for(const o of fills){const pid=String(o?.positionID??o?.positionId??"");if(!pid)continue;const g=groups.get(pid)||[];g.push(o);groups.set(pid,g)}
@@ -161,7 +163,7 @@ async function syncActualBingxHistory(){
   }
   await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
-  const rows=[...byId.values()];
+  const rows=[...byId.values()].filter((row:any)=>!row.opened_at||Date.parse(row.opened_at)>=HISTORY_START_MS);
   for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
   return {ok:true,open:openRows.length,closed:closedRows.length,errors};
 }
