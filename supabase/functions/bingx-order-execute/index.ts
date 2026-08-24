@@ -319,6 +319,14 @@ Deno.serve(async (req: Request) => {
       await insertRejected(signal, "동일 방향 포지션 한도 초과");
       return Response.json({ ok: true, skipped: "max same-direction positions reached" });
     }
+    // 6-0. 같은 종목·같은 방향으로 이미 열려있는 포지션이 있으면 재진입하지 않는다. BingX는
+    //      이 경우 새 포지션을 만들지 않고 기존 포지션에 평단가로 합쳐버리는데, 우리 시스템은
+    //      신호마다 별도 행으로 손절/익절을 추적하기 때문에 실제로는 포지션이 1개인데 기록은
+    //      2개가 되고, 손절/익절 조건부 주문도 두 세트가 걸려 서로 충돌할 위험이 있다.
+    if (open.some((x: any) => x.symbol === signal.symbol && x.side === signal.side)) {
+      await insertRejected(signal, "동일 종목·방향 포지션 이미 보유 중(평단 섞임 방지)");
+      return Response.json({ ok: true, skipped: "already holding same symbol+side position" });
+    }
 
     // 6-1. 실시간 BingX 잔고 조회 — 담보금을 고정 달러가 아니라 "지금 이 순간의 실제 잔고 비율"로 계산한다.
     //      수익이 나서 잔고가 늘면 다음 신호부터 자동으로 담보금도 커진다.
