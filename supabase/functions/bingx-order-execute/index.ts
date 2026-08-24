@@ -141,6 +141,14 @@ function roundTo(v: number, precision: number) {
 function clamp(v: number, min: number, max: number) {
   return Math.max(min, Math.min(max, v));
 }
+function percentile(values: number[], q: number): number {
+  if (!values.length) return 0;
+  const sorted = [...values].sort((a, b) => a - b);
+  const index = (sorted.length - 1) * clamp(q, 0, 1);
+  const low = Math.floor(index), high = Math.ceil(index);
+  if (low === high) return sorted[low];
+  return sorted[low] + (sorted[high] - sorted[low]) * (index - low);
+}
 
 // real_trades.status='open'인데 실제 BingX 포지션은 이미 손절/익절로 종료된 경우를
 // 찾아 'closed'로 정리한다. 이게 없으면 종료된 포지션이 동시 포지션 한도를 영원히
@@ -286,9 +294,39 @@ async function handleProtect(payload: any): Promise<Response> {
     const path = payload.id ? `real_trades?id=eq.${payload.id}&status=eq.open&select=*` : "real_trades?status=eq.open&select=*";
     const rows = (await db(path)) || [];
     const results: any[] = [];
+    const livePositions = new Map<string, any>();
+    try {
+      const rawPositions = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { recvWindow: 5000 });
+      const positionRows = Array.isArray(rawPositions) ? rawPositions : (rawPositions?.positions || []);
+      for (const p of positionRows) {
+        const amt = Number(p.positionAmt ?? p.positionAmount ?? 0);
+        if (Math.abs(amt) <= 0) continue;
+        livePositions.set(String(p.symbol || "") + "|" + String(p.positionSide || (amt >= 0 ? "LONG" : "SHORT")), p);
+      }
+    } catch (positionError) {
+      console.error("protect: MFE/MAE position fetch failed:", positionError instanceof Error ? positionError.message : String(positionError));
+    }
     for (const row of rows) {
       const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT", closeSide = row.side === "long" ? "SELL" : "BUY";
       try {
+        const livePosition = livePositions.get(bxSymbol + "|" + positionSide);
+        const markPrice = Number(livePosition?.markPrice ?? livePosition?.price ?? 0);
+        const measuredEntry = Number(row.entry_price || 0);
+        if (markPrice > 0 && measuredEntry > 0) {
+          const movePct = (markPrice / measuredEntry - 1) * 100 * (row.side === "long" ? 1 : -1);
+          const roePct = movePct * Number(row.leverage || 1);
+          await db("real_trades?id=eq." + row.id, {
+            method: "PATCH",
+            body: JSON.stringify({
+              mfe_pct: Math.max(Number(row.mfe_pct || 0), movePct),
+              mae_pct: Math.min(Number(row.mae_pct || 0), movePct),
+              peak_roe_pct: Math.max(Number(row.peak_roe_pct || 0), roePct),
+              lowest_roe_pct: Math.min(Number(row.lowest_roe_pct || 0), roePct),
+              last_mark_price: markPrice,
+              measurement_updated_at: new Date().toISOString(),
+            }),
+          });
+        }
         const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
         const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
         const mine = list.filter((o: any) => String(o.positionSide) === positionSide);
@@ -718,10 +756,62 @@ Deno.serve(async (req: Request) => {
       await insertRejected(signal, "최소 주문 수량 미달");
       return Response.json({ ok: true, skipped: "below exchange minimum order size" });
     }
-    const stopPrice = roundTo(Number(signal.invalidation_price), pricePrecision);
-    const targetPrice = roundTo(Number(signal.target_price), pricePrecision);
+    const baseStopPrice = roundTo(Number(signal.invalidation_price), pricePrecision);
+    const baseTargetPrice = roundTo(Number(signal.target_price), pricePrecision);
+    let stopPrice = baseStopPrice, targetPrice = baseTargetPrice;
     const positionSide = signal.side === "long" ? "LONG" : "SHORT";
     const side = signal.side === "long" ? "BUY" : "SELL";
+
+    // 7-1. MFE/MAE 기반 적응형 손절·익절:
+    // 같은 전략 세대·유형·방향에서 측정 표본 12건 및 승리 5건이 확보되기 전에는 기존 가격을 그대로 쓴다.
+    let adaptiveLevelsApplied = false;
+    let adaptiveLevelMeta: Record<string, any> = {
+      enabled: !!state.mfe_mae_optimization_enabled,
+      sample_size: 0,
+      winner_sample_size: 0,
+      base_stop_price: baseStopPrice,
+      base_target_price: baseTargetPrice,
+    };
+    if (state.mfe_mae_optimization_enabled !== false) {
+      try {
+        const epoch = encodeURIComponent(String(signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH));
+        const measuredRows = (await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&side=eq.${signal.side}&strategy_epoch=eq.${epoch}&measurement_updated_at=not.is.null&last_mark_price=not.is.null&select=net_pnl_usd,mfe_pct,mae_pct&order=closed_at.desc&limit=30`)) || [];
+        const validMeasured = measuredRows.filter((x: any) => Number.isFinite(Number(x.mfe_pct)) && Number.isFinite(Number(x.mae_pct)));
+        const winners = validMeasured.filter((x: any) => Number(x.net_pnl_usd) > 0);
+        const minSamples = Number(state.mfe_mae_min_samples ?? 12);
+        const minWins = Number(state.mfe_mae_min_wins ?? 5);
+        adaptiveLevelMeta = { ...adaptiveLevelMeta, sample_size: validMeasured.length, winner_sample_size: winners.length, min_samples: minSamples, min_wins: minWins };
+        if (validMeasured.length >= minSamples && winners.length >= minWins) {
+          const winnerAdverse = winners.map((x: any) => Math.abs(Math.min(0, Number(x.mae_pct))) / 100);
+          const winnerFavorable = winners.map((x: any) => Math.max(0, Number(x.mfe_pct)) / 100).filter((x: number) => x > 0);
+          const baseStopDistancePct = Math.abs(entry - baseStopPrice) / entry;
+          const baseTargetDistancePct = Math.abs(baseTargetPrice - entry) / entry;
+          const adverseP75 = percentile(winnerAdverse, 0.75);
+          const favorableP50 = percentile(winnerFavorable, 0.50);
+          const stopMinFactor = Number(state.adaptive_stop_min_factor ?? 0.80);
+          const targetMinFactor = Number(state.adaptive_target_min_factor ?? 0.90);
+          const targetMaxFactor = Number(state.adaptive_target_max_factor ?? 1.20);
+          // 리스크가 커지지 않도록 손절은 기존보다 절대 넓히지 않는다.
+          const stopFactor = clamp((adverseP75 * 1.15) / Math.max(0.000001, baseStopDistancePct), stopMinFactor, 1.0);
+          const targetFactor = clamp((favorableP50 * 0.85) / Math.max(0.000001, baseTargetDistancePct), targetMinFactor, targetMaxFactor);
+          const adaptiveStopDistance = Math.abs(entry - baseStopPrice) * stopFactor;
+          const adaptiveTargetDistance = Math.abs(baseTargetPrice - entry) * targetFactor;
+          stopPrice = roundTo(entry + (signal.side === "long" ? -adaptiveStopDistance : adaptiveStopDistance), pricePrecision);
+          targetPrice = roundTo(entry + (signal.side === "long" ? adaptiveTargetDistance : -adaptiveTargetDistance), pricePrecision);
+          adaptiveLevelsApplied = stopPrice !== baseStopPrice || targetPrice !== baseTargetPrice;
+          adaptiveLevelMeta = {
+            ...adaptiveLevelMeta, applied: adaptiveLevelsApplied,
+            winner_mae_p75_pct: roundTo(adverseP75 * 100, 4),
+            winner_mfe_p50_pct: roundTo(favorableP50 * 100, 4),
+            stop_factor: roundTo(stopFactor, 4), target_factor: roundTo(targetFactor, 4),
+            adaptive_stop_price: stopPrice, adaptive_target_price: targetPrice,
+          };
+        }
+      } catch (adaptiveError) {
+        adaptiveLevelMeta = { ...adaptiveLevelMeta, error: adaptiveError instanceof Error ? adaptiveError.message : String(adaptiveError) };
+        console.error("MFE/MAE adaptive level lookup failed:", adaptiveLevelMeta.error);
+      }
+    }
 
     // 7-1. 비용 차감 기대수익 게이트:
     // 실제 최근 수수료율과 측정된 슬리피지를 우선 사용하고, 표본이 없으면 보수적 기본값을 적용한다.
@@ -757,7 +847,7 @@ Deno.serve(async (req: Request) => {
         risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct,
         fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate,
         expected_trading_cost_usd: roundTo(expectedTradingCostUsd, 6),
-        cost_coverage: roundTo(costCoverage, 3), minimum_net_rr: minimumNetRr,
+        cost_coverage: roundTo(costCoverage, 3), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta,
       },
     };
     if (!(expectedNetProfitBeforeEntry > 0) || expectedNetRrBeforeEntry < minimumNetRr || costCoverage < minimumCostCoverage) {
@@ -852,7 +942,9 @@ Deno.serve(async (req: Request) => {
         side: signal.side, signal_type: signal.signal_type, status: "open",
         test_mode: !!state.test_mode, margin_usd: marginUsd, leverage: finalLeverage,
         notional_usd: effectiveNotional, quantity: actualExecutedQty, entry_price: actualFillPrice,
-        stop_price: stopPrice, target_price: targetPrice, bingx_order_id: orderId,
+        stop_price: stopPrice, target_price: targetPrice,
+        base_stop_price: baseStopPrice, base_target_price: baseTargetPrice,
+        adaptive_levels_applied: adaptiveLevelsApplied, bingx_order_id: orderId,
         strategy_epoch: signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH,
         collector_version: Number(signal.collector_version || 27), executor_version: EXECUTOR_VERSION,
         signal_model_version: signal.signal_model_version || "signal_v27",
@@ -863,7 +955,7 @@ Deno.serve(async (req: Request) => {
         protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
-        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr },
+        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
       }),
     });
 
