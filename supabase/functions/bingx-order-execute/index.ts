@@ -299,6 +299,41 @@ async function handleProtect(payload: any): Promise<Response> {
   }
 }
 
+// 이미 종료된 과거 실거래 중 fee_usd가 비어있는 건들을 대상으로, 각 거래의 정확한
+// 진입~종료 시각 구간으로만 BingX income을 조회해서 수수료/순손익을 다시 채운다.
+// 시작~종료 시각으로 범위를 좁혀야 같은 종목의 다른 거래 수수료가 섞여 들어가지 않는다.
+async function handleBackfillFees(): Promise<Response> {
+  try {
+    if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
+    const rows = (await db("real_trades?status=eq.closed&fee_usd=is.null&select=id,bingx_symbol,created_at,closed_at&order=id.asc")) || [];
+    const results: any[] = [];
+    for (const row of rows) {
+      if (!row.closed_at) { results.push({ id: row.id, skipped: "no closed_at" }); continue; }
+      try {
+        const startMs = Date.parse(row.created_at) - 60000;
+        const endMs = Date.parse(row.closed_at) + 60000;
+        const income = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/income", { symbol: row.bingx_symbol, startTime: startMs, endTime: endMs, limit: 200 });
+        const list = Array.isArray(income) ? income : [];
+        const relevant = list.filter((x: any) => ["REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"].includes(x.incomeType));
+        if (!relevant.length) { results.push({ id: row.id, skipped: "no income records in window" }); continue; }
+        const realizedPnl = relevant.filter((x: any) => x.incomeType === "REALIZED_PNL").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        const tradingFee = relevant.filter((x: any) => x.incomeType === "TRADING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        const fundingFee = relevant.filter((x: any) => x.incomeType === "FUNDING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
+        const netPnl = realizedPnl + tradingFee + fundingFee;
+        const feeUsd = -(tradingFee + fundingFee);
+        await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ fee_usd: feeUsd, net_pnl_usd: netPnl }) });
+        results.push({ id: row.id, fee_usd: feeUsd, net_pnl_usd: netPnl });
+      } catch (e) {
+        results.push({ id: row.id, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+    return Response.json({ ok: true, backfilled: results });
+  } catch (e) {
+    console.error("backfill_fees failed:", e instanceof Error ? e.message : String(e));
+    return Response.json({ ok: false, error: "backfill failed" }, { status: 502 });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405 });
   if (!INTERNAL_KEY || req.headers.get("x-internal-key") !== INTERNAL_KEY) {
@@ -311,6 +346,9 @@ Deno.serve(async (req: Request) => {
   // coin-collector의 20분 재점검에서 손절/익절이 바뀌면 여기로 온다. 새 주문이 아니라 기존
   // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
   if (signal?.action === "reprice") return await handleReprice(signal);
+
+  // 과거 종료 건들의 수수료를 한 번 소급 보정한다 (사람이 요청했을 때만 사용, 자동 반복 안 함).
+  if (signal?.action === "backfill_fees") return await handleBackfillFees();
 
   // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
   if (signal?.action === "protect") return await handleProtect(signal);
