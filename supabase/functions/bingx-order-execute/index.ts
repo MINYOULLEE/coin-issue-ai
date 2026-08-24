@@ -100,17 +100,8 @@ async function db(path: string, init: RequestInit = {}) {
   try { return JSON.parse(text); } catch { throw new Error("db json parse failed on " + path + " (len=" + text.length + ")"); }
 }
 
-async function insertRejected(signal: any, reason: string) {
+async function insertRejected(signal: any, reason: string, metrics: Record<string, any> = {}) {
   try {
-    const effectiveNotional = roundTo(actualExecutedQty * actualFillPrice, 2);
-    const estimatedRoundTripFee = roundTo(effectiveNotional * 0.001, 6);
-    const grossTargetUsd = effectiveNotional * Math.abs(targetPrice - actualFillPrice) / actualFillPrice;
-    const grossStopUsd = effectiveNotional * Math.abs(actualFillPrice - stopPrice) / actualFillPrice;
-    const expectedNetProfitUsd = grossTargetUsd - estimatedRoundTripFee;
-    const expectedNetRr = expectedNetProfitUsd / Math.max(0.000001, grossStopUsd + estimatedRoundTripFee);
-    const lastProtectionAt = targetCreatedAt || stopCreatedAt;
-    const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
-
     await db("real_trades", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
@@ -119,7 +110,11 @@ async function insertRejected(signal: any, reason: string) {
         side: signal.side, signal_type: signal.signal_type, status: "rejected",
         test_mode: true, margin_usd: 0, leverage: 0, notional_usd: 0, quantity: 0,
         entry_price: signal.entry_price, stop_price: signal.invalidation_price, target_price: signal.target_price,
+        strategy_epoch: signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH,
+        collector_version: Number(signal.collector_version || 27), executor_version: EXECUTOR_VERSION,
+        signal_model_version: signal.signal_model_version || "signal_v27",
         reject_reason: reason.slice(0, 500),
+        ...metrics,
       }),
     });
   } catch (e) { console.error("insertRejected failed:", e); }
@@ -142,6 +137,9 @@ function roundDown(v: number, precision: number) {
 function roundTo(v: number, precision: number) {
   const f = Math.pow(10, precision);
   return Math.round(v * f) / f;
+}
+function clamp(v: number, min: number, max: number) {
+  return Math.max(min, Math.min(max, v));
 }
 
 // real_trades.status='open'인데 실제 BingX 포지션은 이미 손절/익절로 종료된 경우를
@@ -640,6 +638,49 @@ Deno.serve(async (req: Request) => {
     const positionSide = signal.side === "long" ? "LONG" : "SHORT";
     const side = signal.side === "long" ? "BUY" : "SELL";
 
+    // 7-1. 비용 차감 기대수익 게이트:
+    // 실제 최근 수수료율과 측정된 슬리피지를 우선 사용하고, 표본이 없으면 보수적 기본값을 적용한다.
+    let feeRate = 0.001003, oneWaySlippageRate = 0.0004;
+    try {
+      const costRows = await db("real_trades?status=eq.closed&notional_usd=gt.0&select=fee_usd,notional_usd,slippage_pct&order=closed_at.desc&limit=50");
+      const feeRows = (costRows || []).filter((x: any) => Number(x.fee_usd) >= 0 && Number(x.notional_usd) > 0);
+      const feeNotional = feeRows.reduce((sum: number, x: any) => sum + Number(x.notional_usd), 0);
+      if (feeRows.length >= 8 && feeNotional > 0) {
+        feeRate = clamp(feeRows.reduce((sum: number, x: any) => sum + Number(x.fee_usd), 0) / feeNotional, 0.0008, 0.0015);
+      }
+      const slips = feeRows.map((x: any) => Math.abs(Number(x.slippage_pct || 0)) / 100).filter((x: number) => x > 0).sort((x: number, y: number) => x - y);
+      if (slips.length >= 8) oneWaySlippageRate = clamp(slips[Math.floor((slips.length - 1) * 0.75)], 0.0001, 0.0015);
+    } catch (costError) {
+      console.error("cost history lookup failed:", costError instanceof Error ? costError.message : String(costError));
+    }
+    const expectedFeeUsdBeforeEntry = notional * feeRate;
+    const expectedSlippageUsd = notional * oneWaySlippageRate * 2;
+    const expectedTradingCostUsd = expectedFeeUsdBeforeEntry + expectedSlippageUsd;
+    const grossTargetUsdBeforeEntry = notional * Math.abs(targetPrice - entry) / entry;
+    const grossStopUsdBeforeEntry = notional * Math.abs(entry - stopPrice) / entry;
+    const expectedNetProfitBeforeEntry = grossTargetUsdBeforeEntry - expectedTradingCostUsd;
+    const expectedNetLossBeforeEntry = grossStopUsdBeforeEntry + expectedTradingCostUsd;
+    const expectedNetRrBeforeEntry = expectedNetProfitBeforeEntry / Math.max(0.000001, expectedNetLossBeforeEntry);
+    const minimumNetRr = signal.signal_type === "tactical" ? 1.35 : 1.50;
+    const minimumCostCoverage = 3.0;
+    const costCoverage = grossTargetUsdBeforeEntry / Math.max(0.000001, expectedTradingCostUsd);
+    const economics = {
+      expected_fee_usd: roundTo(expectedFeeUsdBeforeEntry, 6),
+      expected_net_profit_usd: roundTo(expectedNetProfitBeforeEntry, 6),
+      expected_net_rr: roundTo(expectedNetRrBeforeEntry, 4),
+      strategy_config: {
+        risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct,
+        fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate,
+        expected_trading_cost_usd: roundTo(expectedTradingCostUsd, 6),
+        cost_coverage: roundTo(costCoverage, 3), minimum_net_rr: minimumNetRr,
+      },
+    };
+    if (!(expectedNetProfitBeforeEntry > 0) || expectedNetRrBeforeEntry < minimumNetRr || costCoverage < minimumCostCoverage) {
+      const reason = `비용 차감 기대수익 부족: 순손익비 ${expectedNetRrBeforeEntry.toFixed(2)}R/${minimumNetRr.toFixed(2)}R, 비용커버 ${costCoverage.toFixed(2)}배/${minimumCostCoverage.toFixed(2)}배`;
+      await insertRejected(signal, reason, economics);
+      return Response.json({ ok: true, skipped: "low fee-adjusted expectancy", economics });
+    }
+
     // 8. 레버리지 설정 후 시장가 진입 (손절/익절은 부착 파라미터가 조용히 실패하는 사례가 확인되어
     //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걱고 각각
     //    성공 여부를 직접 확인한다.)
@@ -672,6 +713,13 @@ Deno.serve(async (req: Request) => {
     if (!(actualFillPrice > 0)) actualFillPrice = entry;
     if (!(actualExecutedQty > 0)) actualExecutedQty = quantity;
     const entryFilledAt = new Date();
+    const effectiveNotional = roundTo(actualExecutedQty * actualFillPrice, 2);
+    const estimatedRoundTripFee = roundTo(effectiveNotional * feeRate, 6);
+    const estimatedSlippageCost = effectiveNotional * oneWaySlippageRate * 2;
+    const grossTargetUsd = effectiveNotional * Math.abs(targetPrice - actualFillPrice) / actualFillPrice;
+    const grossStopUsd = effectiveNotional * Math.abs(actualFillPrice - stopPrice) / actualFillPrice;
+    const expectedNetProfitUsd = grossTargetUsd - estimatedRoundTripFee - estimatedSlippageCost;
+    const expectedNetRr = expectedNetProfitUsd / Math.max(0.000001, grossStopUsd + estimatedRoundTripFee + estimatedSlippageCost);
 
     // 8-1. 손절/익절을 독립 조건부 주문으로 부착. closePosition 방식이 이 계정 환경에서
     //      "parameter quantity or stopPrice is must" 오류로 계속 실패하는 게 확인되어,
@@ -698,6 +746,9 @@ Deno.serve(async (req: Request) => {
     } catch (e) { tpError = e instanceof Error ? e.message : String(e); console.error("TAKE_PROFIT_MARKET attach failed:", bxSymbol, tpError); }
 
     // 손절이 안 걸리면 무방비 레버리지 포지션을 남겨둘 수 없으니 즉시 시장가로 안전 청산한다.
+    const lastProtectionAt = targetCreatedAt || stopCreatedAt;
+    const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
+
     if (!slAttached) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
@@ -727,7 +778,7 @@ Deno.serve(async (req: Request) => {
         protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
-        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct },
+        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr },
       }),
     });
 
