@@ -30,6 +30,8 @@ const ENV_URLS: Record<string, string[]> = {
 const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB"];
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
+const EXECUTOR_VERSION = 16;
+const DEFAULT_STRATEGY_EPOCH = "v27_profit_measurement_1";
 
 function isNetworkOrTimeout(e: unknown): boolean {
   if (e instanceof TypeError) return true;
@@ -100,6 +102,15 @@ async function db(path: string, init: RequestInit = {}) {
 
 async function insertRejected(signal: any, reason: string) {
   try {
+    const effectiveNotional = roundTo(actualExecutedQty * actualFillPrice, 2);
+    const estimatedRoundTripFee = roundTo(effectiveNotional * 0.001, 6);
+    const grossTargetUsd = effectiveNotional * Math.abs(targetPrice - actualFillPrice) / actualFillPrice;
+    const grossStopUsd = effectiveNotional * Math.abs(actualFillPrice - stopPrice) / actualFillPrice;
+    const expectedNetProfitUsd = grossTargetUsd - estimatedRoundTripFee;
+    const expectedNetRr = expectedNetProfitUsd / Math.max(0.000001, grossStopUsd + estimatedRoundTripFee);
+    const lastProtectionAt = targetCreatedAt || stopCreatedAt;
+    const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
+
     await db("real_trades", {
       method: "POST",
       headers: { Prefer: "return=minimal" },
@@ -137,7 +148,7 @@ function roundTo(v: number, precision: number) {
 // 찾아 'closed'로 정리한다. 이게 없으면 종료된 포지션이 동시 포지션 한도를 영원히
 // 차지해서, 초기 몇 건 이후로 신규 진입이 전부 거부되는 문제가 생긴다.
 async function reconcileOpenTrades(): Promise<void> {
-  let liveKeys = new Set<string>();
+  const live = new Map<string, any>();
   try {
     const positions = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { recvWindow: 5000 });
     const rows = Array.isArray(positions) ? positions : (positions?.positions || []);
@@ -145,23 +156,46 @@ async function reconcileOpenTrades(): Promise<void> {
       const amt = Number(p.positionAmt ?? p.positionAmount ?? 0);
       if (Math.abs(amt) <= 0) continue;
       const symbol = String(p.symbol || ""), side = String(p.positionSide || (amt >= 0 ? "LONG" : "SHORT"));
-      liveKeys.add(symbol + "|" + side);
+      live.set(symbol + "|" + side, p);
     }
   } catch (e) {
-    // 포지션 조회 자체가 실패하면 잘못 닫아버릴 위험이 있으니 이번 실행은 정산을 건너뛴다.
     console.error("reconcile: position fetch failed, skipping:", e instanceof Error ? e.message : String(e));
     return;
   }
   let openRows: any[] = [];
   try {
-    openRows = await db("real_trades?status=eq.open&select=id,symbol,bingx_symbol,side,created_at");
+    openRows = await db("real_trades?status=eq.open&select=*");
   } catch (e) {
     console.error("reconcile: failed to load open trades:", e instanceof Error ? e.message : String(e));
     return;
   }
   for (const row of openRows) {
     const posSide = row.side === "long" ? "LONG" : "SHORT";
-    if (liveKeys.has(row.bingx_symbol + "|" + posSide)) continue;
+    const position = live.get(row.bingx_symbol + "|" + posSide);
+    if (position) {
+      const mark = Number(position.markPrice ?? position.price ?? 0);
+      const entry = Number(row.entry_price || 0);
+      if (mark > 0 && entry > 0) {
+        const movePct = (mark / entry - 1) * 100 * (row.side === "long" ? 1 : -1);
+        const roePct = movePct * Number(row.leverage || 1);
+        try {
+          await db("real_trades?id=eq." + row.id, {
+            method: "PATCH",
+            body: JSON.stringify({
+              mfe_pct: Math.max(Number(row.mfe_pct || 0), movePct),
+              mae_pct: Math.min(Number(row.mae_pct || 0), movePct),
+              peak_roe_pct: Math.max(Number(row.peak_roe_pct || 0), roePct),
+              lowest_roe_pct: Math.min(Number(row.lowest_roe_pct || 0), roePct),
+              last_mark_price: mark,
+              measurement_updated_at: new Date().toISOString(),
+            }),
+          });
+        } catch (e) {
+          console.error("reconcile: excursion update failed", row.id, e instanceof Error ? e.message : String(e));
+        }
+      }
+      continue;
+    }
     let netPnl: number | null = null, feeUsd: number | null = null;
     try {
       const startMs = Date.parse(row.created_at) - 60000;
@@ -169,13 +203,11 @@ async function reconcileOpenTrades(): Promise<void> {
       const list = Array.isArray(income) ? income : [];
       const relevant = list.filter((x: any) => ["REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"].includes(x.incomeType));
       if (relevant.length) {
-        // 실현손익/수수료(체결)/펀딩비를 따로 합산한다. 수수료는 수동 시장가 청산이든 손절·익절 자동
-        // 체결이든 거래소 income 기록에 실제로 찍힌 값을 그대로 쓰므로 종료 방식과 무관하게 정확하다.
         const realizedPnl = relevant.filter((x: any) => x.incomeType === "REALIZED_PNL").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
         const tradingFee = relevant.filter((x: any) => x.incomeType === "TRADING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
         const fundingFee = relevant.filter((x: any) => x.incomeType === "FUNDING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
         netPnl = realizedPnl + tradingFee + fundingFee;
-        feeUsd = -(tradingFee + fundingFee); // BingX는 수수료를 음수로 내려주므로 부호를 뒤집어 "낸 비용"으로 저장
+        feeUsd = -(tradingFee + fundingFee);
       }
     } catch (e) {
       console.error("reconcile: income fetch failed for", row.bingx_symbol, e instanceof Error ? e.message : String(e));
@@ -183,7 +215,7 @@ async function reconcileOpenTrades(): Promise<void> {
     try {
       await db("real_trades?id=eq." + row.id, {
         method: "PATCH",
-        body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString(), net_pnl_usd: netPnl, fee_usd: feeUsd, close_reason: "거래소 포지션 종료 확인(자동 정산)" }),
+        body: JSON.stringify({ status: "closed", closed_at: new Date().toISOString(), net_pnl_usd: netPnl, fee_usd: feeUsd, close_reason: "거래소 포지션 종료 확인(자동 정산)", measurement_updated_at: new Date().toISOString() }),
       });
     } catch (e) {
       console.error("reconcile: failed to close real_trades row", row.id, e instanceof Error ? e.message : String(e));
@@ -192,7 +224,7 @@ async function reconcileOpenTrades(): Promise<void> {
 }
 
 // coin-collector의 20분 재점검에서 손절/익절이 바뀌었을 때 호출된다. 기존 SL/TP 조건부 주문을
-// 취소하고 새 가격으로 다시 등록한다. closePosition을 써서 수량 오차와 무관하게 포지션 전체를 정리한다.
+// 취소하고 새 가격으로 다시 등록한다. closePosition을 쓰설여 수량 오차와 무관하게 포지션 전체를 정리한다.
 async function handleReprice(payload: any): Promise<Response> {
   try {
     if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
@@ -264,7 +296,12 @@ async function handleProtect(payload: any): Promise<Response> {
         const mine = list.filter((o: any) => String(o.positionSide) === positionSide);
         const hasSl = mine.some((o: any) => String(o.type) === "STOP_MARKET");
         const hasTp = mine.some((o: any) => String(o.type) === "TAKE_PROFIT_MARKET");
-        if (hasSl && hasTp) { results.push({ id: row.id, symbol: row.symbol, skipped: "already protected" }); continue; }
+        if (hasSl && hasTp) {
+          if (!row.protective_verified) {
+            await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: true, measurement_updated_at: new Date().toISOString() }) });
+          }
+          results.push({ id: row.id, symbol: row.symbol, skipped: "already protected" }); continue;
+        }
 
         const contract = await getContract(bxSymbol);
         const pricePrecision = Number(contract.pricePrecision ?? 2);
@@ -287,6 +324,18 @@ async function handleProtect(payload: any): Promise<Response> {
           } catch (e) { tpErr = e instanceof Error ? e.message : String(e); }
         }
 
+        const nowIso = new Date().toISOString();
+        const patch: any = {
+          protective_verified: slOk && tpOk,
+          protect_retry_count: Number(row.protect_retry_count || 0) + 1,
+          measurement_updated_at: nowIso,
+        };
+        if (!row.stop_order_created_at && slOk) patch.stop_order_created_at = nowIso;
+        if (!row.target_order_created_at && tpOk) patch.target_order_created_at = nowIso;
+        if (slOk && tpOk && row.entry_filled_at) {
+          patch.protective_latency_ms = Math.max(0, Date.parse(nowIso) - Date.parse(row.entry_filled_at));
+        }
+        await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify(patch) });
         results.push({ id: row.id, symbol: row.symbol, side: row.side, stopPrice, targetPrice, slOk, tpOk, slErr, tpErr });
       } catch (e) {
         results.push({ id: row.id, symbol: row.symbol, error: e instanceof Error ? e.message : String(e) });
@@ -299,9 +348,85 @@ async function handleProtect(payload: any): Promise<Response> {
   }
 }
 
+// real_trades의 모든 행을 BingX 실제 주문 체결 내역(주문ID 기준 조회) 및 실시간 포지션과
+// 하나하나 대조한다. 진입가/수량이 실제 체결값과 다르거나, open인데 실제 포지션이 없거나
+// 수량이 다르면 전부 잡아낸다. 결과는 로그로 남겨서 바로 확인할 수 있게 한다.
+async function handleAudit(): Promise<Response> {
+  try {
+    if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
+
+    // 1. 주문ID가 있는 모든 행(진짜 주문이 나간 것)을 실제 체결 내역과 대조
+    const rows = (await db("real_trades?bingx_order_id=not.is.null&select=id,symbol,bingx_symbol,side,status,quantity,entry_price,bingx_order_id&order=id.asc")) || [];
+    const orderMismatches: any[] = [];
+    let orderChecked = 0;
+    for (const row of rows) {
+      try {
+        if (!row.bingx_order_id) { orderMismatches.push({ id: row.id, symbol: row.symbol, error: "bingx_order_id 비어있음" }); continue; }
+        const raw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/order", { symbol: row.bingx_symbol, orderId: row.bingx_order_id, recvWindow: 5000 });
+        // 응답이 data.order 형태로 중첩되는 경우가 있어 둘 다 확인한다.
+        const order = raw?.order ?? raw;
+        orderChecked++;
+        const execQty = Number(order?.executedQty ?? 0);
+        const avgPrice = Number(order?.avgPrice ?? 0);
+        const bxStatus = String(order?.status ?? "");
+        const qtyDiff = Math.abs(execQty - Number(row.quantity));
+        const priceDiffPct = avgPrice > 0 ? Math.abs(avgPrice - Number(row.entry_price)) / avgPrice * 100 : 0;
+        if (qtyDiff > 0.0000001 || priceDiffPct > 0.05 || (bxStatus && !["FILLED", "PARTIALLY_FILLED"].includes(bxStatus))) {
+          orderMismatches.push({
+            id: row.id, symbol: row.symbol,
+            db_quantity: Number(row.quantity), bx_executed_qty: execQty,
+            db_entry_price: Number(row.entry_price), bx_avg_price: avgPrice,
+            bx_order_status: bxStatus,
+            raw_keys: Object.keys(order || {}).join(","),
+          });
+        }
+      } catch (e) {
+        orderMismatches.push({ id: row.id, symbol: row.symbol, error: e instanceof Error ? e.message : String(e) });
+      }
+    }
+
+    // 2. DB가 open이라고 믿는 행이 실제로도 거래소에 살아있는 포지션인지, 수량이 맞는지 대조
+    const positionMismatches: any[] = [];
+    let liveKeys: Record<string, number> = {};
+    try {
+      const positions = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { recvWindow: 5000 });
+      const posRows = Array.isArray(positions) ? positions : (positions?.positions || []);
+      for (const p of posRows) {
+        const amt = Math.abs(Number(p.positionAmt ?? p.positionAmount ?? 0));
+        if (amt <= 0) continue;
+        liveKeys[String(p.symbol || "") + "|" + String(p.positionSide || "")] = amt;
+      }
+    } catch (e) {
+      return Response.json({ ok: false, error: "position fetch failed, audit incomplete: " + (e instanceof Error ? e.message : String(e)) });
+    }
+    const openRows = (await db("real_trades?status=eq.open&select=id,symbol,bingx_symbol,side,quantity")) || [];
+    for (const row of openRows) {
+      const posSide = row.side === "long" ? "LONG" : "SHORT";
+      const liveQty = liveKeys[row.bingx_symbol + "|" + posSide];
+      if (liveQty == null) positionMismatches.push({ id: row.id, symbol: row.symbol, issue: "DB는 open인데 실제 거래소엔 해당 포지션이 없음" });
+      else if (Math.abs(liveQty - Number(row.quantity)) > 0.0000001) positionMismatches.push({ id: row.id, symbol: row.symbol, issue: "수량 불일치", db_quantity: Number(row.quantity), bx_live_quantity: liveQty });
+    }
+    // 반대로 거래소엔 있는데 DB엔 open으로 안 잡힌 포지션도 확인
+    const trackedKeys = new Set(openRows.map((r: any) => r.bingx_symbol + "|" + (r.side === "long" ? "LONG" : "SHORT")));
+    const untracked = Object.keys(liveKeys).filter((k) => !trackedKeys.has(k)).map((k) => ({ key: k, bx_quantity: liveKeys[k], issue: "거래소엔 포지션이 있는데 DB엔 추적 기록이 없음" }));
+
+    return Response.json({
+      ok: true,
+      order_rows_checked: orderChecked,
+      order_mismatches: orderMismatches,
+      open_rows_checked: openRows.length,
+      position_mismatches: positionMismatches,
+      untracked_live_positions: untracked,
+    });
+  } catch (e) {
+    console.error("audit failed:", e instanceof Error ? e.message : String(e));
+    return Response.json({ ok: false, error: "audit failed" }, { status: 502 });
+  }
+}
+
 // 이미 종료된 과거 실거래 중 fee_usd가 비어있는 건들을 대상으로, 각 거래의 정확한
 // 진입~종료 시각 구간으로만 BingX income을 조회해서 수수료/순손익을 다시 채운다.
-// 시작~종료 시각으로 범위를 좁혀야 같은 종목의 다른 거래 수수료가 섞여 들어가지 않는다.
+// 시작~종료 시각으로 범위를 좋혀야 같은 종목의 다른 거래 수수료가 섞여 들어가지 않는다.
 async function handleBackfillFees(): Promise<Response> {
   try {
     if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
@@ -350,13 +475,16 @@ Deno.serve(async (req: Request) => {
   // 과거 종료 건들의 수수료를 한 번 소급 보정한다 (사람이 요청했을 때만 사용, 자동 반복 안 함).
   if (signal?.action === "backfill_fees") return await handleBackfillFees();
 
+  // 전체 실거래 기록을 BingX 실제 체결 내역·실시간 포지션과 하나하나 대조하는 전수검사.
+  if (signal?.action === "audit") return await handleAudit();
+
   // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
   if (signal?.action === "protect") return await handleProtect(signal);
 
   // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출된다. 새 주문 없이 신호만
   // 끝나는 경우(우리 쪽 시뮬레이션이 먼저 손절/익절을 감지한 경우 등)에도 실거래
-  // 포지션이 실제로 종료됐는지 즉시 확인해서 real_trades를 최신 상태로 맞춘다. 기존에는
-  // 새 주문이 들어올 때만 정산이 돌아서, 새 신호가 한동안 없으면 이미 끝난 실거래가
+  // 포지션이 실제로 종료됐는지 즉시 확인해서 real_trades를 최신 상태로 맞추다. 기존에는
+  // 새 주문이 들어올 때만 정산이 도아서, 새 신호가 한동안 없으면 이미 끝난 실거래가
   // 계속 '진행 중'으로 남는 빈틈이 있었다.
   if (signal?.action === "sync") {
     await reconcileOpenTrades();
@@ -423,7 +551,7 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "max same-direction positions reached" });
     }
     // 6-0. 같은 종목·같은 방향으로 이미 열려있는 포지션이 있으면 재진입하지 않는다. BingX는
-    //      이 경우 새 포지션을 만들지 않고 기존 포지션에 평단가로 합쳐버리는데, 우리 시스템은
+    //      이 경우 새 포지션을 만들지 않고 기존 포지션에 평단가로 합쳤버리는데, 우리 시스템은
     //      신호마다 별도 행으로 손절/익절을 추적하기 때문에 실제로는 포지션이 1개인데 기록은
     //      2개가 되고, 손절/익절 조건부 주문도 두 세트가 걸려 서로 충돌할 위험이 있다.
     if (open.some((x: any) => x.symbol === signal.symbol && x.side === signal.side)) {
@@ -460,11 +588,15 @@ Deno.serve(async (req: Request) => {
     //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.
     let riskMultiplier = 1.0;
     try {
-      const recent = await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&select=net_pnl_usd&order=closed_at.desc&limit=20`);
-      const closed = (recent || []).filter((x: any) => x.net_pnl_usd != null);
+      const recent = await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&side=eq.${signal.side}&select=net_pnl_usd&order=closed_at.desc&limit=20`);
+      const closed = (recent || []).filter((x: any) => x.net_pnl_usd != null).map((x: any) => Number(x.net_pnl_usd));
       if (closed.length >= 8) {
-        const winRate = closed.filter((x: any) => Number(x.net_pnl_usd) > 0).length / closed.length;
-        riskMultiplier = winRate >= 0.6 ? 1.2 : winRate >= 0.5 ? 1.0 : winRate >= 0.35 ? 0.8 : 0.6;
+        const grossProfit = closed.filter((x: number) => x > 0).reduce((a: number, b: number) => a + b, 0);
+        const grossLoss = -closed.filter((x: number) => x < 0).reduce((a: number, b: number) => a + b, 0);
+        const expectancy = closed.reduce((a: number, b: number) => a + b, 0) / closed.length;
+        const profitFactor = grossLoss > 0 ? grossProfit / grossLoss : (grossProfit > 0 ? 9 : 1);
+        const winRate = closed.filter((x: number) => x > 0).length / closed.length;
+        riskMultiplier = expectancy < 0 && profitFactor < 0.8 ? 0.55 : expectancy < 0 || profitFactor < 1 ? 0.75 : profitFactor >= 1.5 && winRate >= 0.5 ? 1.1 : 1.0;
       }
     } catch (e) {
       console.error("recent performance lookup failed:", e instanceof Error ? e.message : String(e));
@@ -509,10 +641,11 @@ Deno.serve(async (req: Request) => {
     const side = signal.side === "long" ? "BUY" : "SELL";
 
     // 8. 레버리지 설정 후 시장가 진입 (손절/익절은 부착 파라미터가 조용히 실패하는 사례가 확인되어
-    //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걸고 각각
+    //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걱고 각각
     //    성공 여부를 직접 확인한다.)
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: finalLeverage });
 
+    const entrySubmittedAt = new Date();
     const order = await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
       symbol: bxSymbol,
       side,
@@ -523,18 +656,37 @@ Deno.serve(async (req: Request) => {
       recvWindow: 5000,
     });
 
+    const orderId = String(order?.orderID ?? order?.orderId ?? order?.order?.orderID ?? order?.order?.orderId ?? "");
+    let actualFillPrice = Number(order?.avgPrice ?? order?.order?.avgPrice ?? 0);
+    let actualExecutedQty = Number(order?.executedQty ?? order?.order?.executedQty ?? 0);
+    if (orderId && (!(actualFillPrice > 0) || !(actualExecutedQty > 0))) {
+      try {
+        const rawFill = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId, recvWindow: 5000 });
+        const fill = rawFill?.order ?? rawFill;
+        actualFillPrice = Number(fill?.avgPrice ?? actualFillPrice);
+        actualExecutedQty = Number(fill?.executedQty ?? actualExecutedQty);
+      } catch (fillError) {
+        console.error("entry fill lookup failed:", bxSymbol, fillError instanceof Error ? fillError.message : String(fillError));
+      }
+    }
+    if (!(actualFillPrice > 0)) actualFillPrice = entry;
+    if (!(actualExecutedQty > 0)) actualExecutedQty = quantity;
+    const entryFilledAt = new Date();
+
     // 8-1. 손절/익절을 독립 조건부 주문으로 부착. closePosition 방식이 이 계정 환경에서
     //      "parameter quantity or stopPrice is must" 오류로 계속 실패하는 게 확인되어,
     //      더 안정적인 실제 수량 지정 방식으로 건다 (헤지 모드에서는 positionSide만으로
     //      이미 포지션 축소 방향이 결정되므로 reduceOnly는 보내지 않는다).
     const closeSide = signal.side === "long" ? "SELL" : "BUY";
     let slAttached = false, tpAttached = false, slError = "", tpError = "";
+    let stopCreatedAt: string | null = null, targetCreatedAt: string | null = null;
     try {
       await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
         symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
         stopPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
       });
       slAttached = true;
+      stopCreatedAt = new Date().toISOString();
     } catch (e) { slError = e instanceof Error ? e.message : String(e); console.error("STOP_MARKET attach failed:", bxSymbol, slError); }
     try {
       await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
@@ -542,6 +694,7 @@ Deno.serve(async (req: Request) => {
         stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
       });
       tpAttached = true;
+      targetCreatedAt = new Date().toISOString();
     } catch (e) { tpError = e instanceof Error ? e.message : String(e); console.error("TAKE_PROFIT_MARKET attach failed:", bxSymbol, tpError); }
 
     // 손절이 안 걸리면 무방비 레버리지 포지션을 남겨둘 수 없으니 즉시 시장가로 안전 청산한다.
@@ -562,13 +715,23 @@ Deno.serve(async (req: Request) => {
         signal_id: signal.id, symbol: signal.symbol, bingx_symbol: bxSymbol,
         side: signal.side, signal_type: signal.signal_type, status: "open",
         test_mode: !!state.test_mode, margin_usd: marginUsd, leverage: finalLeverage,
-        notional_usd: roundTo(quantity * entry, 2), quantity, entry_price: entry,
-        stop_price: stopPrice, target_price: targetPrice,
-        bingx_order_id: String(order?.orderID ?? order?.orderId ?? order?.order?.orderID ?? order?.order?.orderId ?? ""),
+        notional_usd: effectiveNotional, quantity: actualExecutedQty, entry_price: actualFillPrice,
+        stop_price: stopPrice, target_price: targetPrice, bingx_order_id: orderId,
+        strategy_epoch: signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH,
+        collector_version: Number(signal.collector_version || 27), executor_version: EXECUTOR_VERSION,
+        signal_model_version: signal.signal_model_version || "signal_v27",
+        signal_price: entry, submitted_price: entry,
+        slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
+        entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
+        stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
+        protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && tpAttached,
+        expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
+        expected_net_rr: expectedNetRr,
+        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct },
       }),
     });
 
-    return Response.json({ ok: true, order_id: String(order?.orderID ?? order?.orderId ?? ""), quantity, margin_usd: marginUsd, leverage: finalLeverage });
+    return Response.json({ ok: true, order_id: orderId, quantity: actualExecutedQty, fill_price: actualFillPrice, slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1), margin_usd: marginUsd, leverage: finalLeverage, protective_latency_ms: protectiveLatencyMs });
   } catch (e) {
     console.error("bingx-order-execute failed:", e instanceof Error ? e.message : String(e));
     try { await insertRejected(signal, "실행 오류: " + (e instanceof Error ? e.message : String(e))); } catch { /* ignore */ }
