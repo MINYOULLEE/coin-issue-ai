@@ -27,11 +27,11 @@ const INTERNAL_KEY = Deno.env.get("INTERNAL_TRADE_SECRET") || "";
 const ENV_URLS: Record<string, string[]> = {
   "prod-live": ["https://open-api.bingx.com", "https://open-api.bingx.pro"],
 };
-const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "TON", "AAVE"];
-const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, candidate_a_big: 3600000, candidate_a_small: 3600000 };
+const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "AAVE"];
+const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, research_a_big: 3600000, research_a_small: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 19;
-const DEFAULT_STRATEGY_EPOCH = "candidate_a_v1";
+const EXECUTOR_VERSION = 20;
+const DEFAULT_STRATEGY_EPOCH = "research_a_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
   if (e instanceof TypeError) return true;
@@ -238,7 +238,7 @@ async function handleReprice(payload: any): Promise<Response> {
     const row = rows?.[0];
     if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
     const newStop = Number(payload.invalidation_price), newTarget = Number(payload.target_price);
-    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(row.signal_type);
+    const candidateA = ["research_a_big", "research_a_small"].includes(row.signal_type);
     if (!(newStop > 0) || !(newTarget > 0)) return Response.json({ ok: false, error: "invalid reprice values" });
 
     const bxSymbol = String(row.bingx_symbol);
@@ -288,7 +288,7 @@ async function handleReprice(payload: any): Promise<Response> {
   }
 }
 
-// 후보군 A는 큰 그림의 방향 전환과 작은 그림의 일일 리밸런싱 때 거래소 포지션도
+// 연구 A는 큰 그림의 방향 전환과 작은 그림의 일일 리밸런싱 때 거래소 포지션도
 // 실제로 종료해야 한다. 보호 주문을 먼저 취소한 뒤 현재 수량 전부를 시장가로 닫는다.
 async function handleClose(payload: any): Promise<Response> {
   try {
@@ -338,7 +338,7 @@ async function handleProtect(payload: any): Promise<Response> {
     }
     for (const row of rows) {
       const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT", closeSide = row.side === "long" ? "SELL" : "BUY";
-      const candidateA = ["candidate_a_big", "candidate_a_small"].includes(row.signal_type);
+      const candidateA = ["research_a_big", "research_a_small"].includes(row.signal_type);
       try {
         const livePosition = livePositions.get(bxSymbol + "|" + positionSide);
         const markPrice = Number(livePosition?.markPrice ?? livePosition?.price ?? 0);
@@ -358,7 +358,7 @@ async function handleProtect(payload: any): Promise<Response> {
             }),
           });
         }
-        if (row.signal_type === "candidate_a_small") {
+        if (row.signal_type === "research_a_small") {
           if (!row.protective_verified) await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: true, measurement_updated_at: new Date().toISOString() }) });
           results.push({ id: row.id, symbol: row.symbol, skipped: "exact 24h rebalance; no protective orders" });
           continue;
@@ -574,7 +574,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
-    if (!["swing", "tactical", "candidate_a_big", "candidate_a_small"].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
+    if (!["swing", "tactical", "research_a_big", "research_a_small"].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
     if (!(Number(signal.invalidation_price) > 0) || !(Number(signal.target_price) > 0)) {
       await insertRejected(signal, "손절가/목표가 없음");
       return Response.json({ ok: false, error: "missing stop or target price" });
@@ -594,7 +594,7 @@ Deno.serve(async (req: Request) => {
     const state = stateRows?.[0];
     if (!state) { await insertRejected(signal, "설정 없음"); return Response.json({ ok: false, error: "no trading state" }); }
     if (!state.enabled) return Response.json({ ok: true, skipped: "real trading disabled (kill switch)" });
-    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(signal.signal_type);
+    const candidateA = ["research_a_big", "research_a_small"].includes(signal.signal_type);
 
     // 3. 신호 신선도 확인
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
@@ -661,19 +661,22 @@ Deno.serve(async (req: Request) => {
     const kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);
     const kstDayStartUtc = new Date(Date.UTC(kstNow.getUTCFullYear(), kstNow.getUTCMonth(), kstNow.getUTCDate()) - 9 * 60 * 60 * 1000);
     const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,side,signal_type,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
-    const dailyClosed = recentClosed.filter((x: any) => x.closed_at && Date.parse(x.closed_at) >= kstDayStartUtc.getTime());
+    const strategyClosed = candidateA
+      ? recentClosed.filter((x: any) => ["research_a_big", "research_a_small"].includes(x.signal_type))
+      : recentClosed;
+    const dailyClosed = strategyClosed.filter((x: any) => x.closed_at && Date.parse(x.closed_at) >= kstDayStartUtc.getTime());
     const dailyNetPnl = dailyClosed.reduce((sum: number, x: any) => sum + Number(x.net_pnl_usd || 0), 0);
     let consecutiveLosses = 0;
-    for (const x of recentClosed) {
+    for (const x of strategyClosed) {
       if (Number(x.net_pnl_usd) < 0) consecutiveLosses++;
       else break;
     }
-    const dailyLossLimitPct = Number(state.daily_loss_limit_pct ?? 3.0);
-    const maxConsecutiveLosses = Number(state.max_consecutive_losses ?? 4);
-    const lossCooldownMinutes = Number(state.loss_cooldown_minutes ?? 360);
+    const dailyLossLimitPct = candidateA ? 5.0 : Number(state.daily_loss_limit_pct ?? 3.0);
+    const maxConsecutiveLosses = candidateA ? 4 : Number(state.max_consecutive_losses ?? 4);
+    const lossCooldownMinutes = candidateA ? 1440 : Number(state.loss_cooldown_minutes ?? 360);
     const estimatedDayStartEquity = Math.max(equity, equity - dailyNetPnl);
     const dailyLossLimitUsd = estimatedDayStartEquity * dailyLossLimitPct / 100;
-    const lastClosedAt = recentClosed[0]?.closed_at ? Date.parse(recentClosed[0].closed_at) : 0;
+    const lastClosedAt = strategyClosed[0]?.closed_at ? Date.parse(strategyClosed[0].closed_at) : 0;
     const cooldownUntil = lastClosedAt ? lastClosedAt + lossCooldownMinutes * 60 * 1000 : 0;
     const breakerMetrics = {
       strategy_config: {
@@ -688,18 +691,20 @@ Deno.serve(async (req: Request) => {
         cooldown_until: cooldownUntil ? new Date(cooldownUntil).toISOString() : null,
       },
     };
-    if (!candidateA && dailyNetPnl <= -dailyLossLimitUsd) {
+    if (dailyNetPnl <= -dailyLossLimitUsd) {
       await insertRejected(signal, `일일 손실 회로차단: ${dailyNetPnl.toFixed(2)} USDT / 한도 -${dailyLossLimitUsd.toFixed(2)} USDT (한국시간 자정까지)`, breakerMetrics);
       return Response.json({ ok: true, skipped: "daily loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
-    if (!candidateA && consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
+    if (consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
       const remainingMinutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
       await insertRejected(signal, `연속 손실 회로차단: ${consecutiveLosses}연패 / ${maxConsecutiveLosses}회, 재개까지 약 ${remainingMinutes}분`, breakerMetrics);
       return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
 
     // 6-3. 방향별 회로차단기: 반대 방향은 계속 허용하고, 부진한 LONG 또는 SHORT만 잠시 중단한다.
-    const directionWindow = recentClosed.filter((x: any) => x.side === signal.side).slice(0, 10);
+    const directionWindow = strategyClosed
+      .filter((x: any) => x.side === signal.side && (signal.signal_type !== "research_a_small" || x.signal_type === "research_a_small"))
+      .slice(0, 10);
     const directionPnls = directionWindow.map((x: any) => Number(x.net_pnl_usd));
     const directionWins = directionPnls.filter((x: number) => x > 0);
     const directionLosses = directionPnls.filter((x: number) => x < 0);
@@ -714,14 +719,14 @@ Deno.serve(async (req: Request) => {
     }
     const directionMinSamples = Number(state.direction_min_samples ?? 8);
     const directionProfitFactorFloor = Number(state.direction_profit_factor_floor ?? 0.70);
-    const directionMaxConsecutiveLosses = Number(state.direction_max_consecutive_losses ?? 3);
-    const directionCooldownMinutes = Number(state.direction_cooldown_minutes ?? 360);
+    const directionMaxConsecutiveLosses = signal.signal_type === "research_a_small" ? 2 : Number(state.direction_max_consecutive_losses ?? 3);
+    const directionCooldownMinutes = signal.signal_type === "research_a_small" ? 1440 : Number(state.direction_cooldown_minutes ?? 360);
     const directionLastClosedAt = directionWindow[0]?.closed_at ? Date.parse(directionWindow[0].closed_at) : 0;
     const directionCooldownUntil = directionLastClosedAt ? directionLastClosedAt + directionCooldownMinutes * 60 * 1000 : 0;
     const latestDirectionWasLoss = directionPnls.length > 0 && directionPnls[0] < 0;
     const directionPersistentlyWeak = directionPnls.length >= directionMinSamples && directionExpectancy < 0 && directionProfitFactor < directionProfitFactorFloor;
     const directionLossStreak = directionConsecutiveLosses >= directionMaxConsecutiveLosses;
-    if (!candidateA && latestDirectionWasLoss && (directionPersistentlyWeak || directionLossStreak) && Date.now() < directionCooldownUntil) {
+    if ((!candidateA || signal.signal_type === "research_a_small") && latestDirectionWasLoss && (directionPersistentlyWeak || directionLossStreak) && Date.now() < directionCooldownUntil) {
       const remainingMinutes = Math.ceil((directionCooldownUntil - Date.now()) / 60000);
       const sideLabel = signal.side === "long" ? "LONG" : "SHORT";
       const directionMetrics = {
@@ -743,14 +748,14 @@ Deno.serve(async (req: Request) => {
 
     const signalStrategy = signal.entry_metrics?.strategy_config || {};
     const exposureMultiplier = candidateA
-      ? Number(signalStrategy.exposure_multiplier ?? (signal.signal_type === "candidate_a_small" ? 0.5 : 1))
+      ? Number(signalStrategy.exposure_multiplier ?? (signal.signal_type === "research_a_small" ? 0.5 : 1))
       : 0;
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
-    // 후보군 A 최대 노출 9x를 거래소 레버리지 10x로 구현하면 최대 담보 사용률은 90%다.
+    // 연구 A 최대 노출 9x를 거래소 레버리지 10x로 구현하면 최대 담보 사용률은 90%다.
     // 큰 그림 BTC는 최대 80%, 작은 그림 각 leg는 5%로 고정해 백테스트의 비중을 그대로 보존한다.
     const totalCapUsd = equity * (candidateA ? 0.90 : Number(state.total_margin_cap_pct ?? 70) / 100);
-    const perSymbolCapUsd = equity * (candidateA ? (signal.signal_type === "candidate_a_big" ? 0.80 : 0.05) : Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
+    const perSymbolCapUsd = equity * (candidateA ? (signal.signal_type === "research_a_big" ? 0.80 : 0.05) : Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
     const remainingTotal = Math.max(0, totalCapUsd - usedTotal);
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
@@ -823,32 +828,32 @@ Deno.serve(async (req: Request) => {
       base_stop_price: baseStopPrice,
       base_target_price: baseTargetPrice,
     };
-    if (state.mfe_mae_optimization_enabled !== false && !candidateA) {
+    if (state.mfe_mae_optimization_enabled !== false && (!candidateA || signal.signal_type === "research_a_small")) {
       try {
         const epoch = encodeURIComponent(String(signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH));
-        const measuredRows = (await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&side=eq.${signal.side}&strategy_epoch=eq.${epoch}&measurement_updated_at=not.is.null&last_mark_price=not.is.null&select=net_pnl_usd,mfe_pct,mae_pct&order=closed_at.desc&limit=30`)) || [];
+        const measuredRows = (await db(`real_trades?status=eq.closed&signal_type=eq.${signal.signal_type}&side=eq.${signal.side}&strategy_epoch=eq.${epoch}&measurement_updated_at=not.is.null&last_mark_price=not.is.null&select=net_pnl_usd,mfe_pct,mae_pct&order=closed_at.desc&limit=60`)) || [];
         const validMeasured = measuredRows.filter((x: any) => Number.isFinite(Number(x.mfe_pct)) && Number.isFinite(Number(x.mae_pct)));
         const winners = validMeasured.filter((x: any) => Number(x.net_pnl_usd) > 0);
-        const minSamples = Number(state.mfe_mae_min_samples ?? 12);
-        const minWins = Number(state.mfe_mae_min_wins ?? 5);
+        const minSamples = signal.signal_type === "research_a_small" ? 50 : Number(state.mfe_mae_min_samples ?? 12);
+        const minWins = signal.signal_type === "research_a_small" ? 20 : Number(state.mfe_mae_min_wins ?? 5);
         adaptiveLevelMeta = { ...adaptiveLevelMeta, sample_size: validMeasured.length, winner_sample_size: winners.length, min_samples: minSamples, min_wins: minWins };
         if (validMeasured.length >= minSamples && winners.length >= minWins) {
           const winnerAdverse = winners.map((x: any) => Math.abs(Math.min(0, Number(x.mae_pct))) / 100);
           const winnerFavorable = winners.map((x: any) => Math.max(0, Number(x.mfe_pct)) / 100).filter((x: number) => x > 0);
           const baseStopDistancePct = Math.abs(entry - baseStopPrice) / entry;
           const baseTargetDistancePct = Math.abs(baseTargetPrice - entry) / entry;
-          const adverseP75 = percentile(winnerAdverse, 0.75);
+          const adverseP75 = percentile(winnerAdverse, signal.signal_type === "research_a_small" ? 0.80 : 0.75);
           const favorableP50 = percentile(winnerFavorable, 0.50);
           const stopMinFactor = Number(state.adaptive_stop_min_factor ?? 0.80);
           const targetMinFactor = Number(state.adaptive_target_min_factor ?? 0.90);
           const targetMaxFactor = Number(state.adaptive_target_max_factor ?? 1.20);
           // 리스크가 커지지 않도록 손절은 기존보다 절대 넓히지 않는다.
           const stopFactor = clamp((adverseP75 * 1.15) / Math.max(0.000001, baseStopDistancePct), stopMinFactor, 1.0);
-          const targetFactor = clamp((favorableP50 * 0.85) / Math.max(0.000001, baseTargetDistancePct), targetMinFactor, targetMaxFactor);
-          const adaptiveStopDistance = Math.abs(entry - baseStopPrice) * stopFactor;
+          const targetFactor = signal.signal_type === "research_a_small" ? 1.0 : clamp((favorableP50 * 0.85) / Math.max(0.000001, baseTargetDistancePct), targetMinFactor, targetMaxFactor);
+          const adaptiveStopDistance = signal.signal_type === "research_a_small" ? entry * clamp(adverseP75, .01, .06) : Math.abs(entry - baseStopPrice) * stopFactor;
           const adaptiveTargetDistance = Math.abs(baseTargetPrice - entry) * targetFactor;
           stopPrice = roundTo(entry + (signal.side === "long" ? -adaptiveStopDistance : adaptiveStopDistance), pricePrecision);
-          targetPrice = roundTo(entry + (signal.side === "long" ? adaptiveTargetDistance : -adaptiveTargetDistance), pricePrecision);
+          targetPrice = signal.signal_type === "research_a_small" ? baseTargetPrice : roundTo(entry + (signal.side === "long" ? adaptiveTargetDistance : -adaptiveTargetDistance), pricePrecision);
           adaptiveLevelsApplied = stopPrice !== baseStopPrice || targetPrice !== baseTargetPrice;
           adaptiveLevelMeta = {
             ...adaptiveLevelMeta, applied: adaptiveLevelsApplied,
@@ -882,7 +887,7 @@ Deno.serve(async (req: Request) => {
     const expectedFeeUsdBeforeEntry = notional * feeRate;
     const expectedSlippageUsd = notional * oneWaySlippageRate * 2;
     const expectedTradingCostUsd = expectedFeeUsdBeforeEntry + expectedSlippageUsd;
-    const candidateExpectedMoveRate = signal.signal_type === "candidate_a_big" ? 0.03 : signal.signal_type === "candidate_a_small" ? 0.015 : null;
+    const candidateExpectedMoveRate = signal.signal_type === "research_a_big" ? 0.03 : signal.signal_type === "research_a_small" ? 0.015 : null;
     const grossTargetUsdBeforeEntry = notional * (candidateExpectedMoveRate ?? Math.abs(targetPrice - entry) / entry);
     const grossStopUsdBeforeEntry = notional * Math.abs(entry - stopPrice) / entry;
     const expectedNetProfitBeforeEntry = grossTargetUsdBeforeEntry - expectedTradingCostUsd;
@@ -956,7 +961,7 @@ Deno.serve(async (req: Request) => {
     const closeSide = signal.side === "long" ? "SELL" : "BUY";
     let slAttached = false, tpAttached = false, slError = "", tpError = "";
     let stopCreatedAt: string | null = null, targetCreatedAt: string | null = null;
-    if (signal.signal_type !== "candidate_a_small") {
+    if (signal.signal_type !== "research_a_small" || adaptiveLevelsApplied) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
@@ -981,7 +986,7 @@ Deno.serve(async (req: Request) => {
     const lastProtectionAt = targetCreatedAt || stopCreatedAt;
     const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
 
-    if (!slAttached && signal.signal_type !== "candidate_a_small") {
+    if (!slAttached && (signal.signal_type !== "research_a_small" || adaptiveLevelsApplied)) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000,
@@ -1009,7 +1014,7 @@ Deno.serve(async (req: Request) => {
         slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
         entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
         stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
-        protective_latency_ms: protectiveLatencyMs, protective_verified: signal.signal_type === "candidate_a_small" ? true : slAttached && (candidateA || tpAttached),
+        protective_latency_ms: protectiveLatencyMs, protective_verified: signal.signal_type === "research_a_small" ? (!adaptiveLevelsApplied || slAttached) : slAttached && (candidateA || tpAttached),
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
         strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, candidate_a: candidateA, exposure_multiplier: exposureMultiplier || null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
