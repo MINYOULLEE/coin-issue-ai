@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 38;
+const COLLECTOR_VERSION = 39;
 const STRATEGY_EPOCH = "market_suite_2026_08_25";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "market_suite_abcd_fg_v1";
@@ -355,7 +355,8 @@ async function manageSignals(market,old){
   const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
   if((dailyEntry||immediateStart)&&candidates.last_daily_key!==dailyKey){
     candidates.last_daily_key=dailyKey;const rf=market.BTC?.research_features?.[0]||{},regime=String(market.candidate_a?.regime||"chaos"),strength=Number(market.BTC?.trend_strength_percentile_90d||0);let selected=null;
-    if(regime==="chaos"&&strength>=90){const side=Number(rf.mom7||0)>=0?"long":"short";selected={type:side==="long"?"strategy_a":"strategy_b",side,exposure:3,leverage:10,hours:48,reasons:["강추세 혼조장",`90일 강도 ${strength.toFixed(1)}%`,`BTC 7일 ${side.toUpperCase()}`]}}
+    if(regime==="bull"){selected={type:"strategy_a",side:"long",exposure:2,leverage:10,hours:48,reasons:["상승장 추세 추종","BTC 다중 30일 구간 상승","BTC 14일 LONG"]}}
+    else if(regime==="chaos"&&strength>=90){const side=Number(rf.mom7||0)>=0?"long":"short";selected={type:side==="long"?"strategy_a":"strategy_b",side,exposure:3,leverage:10,hours:48,reasons:["강추세 혼조장",`90일 강도 ${strength.toFixed(1)}%`,`BTC 7일 ${side.toUpperCase()}`]}}
     else if(regime==="bear"){const side=Number(rf.mom10||0)>=0?"short":"long";selected={type:"strategy_c",side,exposure:1,leverage:10,hours:120,reasons:["하락장 과열 되돌림","BTC 10일 방향 반대","5일 보유"]}}
     else if(regime==="transition"){const side=Number(rf.mom30||0)>=0?"long":"short";selected={type:"strategy_d",side,exposure:.25,leverage:10,hours:336,reasons:["전환장 장기 방향","BTC 30일 추세","국면 종료 시 정리"]}}
     if(selected)await enter("BTC",selected.type,selected.side,selected.exposure,selected.leverage,selected.hours,selected.reasons,.03);
