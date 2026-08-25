@@ -329,10 +329,10 @@ async function manageSignals(market,old){
   await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})},health={},cooldowns={};const now=new Date(),nowIso=now.toISOString();
-  for(const legacy of active.filter(x=>x.strategy_epoch!==STRATEGY_EPOCH||!STRATEGY_TYPES.includes(x.signal_type))){
-    await triggerClose(legacy,"시장별 A-G 전략으로 세대 전환");
-    await patchSignal(legacy.id,{status:"expired",closed_at:nowIso,exit_price:Number(market[legacy.symbol]?.price||legacy.entry_price),close_reason:"시장별 A-G 전략으로 세대 전환",updated_at:nowIso});
-  }
+  // 전략 세대 전환 때문에 이미 열려 있는 실거래를 시장가로 닫지 않는다. 이전 세대
+  // 포지션은 BingX 동기화/보호 주문이 계속 관리하고, 신규 진입만 A-G 세대로 만든다.
+  // legacyActive는 화면과 heartbeat에도 남겨 운영자가 승계 포지션을 계속 확인할 수 있게 한다.
+  const legacyActive=active.filter(x=>x.strategy_epoch!==STRATEGY_EPOCH||!STRATEGY_TYPES.includes(x.signal_type));
   active=active.filter(x=>x.strategy_epoch===STRATEGY_EPOCH&&STRATEGY_TYPES.includes(x.signal_type));
   const byId=Object.fromEntries(active.map(x=>[x.id,x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   for(const s of active){
@@ -374,10 +374,10 @@ async function manageSignals(market,old){
     else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;await enter(p.symbol,"strategy_g",side,finalLev,finalLev,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
     else if(Date.now()>Date.parse(p.expires_g))delete candidates.fg_pending;
   }
-  active=open().map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
+  active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   for(const symbol of COINS){const mine=active.filter(x=>x.symbol===symbol);market[symbol].trade_signal=mine[0]||null;market[symbol].tactical_signal=mine[1]||null;if(mine[0])market[symbol].recommendation=`${mine[0].signal_type.toUpperCase()} ${mine[0].side.toUpperCase()} · ${Number(mine[0].entry_metrics?.strategy_config?.exposure_multiplier||0)}x`}
-  const recent=await recentSignals(),usedMargin=open().reduce((s,x)=>s+Number(x.margin_usd||0),0),unrealizedPnl=open().reduce((s,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*(x.side==="long"?1:-1);return s+Number(x.notional_usd||0)*raw},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealizedPnl),account={initial_balance_usd:1000,balance_usd:balance,realized_pnl_usd:realizedPnl,unrealized_pnl_usd:unrealizedPnl,equity_usd:equity,used_margin_usd:usedMargin,available_margin_usd:Math.max(0,equity-usedMargin),return_pct:(balance/1000-1)*100,open_positions:open().length,updated_at:nowIso};
-  return {active,candidates,health,recent,cooldowns,account,regime:{mode:"market_suite",strategy:"A/B/C/D + F 0.25x + G dynamic",market_regime:market.candidate_a?.regime,pending:candidates.fg_pending||null,checked_at:nowIso}};
+  const allOpen=[...legacyActive,...open()],recent=await recentSignals(),usedMargin=allOpen.reduce((s,x)=>s+Number(x.margin_usd||0),0),unrealizedPnl=allOpen.reduce((s,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*(x.side==="long"?1:-1);return s+Number(x.notional_usd||0)*raw},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealizedPnl),account={initial_balance_usd:1000,balance_usd:balance,realized_pnl_usd:realizedPnl,unrealized_pnl_usd:unrealizedPnl,equity_usd:equity,used_margin_usd:usedMargin,available_margin_usd:Math.max(0,equity-usedMargin),return_pct:(balance/1000-1)*100,open_positions:allOpen.length,updated_at:nowIso};
+  return {active,candidates,health,recent,cooldowns,account,regime:{mode:"market_suite",strategy:"A/B/C/D + F 0.25x + G dynamic",market_regime:market.candidate_a?.regime,pending:candidates.fg_pending||null,carried_positions:legacyActive.map(x=>({id:x.id,symbol:x.symbol,side:x.side,signal_type:x.signal_type})),checked_at:nowIso}};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
