@@ -1,8 +1,9 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 34;
+const COLLECTOR_VERSION = 35;
 const STRATEGY_EPOCH = "research_a_2026_08_25";
+const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "research_a_regime_v1";
 const CANDIDATE_A_BIG = "research_a_big";
 const CANDIDATE_A_SMALL = "research_a_small";
@@ -267,6 +268,10 @@ async function recentSignals(){
   const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(success,failure,neutral,expired,invalidated)&select=*&order=closed_at.desc&limit=50";
   const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("history fetch "+r.status+" "+await r.text());return await r.json();
 }
+async function strategyEpochStarted(){
+  const url=PROJECT_URL+"/rest/v1/trade_signals?strategy_epoch=eq."+encodeURIComponent(STRATEGY_EPOCH)+"&select=id&limit=1";
+  const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("strategy epoch fetch "+r.status+" "+await r.text());const rows=await r.json();return rows.length>0;
+}
 async function patchSignal(id,body){
   const r=await fetch(PROJECT_URL+"/rest/v1/trade_signals?id=eq."+id,{method:"PATCH",headers:adminHeaders({Prefer:"return=representation"}),body:JSON.stringify(body)});
   if(!r.ok)throw Error("signal patch "+r.status+" "+await r.text());const rows=await r.json();return rows[0]||{...body,id};
@@ -344,6 +349,7 @@ async function manageSignals(market,old){
   const key=(symbol,type)=>symbol+":"+type,byKey=Object.fromEntries(active.map(x=>[key(x.symbol,x.signal_type||"swing"),x]));let realizedPnl=Number(perf.net_pnl_usd||0);
   const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes();
   const dailyDecision=utcHour===0&&utcMinute<10,dailyEntry=utcHour===1&&utcMinute<10;
+  const immediateStart=now.toISOString().slice(0,10)===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
   for(const [k,v] of Object.entries(cooldowns))if(Date.parse(String(v))<=Date.now())delete cooldowns[k];
   for(const symbol of COINS){
     const m=market[symbol];if(!m)continue;m.live_recommendation=m.recommendation;
@@ -404,7 +410,7 @@ async function manageSignals(market,old){
       }
       if(!s&&sideNow){
         // 매일 00:00 UTC에 순위를 확정하고 다음 시간봉(01:00 UTC)에만 진입한다.
-        if(!dailyEntry){delete candidates[k];continue}
+        if(!dailyEntry&&!immediateStart){delete candidates[k];continue}
         if(!isBig&&Object.values(byKey).some(x=>x.signal_type===CANDIDATE_A_SMALL&&x.side===sideNow)){
           delete candidates[k];continue;
         }
