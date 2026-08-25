@@ -31,7 +31,7 @@ const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX",
 const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strategy_f","strategy_g"];
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 21;
+const EXECUTOR_VERSION = 22;
 const DEFAULT_STRATEGY_EPOCH = "market_suite_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -971,9 +971,10 @@ Deno.serve(async (req: Request) => {
     //      더 안정적인 실제 수량 지정 방식으로 건다 (헤지 모드에서는 positionSide만으로
     //      이미 포지션 축소 방향이 결정되므로 reduceOnly는 보내지 않는다).
     const closeSide = signal.side === "long" ? "SELL" : "BUY";
+    const emergencyHardStopRequired = signal.signal_type === "strategy_f";
     let slAttached = false, tpAttached = false, slError = "", tpError = "";
     let stopCreatedAt: string | null = null, targetCreatedAt: string | null = null;
-    if (!candidateA) {
+    if (!candidateA || emergencyHardStopRequired) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
@@ -998,7 +999,7 @@ Deno.serve(async (req: Request) => {
     const lastProtectionAt = targetCreatedAt || stopCreatedAt;
     const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
 
-    if (!slAttached && !candidateA) {
+    if (!slAttached && (!candidateA || emergencyHardStopRequired)) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000,
@@ -1026,12 +1027,33 @@ Deno.serve(async (req: Request) => {
         slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
         entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
         stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
-        protective_latency_ms: protectiveLatencyMs, protective_verified: candidateA ? true : slAttached && tpAttached,
+        protective_latency_ms: protectiveLatencyMs, protective_verified: emergencyHardStopRequired ? slAttached : candidateA ? true : slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
         strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, market_suite: candidateA, exposure_multiplier: exposureMultiplier || null, max_gross_exposure: candidateA ? 6 : null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
       }),
     });
+
+    // 계획 단계의 가상 금액을 남기지 않고, 실제 BingX 체결값으로 신호 기록을 동기화한다.
+    try {
+      const actualRiskUsd = effectiveNotional * Math.abs(actualFillPrice - stopPrice) / actualFillPrice;
+      await db(`trade_signals?id=eq.${signal.id}`, {
+        method: "PATCH",
+        headers: { Prefer: "return=minimal" },
+        body: JSON.stringify({
+          account_equity_usd: equity,
+          margin_usd: marginUsd,
+          leverage: finalLeverage,
+          notional_usd: effectiveNotional,
+          fee_usd: estimatedRoundTripFee,
+          risk_usd: roundTo(actualRiskUsd, 6),
+          risk_pct: roundTo(actualRiskUsd / Math.max(equity, 0.000001) * 100, 6),
+          updated_at: new Date().toISOString(),
+        }),
+      });
+    } catch (syncError) {
+      console.error("trade signal actual sizing sync failed:", syncError instanceof Error ? syncError.message : String(syncError));
+    }
 
     return Response.json({ ok: true, order_id: orderId, quantity: actualExecutedQty, fill_price: actualFillPrice, slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1), margin_usd: marginUsd, leverage: finalLeverage, protective_latency_ms: protectiveLatencyMs });
   } catch (e) {
