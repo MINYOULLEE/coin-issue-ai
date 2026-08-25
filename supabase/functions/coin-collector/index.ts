@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 37;
+const COLLECTOR_VERSION = 38;
 const STRATEGY_EPOCH = "market_suite_2026_08_25";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "market_suite_abcd_fg_v1";
@@ -348,8 +348,8 @@ async function manageSignals(market,old){
     if(open().length>=4||open().some(x=>x.symbol===symbol&&x.side===side))return null;
     const entry=Number(market[symbol]?.price||0);if(!(entry>0))return null;
     const invalidation=stopPct?entry*(side==="long"?1-stopPct:1+stopPct):entry,target=entry,created=nowIso,expires=new Date(now.getTime()+hours*3600000).toISOString();
-    const plan={account_equity_usd:1000,margin_usd:1000*exposure/leverage,leverage,notional_usd:1000*exposure,fee_usd:1000*exposure*.001,risk_usd:stopPct?1000*exposure*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
-    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:80,reasons,...plan,entry_metrics:{strategy_config:{candidate:"시장별 A-G",market_regime:market.candidate_a?.regime,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:6,fixed_take_profit:false,exit_mode:"hourly_review_or_horizon",account_sizing:"live_bingx_equity"}},created_at:created,expires_at:expires,updated_at:created});
+    const plan={leverage,account_equity_usd:null,margin_usd:null,notional_usd:null,fee_usd:null,risk_usd:null,risk_pct:stopPct?exposure*stopPct*100:null};
+    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:80,reasons,...plan,entry_metrics:{strategy_config:{candidate:"시장별 A-G",market_regime:market.candidate_a?.regime,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:6,fixed_take_profit:false,exit_mode:"hourly_review_or_horizon",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:type==="strategy_f"?stopPct:null}},created_at:created,expires_at:expires,updated_at:created});
     byId[s.id]=s;await triggerRealTrade(s);return s;
   }
   const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
@@ -370,7 +370,7 @@ async function manageSignals(market,old){
     const setup=market[p.symbol]?.suite_setup||{},close=Number(setup.close||market[p.symbol]?.price),level=p.breakout_side==="long"?Number(p.prior_high):Number(p.prior_low),tol=Number(p.channel_unit)*.25,hours=Math.max(1,Math.ceil((Date.now()-Date.parse(p.armed_at))/3600000)),newHour=Number(setup.closed_at||0)>Number(p.last_closed_at||0);p.last_closed_at=setup.closed_at;
     const touched=Math.abs(close-level)<=tol||(p.breakout_side==="long"?close<level:close>level),reclaimed=p.breakout_side==="long"?close>level:close<level,failed=p.breakout_side==="long"?close<level:close>level;
     if(p.f_eligible&&newHour&&Date.now()<=Date.parse(p.expires_f)){if(touched)p.retested=true;if(p.retested&&reclaimed&&!p.ready_at)p.ready_at=new Date(Math.ceil(Date.now()/3600000)*3600000).toISOString()}
-    if(p.ready_at&&Date.now()>=Date.parse(p.ready_at)){await enter(p.symbol,"strategy_f",p.breakout_side,.25,10,24,["저변동 진짜 돌파","6시간 내 0.25 채널 재시험·재돌파","24시간 보유"],0);delete candidates.fg_pending}
+    if(p.ready_at&&Date.now()>=Date.parse(p.ready_at)){await enter(p.symbol,"strategy_f",p.breakout_side,.25,10,24,["저변동 진짜 돌파","6시간 내 0.25 채널 재시험·재돌파","24시간 보유","거래소 장애·급변 대비 8% 비상 하드스톱"],.08);delete candidates.fg_pending}
     else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;await enter(p.symbol,"strategy_g",side,finalLev,10,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
     else if(Date.now()>Date.parse(p.expires_g))delete candidates.fg_pending;
   }
