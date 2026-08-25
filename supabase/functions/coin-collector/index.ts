@@ -1,11 +1,12 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","TON","AAVE"];
-const COLLECTOR_VERSION = 32;
-const STRATEGY_EPOCH = "candidate_a_locked_2026_08_25";
-const SIGNAL_MODEL_VERSION = "candidate_a_exact_v2";
-const CANDIDATE_A_BIG = "candidate_a_big";
-const CANDIDATE_A_SMALL = "candidate_a_small";
+const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
+const COLLECTOR_VERSION = 33;
+const STRATEGY_EPOCH = "research_a_2026_08_25";
+const SIGNAL_MODEL_VERSION = "research_a_regime_v1";
+const CANDIDATE_A_BIG = "research_a_big";
+const CANDIDATE_A_SMALL = "research_a_small";
+const RESEARCH_A_SMALL_EXCLUDED = new Set(["BTC","ETH","BNB","DOGE","TRX"]);
 const SOURCES = [
   ["CFTC Press","https://www.cftc.gov/RSS/RSSGP/rssgp.xml","official"],
   ["CFTC Speeches","https://www.cftc.gov/RSS/RSSST/rssst.xml","official"],
@@ -79,6 +80,17 @@ async function fetchMarket(){
     const atr1h=atrFromKlines(hourRows),atr1m=atrFromKlines(micro),trend4h=emaTrend(fourHourRows),trend1d=emaTrend(dayRows),fundingRatePct=fundingRaw*100,fundingExtreme=Math.abs(fundingRatePct)>=.05;
     const dayCloses=(dayRows||[]).map(x=>Number(x[4])).filter(Number.isFinite),hourCloses=(hourRows||[]).map(x=>Number(x[4])).filter(Number.isFinite);
     const momentum7dPct=dayCloses.length>=8?(dayCloses.at(-1)/dayCloses.at(-8)-1)*100:0;
+    const featureAt=(offset=0)=>{
+      const end=dayCloses.length-1-offset;
+      if(end<30)return {mom7:0,mom10:0,mom14:0,mom30:0,efficiency:0,volRank:.5};
+      const pct=(look)=>dayCloses[end]/dayCloses[end-look]-1;
+      const moves=[];for(let i=end-29;i<=end;i++)moves.push(Math.abs(dayCloses[i]/dayCloses[i-1]-1));
+      const efficiency=Math.abs(pct(30))/Math.max(1e-9,moves.reduce((a,b)=>a+b,0));
+      const volAt=(j)=>{const r=[];for(let i=j-6;i<=j;i++)r.push(dayCloses[i]/dayCloses[i-1]-1);const mean=r.reduce((a,b)=>a+b,0)/r.length;return Math.sqrt(r.reduce((a,b)=>a+(b-mean)**2,0)/r.length)};
+      const currentVol=volAt(end),vols=[];for(let j=Math.max(7,end-90);j<end;j++)vols.push(volAt(j));
+      return {mom7:pct(7),mom10:pct(10),mom14:pct(14),mom30:pct(30),efficiency,volRank:vols.length?vols.filter(x=>x<=currentVol).length/vols.length:.5};
+    };
+    const researchFeatures=[featureAt(0),featureAt(1),featureAt(2)];
     const sevenDayMoves=[];for(let i=7;i<dayCloses.length;i++)sevenDayMoves.push(Math.abs((dayCloses[i]/dayCloses[i-7]-1)*100));
     // 백테스트의 strength.shift(1).rolling(90).rank(pct)와 동일하게 현재 값은 제외한다.
     const priorStrengths=sevenDayMoves.slice(0,-1).slice(-90),priorStrength=priorStrengths.at(-1);
@@ -141,13 +153,23 @@ async function fetchMarket(){
     const rec=direction>.2?(rsi>75?"상승 추세·과열 주의":"상승 우세"):direction<-.2?(rsi<28?"하락 추세·과매도 주의":"하락 우세"):"중립·확인 대기";
     const regimeLabel={breakout_up:"상단 돌파",breakout_down:"하단 이탈",false_breakout_up:"상단 가짜 돌파",false_breakout_down:"하단 가짜 이탈",support_test:"지지 테스트",resistance_test:"저항 테스트",trend_up:"상승 추세",trend_down:"하락 추세",range:"박스 횡보"}[regime]||regime;
     const flowReason=flowAction==="long"?regimeLabel+"·매수 체결 확인":flowAction==="short"?regimeLabel+"·매도 체결 확인":regimeLabel+"·확정 대기";
-    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),trend_4h:trend4h,trend_1d:trend1d,atr_1h:atr1h,atr_1h_pct:price?atr1h/price*100:0,atr_1m:atr1m,atr_1m_pct:price?atr1m/price*100:0,momentum_7d_pct:momentum7dPct,trend_strength_percentile_90d:trendStrengthPercentile90d,relative_strength_score:relativeStrengthScore,relative_return_12h_pct:ret12h*100,relative_return_24h_pct:ret24h*100,funding_rate:fundingRaw,funding_rate_pct:fundingRatePct,funding_extreme:fundingExtreme,funding_bias:fundingRatePct>0?"long_crowded":fundingRatePct<0?"short_crowded":"neutral",scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:Math.round(longScore),short_pressure:Math.round(shortScore),flow_action:flowAction,flow_confidence:Math.round(flowConfidence),flow_extreme:extreme,flow_reason:flowReason,market_structure:{regime,label:regimeLabel,support,resistance,poc,box_position:boxPosition,box_width_pct:boxWidth,support_touches:supportTouches,resistance_touches:resistanceTouches,false_breakout:falseBreakout,profit_taking_risk:profitTaking,short_covering_risk:shortCovering},micro_scenarios:{long:longProb,short:shortProb,range:rangeProb},risks:[fundingExtreme?(fundingRatePct>0?"롱 펀딩 과열·롱 신규 차단":"숏 펀딩 과열·숏 신규 차단"):profitTaking>=60?"차익실현 압력 높음":shortCovering>=60?"숏커버 반등 위험 높음":falseBreakout!=="none"?"가짜 돌파 감지":regime==="range"?"박스 중앙 추격 금지":"급등락·뉴스 변수"],reasons:[regimeLabel,`4H ${trend4h} / 1D ${trend1d}`,`펀딩 ${fundingRatePct.toFixed(4)}%`,`지지 ${support.toFixed(price<10?4:2)} / 저항 ${resistance.toFixed(price<10?4:2)}`,`1분 거래량 ${volumePace.toFixed(2)}배`],updated:new Date().toISOString()}];
+    return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),trend_4h:trend4h,trend_1d:trend1d,atr_1h:atr1h,atr_1h_pct:price?atr1h/price*100:0,atr_1m:atr1m,atr_1m_pct:price?atr1m/price*100:0,momentum_7d_pct:momentum7dPct,research_features:researchFeatures,trend_strength_percentile_90d:trendStrengthPercentile90d,relative_strength_score:relativeStrengthScore,relative_return_12h_pct:ret12h*100,relative_return_24h_pct:ret24h*100,funding_rate:fundingRaw,funding_rate_pct:fundingRatePct,funding_extreme:fundingExtreme,funding_bias:fundingRatePct>0?"long_crowded":fundingRatePct<0?"short_crowded":"neutral",scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:Math.round(longScore),short_pressure:Math.round(shortScore),flow_action:flowAction,flow_confidence:Math.round(flowConfidence),flow_extreme:extreme,flow_reason:flowReason,market_structure:{regime,label:regimeLabel,support,resistance,poc,box_position:boxPosition,box_width_pct:boxWidth,support_touches:supportTouches,resistance_touches:resistanceTouches,false_breakout:falseBreakout,profit_taking_risk:profitTaking,short_covering_risk:shortCovering},micro_scenarios:{long:longProb,short:shortProb,range:rangeProb},risks:[fundingExtreme?(fundingRatePct>0?"롱 펀딩 과열·롱 신규 차단":"숏 펀딩 과열·숏 신규 차단"):profitTaking>=60?"차익실현 압력 높음":shortCovering>=60?"숏커버 반등 위험 높음":falseBreakout!=="none"?"가짜 돌파 감지":regime==="range"?"박스 중앙 추격 금지":"급등락·뉴스 변수"],reasons:[regimeLabel,`4H ${trend4h} / 1D ${trend1d}`,`펀딩 ${fundingRatePct.toFixed(4)}%`,`지지 ${support.toFixed(price<10?4:2)} / 저항 ${resistance.toFixed(price<10?4:2)}`,`1분 거래량 ${volumePace.toFixed(2)}배`],updated:new Date().toISOString()}];
   }));
   const market=Object.fromEntries(entries);
-  const altRanking=COINS.filter(x=>x!=="BTC"&&market[x]).sort((a,b)=>Number(market[b].relative_strength_score||0)-Number(market[a].relative_strength_score||0));
+  const altRanking=COINS.filter(x=>!RESEARCH_A_SMALL_EXCLUDED.has(x)&&market[x]).sort((a,b)=>Number(market[b].relative_strength_score||0)-Number(market[a].relative_strength_score||0));
   const strongestAlt=altRanking[0]||null,weakestAlt=altRanking.at(-1)||null;
   for(const symbol of altRanking)market[symbol].candidate_a_small_side=symbol===strongestAlt?"long":symbol===weakestAlt?"short":null;
-  market.candidate_a={big_symbol:"BTC",big_side:Number(market.BTC?.momentum_7d_pct||0)>=0?"long":"short",big_exposure_multiplier:Number(market.BTC?.trend_strength_percentile_90d||0)>=90?8:1,small_long:strongestAlt,small_short:weakestAlt,small_leg_exposure_multiplier:.5,updated:new Date().toISOString()};
+  const [rf0,rf1,rf2]=market.BTC?.research_features||[];
+  const bull=[rf0,rf1,rf2].every(x=>x&&x.mom30>=.03&&x.efficiency>=.30),bear=[rf0,rf1,rf2].every(x=>x&&x.mom30<=-.03&&x.efficiency>=.30);
+  let researchRegime=bull?"bull":bear?"bear":Number(rf0?.volRank||.5)<=.60?"range":"chaos";
+  const transition=(x)=>x&&((Math.sign(x.mom7)!==Math.sign(x.mom30)&&Math.abs(x.mom7)>=.02)||x.volRank>=.85);
+  if(researchRegime==="chaos"&&transition(rf0)&&transition(rf1))researchRegime="transition";
+  const bigMomentum=researchRegime==="bull"?Number(rf0?.mom14||0):researchRegime==="transition"?Number(rf0?.mom10||0):Number(rf0?.mom7||0);
+  const bigSide=["bear","range"].includes(researchRegime)?null:bigMomentum>=0?"long":"short";
+  const bigExposure=researchRegime==="bull"?2:researchRegime==="transition"?.25:Number(market.BTC?.trend_strength_percentile_90d||0)>=90?8:1;
+  const smallEnabled=researchRegime==="chaos";
+  if(!smallEnabled)for(const symbol of altRanking)market[symbol].candidate_a_small_side=null;
+  market.candidate_a={name:"연구 A",regime:researchRegime,big_symbol:"BTC",big_side:bigSide,big_exposure_multiplier:bigExposure,small_long:smallEnabled?strongestAlt:null,small_short:smallEnabled?weakestAlt:null,small_leg_exposure_multiplier:.5,small_excluded:[...RESEARCH_A_SMALL_EXCLUDED],updated:new Date().toISOString()};
   try{const u=(await json("https://api.upbit.com/v1/ticker?markets=KRW-USDT"))[0];market.USDT={price:Number(u.trade_price),change:Number(u.signed_change_rate)*100,quoteVolume:Number(u.acc_trade_price_24h||0),currency:"KRW",source:"Upbit",updated:new Date().toISOString()}}catch{}
   return market;
 }
@@ -173,7 +195,7 @@ async function triggerRealTrade(signal){
     if(!j.ok)console.error("real trade not placed:",signal.symbol,signal.side,signal.signal_type,j.error||j.skipped);
   }catch(e){console.error("triggerRealTrade failed:",e instanceof Error?e.message:String(e))}
 }
-// 후보군 A의 큰 그림은 진입 순간부터 최고/최저 종가를 따라 3% 트레일링한다.
+// 연구 A의 혼조장 큰 그림은 진입 순간부터 최고/최저 종가를 따라 3% 트레일링한다.
 // 작은 그림에는 백테스트에 없던 손절·트레일링을 추가하지 않는다.
 function reviewPosition(s,m,price,pnlPct,supported,type){
   const entry=Number(s.entry_price),side=s.side,oldStop=Number(s.invalidation_price),oldTarget=Number(s.target_price);
@@ -296,17 +318,17 @@ async function manageSignals(market,old){
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   try{const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"audit"})});const j=await r.json().catch(()=>({}));console.error("AUDIT_RESULT",JSON.stringify(j))}catch(e){console.error("audit trigger failed:",e instanceof Error?e.message:String(e))} // TEMP: 전수검사 1회 실행용, 확인 후 제거 예정
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})};const health={...(old.signal_health||{})};const cooldowns={...(old.signal_cooldowns||{})};const now=new Date();
-  // 전략 교체 시 이전 세대의 모의 신호가 후보군 A의 담보 계산을 차지하지 않도록 정리한다.
+  // 전략 교체 시 이전 세대의 모의 신호가 연구 A의 담보 계산을 차지하지 않도록 정리한다.
   for(const legacy of active.filter(x=>![CANDIDATE_A_BIG,CANDIDATE_A_SMALL].includes(x.signal_type))){
-    await triggerClose(legacy,"후보군 A 전환으로 이전 전략 종료");
-    await patchSignal(legacy.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[legacy.symbol]?.price||legacy.entry_price),close_reason:"후보군 A 전환으로 이전 전략 종료",updated_at:now.toISOString()});
+    await triggerClose(legacy,"연구 A 전환으로 이전 전략 종료");
+    await patchSignal(legacy.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[legacy.symbol]?.price||legacy.entry_price),close_reason:"연구 A 전환으로 이전 전략 종료",updated_at:now.toISOString()});
   }
   active=active.filter(x=>[CANDIDATE_A_BIG,CANDIDATE_A_SMALL].includes(x.signal_type));
-  // 후보군 A v1에는 백테스트 밖의 알트 손절·트레일링과 임의 시각 진입이 섞여 있었다.
+  // 이전 전략에는 백테스트 밖의 알트 손절·트레일링과 임의 시각 진입이 섞여 있었다.
   // 실제 열린 포지션이 없는 상태에서만 이 세대의 모의 신호를 종료하고 잠금 버전은 다음 01:00 UTC부터 시작한다.
   for(const prior of active.filter(x=>x.strategy_epoch!==STRATEGY_EPOCH)){
-    await triggerClose(prior,"후보군 A 잠금 규칙으로 세대 전환");
-    await patchSignal(prior.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[prior.symbol]?.price||prior.entry_price),close_reason:"후보군 A 잠금 규칙으로 세대 전환",updated_at:now.toISOString()});
+    await triggerClose(prior,"연구 A 규칙으로 세대 전환");
+    await patchSignal(prior.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[prior.symbol]?.price||prior.entry_price),close_reason:"연구 A 규칙으로 세대 전환",updated_at:now.toISOString()});
   }
   active=active.filter(x=>x.strategy_epoch===STRATEGY_EPOCH);
   // 작은 그림은 롱 1개·숏 1개만 유지한다. 과거 버전에서 누적된 중복 신호는 가장 먼저
@@ -314,8 +336,8 @@ async function manageSignals(market,old){
   for(const side of ["long","short"]){
     const legs=active.filter(x=>x.signal_type===CANDIDATE_A_SMALL&&x.side===side).sort((a,b)=>Date.parse(a.created_at)-Date.parse(b.created_at));
     for(const duplicate of legs.slice(1)){
-      await triggerClose(duplicate,"후보군 A 동일 방향 중복 leg 정리");
-      await patchSignal(duplicate.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[duplicate.symbol]?.price||duplicate.entry_price),close_reason:"후보군 A 동일 방향 중복 leg 정리",updated_at:now.toISOString()});
+      await triggerClose(duplicate,"연구 A 동일 방향 중복 leg 정리");
+      await patchSignal(duplicate.id,{status:"expired",closed_at:now.toISOString(),exit_price:Number(market[duplicate.symbol]?.price||duplicate.entry_price),close_reason:"연구 A 동일 방향 중복 leg 정리",updated_at:now.toISOString()});
       active=active.filter(x=>x.id!==duplicate.id);
     }
   }
@@ -329,25 +351,27 @@ async function manageSignals(market,old){
       const isBig=type===CANDIDATE_A_BIG;
       if(isBig&&symbol!=="BTC")continue;
       if(!isBig&&symbol==="BTC")continue;
-      const k=key(symbol,type),sideNow=isBig?(Number(m.momentum_7d_pct||0)>=0?"long":"short"):(m.candidate_a_small_side||null),horizon=isBig?2880:1440;
+      const k=key(symbol,type),sideNow=isBig?(market.candidate_a?.big_side||null):(m.candidate_a_small_side||null),horizon=isBig?2880:1440;
       let s=byKey[k];
       if(s){
         const price=Number(m.price),expired=Date.now()>=Date.parse(s.expires_at);
-        const invalid=isBig&&(s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price));
-        const target=false; // 후보군 A는 고정 익절 없이 트레일링·방향전환·리밸런싱으로 청산
+        const signalRegime=String(s.entry_metrics?.strategy_config?.market_regime||"chaos");
+        const invalid=isBig&&signalRegime==="chaos"&&(s.side==="long"?price<=Number(s.invalidation_price):price>=Number(s.invalidation_price));
+        const target=false; // 연구 A는 고정 익절 없이 트레일링·방향전환·리밸런싱으로 청산
         const pnlPct=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1),supported=isBig?sideNow===s.side:true;
-        const ageMs=Date.now()-Date.parse(s.created_at),minimumHoldDone=!isBig||ageMs>=48*60*60000;
+        const ageMs=Date.now()-Date.parse(s.created_at),minimumHoldDone=!isBig||signalRegime!=="chaos"||ageMs>=48*60*60000;
         const wantedExposure=isBig?Number(market.candidate_a?.big_exposure_multiplier||1):.5;
         const currentExposure=Number(s.entry_metrics?.strategy_config?.exposure_multiplier||wantedExposure);
         const rebalanceExposure=isBig&&dailyEntry&&currentExposure!==wantedExposure;
+        const regimeChanged=isBig&&dailyDecision&&signalRegime!==String(market.candidate_a?.regime||signalRegime);
         // 1순위: 수익 중이고 추세가 아직 살아있으면 시간만료를 늦춰서 승자를 더 태운다. 손실 중이면 그대로 시간 만료로 정리.
         const canExtend=isBig&&expired&&!invalid&&!target&&supported;
         const trulyExpired=expired&&!canExtend;
         const directionFlip=isBig&&dailyDecision&&minimumHoldDone&&!supported;
-        if(trulyExpired||invalid||target||directionFlip||rebalanceExposure){
+        if(trulyExpired||invalid||target||directionFlip||rebalanceExposure||regimeChanged){
           const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1);
           const threshold=.1,outcome=target?"success":invalid?"failure":result>=threshold?"success":result<=-threshold?"failure":"neutral";
-          const reason=target?"후보군 A 보호 목표 도달":invalid?"후보군 A 3% 트레일링·보호손절":directionFlip?"BTC 7일 모멘텀 방향 전환":rebalanceExposure?"BTC 강도 구간 노출 리밸런싱":outcome==="success"?"알트 일일 리밸런싱·수익 종료":outcome==="failure"?"알트 일일 리밸런싱·손실 종료":"알트 일일 리밸런싱·보합";
+          const reason=target?"연구 A 보호 목표 도달":invalid?"연구 A 혼조장 3% 트레일링":regimeChanged?"연구 A 시장 국면 전환":directionFlip?"연구 A 방향 전환":rebalanceExposure?"연구 A 노출 리밸런싱":outcome==="success"?"연구 A 일일 리밸런싱·수익 종료":outcome==="failure"?"연구 A 일일 리밸런싱·손실 종료":"연구 A 일일 리밸런싱·보합";
           const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),gross=notional*result/100,net=gross-fee,leveraged=margin?net/margin*100:null;
           await triggerClose(s,reason);
           await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});if(notional)realizedPnl+=net;
@@ -365,7 +389,7 @@ async function manageSignals(market,old){
           }
           // 백테스트와 동일하게 BTC 트레일링은 시간봉 단위로만 갱신한다.
           const lastReview=Date.parse(s.last_reviewed_at||s.created_at);
-          if(isBig&&now.getTime()-lastReview>=60*60000){
+          if(isBig&&signalRegime==="chaos"&&now.getTime()-lastReview>=60*60000){
             const patch=reviewPosition(s,m,price,pnlPct,supported,type);
             if(patch){s=await patchSignal(s.id,{...patch,last_reviewed_at:now.toISOString(),updated_at:now.toISOString()});await triggerReprice(s)}
             else s=await patchSignal(s.id,{last_reviewed_at:now.toISOString()});
@@ -408,20 +432,21 @@ async function manageSignals(market,old){
             if(isBig){
               // 장기(24H) 관점: 레버리지 거래 노이즈를 견딜 수 있게 손절·목표 모두 넓게 잡는다.
               // ATR14(1H) 기반 %와 시나리오 기반 값 중 더 넓은/더 야심찬 쪽을 택한다.
-              invalidation=entry*(sideNow==="long"?.97:1.03);target=entry*(sideNow==="long"?10:.10);
+              const regimeNow=String(market.candidate_a?.regime||"chaos"),stopPct=regimeNow==="chaos"?.03:regimeNow==="transition"?.06:.10;
+              invalidation=entry*(sideNow==="long"?1-stopPct:1+stopPct);target=entry*(sideNow==="long"?10:.10);
               confidence=clamp(Math.round(60+Number(m.trend_strength_percentile_90d||0)*.35),60,95);
-              reasons=[`후보군 A BTC 7일 모멘텀 ${Number(m.momentum_7d_pct||0).toFixed(2)}%`,`최근 90일 추세강도 백분위 ${Number(m.trend_strength_percentile_90d||0).toFixed(1)}`,`계좌 노출 ${Number(market.candidate_a?.big_exposure_multiplier||1)}x · 2일 최소 유지 · 3% 트레일링`]
+              reasons=[`연구 A BTC ${regimeNow} 국면`,`최근 90일 추세강도 백분위 ${Number(m.trend_strength_percentile_90d||0).toFixed(1)}`,`계좌 노출 ${Number(market.candidate_a?.big_exposure_multiplier||1)}x`]
             }
             else{
-              // 후보군 A 알트 leg는 손절·익절 없이 정확히 24시간 뒤 재선정한다.
+              // 연구 A 알트 leg는 손절·익절 없이 정확히 24시간 뒤 재선정한다.
               invalidation=entry;target=entry;
-              confidence=80;reasons=[`후보군 A 알트 상대강도 ${sideNow==="long"?"최강":"최약"} 종목`,`12시간 75% + 24시간 25%, 변동성 보정`,`계좌 노출 0.5x · 24시간 리밸런싱`]
+              confidence=80;reasons=[`연구 A 알트 상대강도 ${sideNow==="long"?"최강":"최약"} 종목`,`손실 5종 제외 후 다음 순위 재선정`,`계좌 노출 0.5x · 24시간 리밸런싱`]
             }
             try{
               const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m);
               if(plan.margin_usd<=0){candidates[k].blocked="담보 부족";continue}
               const exposureMultiplier=isBig?Number(market.candidate_a?.big_exposure_multiplier||1):.5;
-              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{momentum_7d_pct:m.momentum_7d_pct,trend_strength_percentile_90d:m.trend_strength_percentile_90d,relative_strength_score:m.relative_strength_score,relative_return_12h_pct:m.relative_return_12h_pct,relative_return_24h_pct:m.relative_return_24h_pct,strategy_config:{candidate:"A",locked:true,role:isBig?"btc_big_picture":"alt_relative_strength",exposure_multiplier:exposureMultiplier,exchange_leverage:10,max_total_exposure:9,minimum_hold_days:isBig?2:0,decision_utc:"00:00",entry_utc:"01:00",rebalance_hours:24,round_trip_cost_rate:.001803,exit_mode:isBig?"hourly_close_3pct_trailing_or_daily_direction_flip_after_2d":"exact_24h_rebalance_no_stop_no_take_profit",fixed_take_profit:false,trailing_stop_pct:isBig?3:null,trailing_activation_pct:isBig?0:null}},created_at:created,expires_at:expires,updated_at:created});
+              s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{momentum_7d_pct:m.momentum_7d_pct,trend_strength_percentile_90d:m.trend_strength_percentile_90d,relative_strength_score:m.relative_strength_score,relative_return_12h_pct:m.relative_return_12h_pct,relative_return_24h_pct:m.relative_return_24h_pct,strategy_config:{candidate:"연구 A",locked:true,market_regime:market.candidate_a?.regime,role:isBig?"btc_big_picture":"alt_relative_strength",exposure_multiplier:exposureMultiplier,exchange_leverage:10,max_total_exposure:9,minimum_hold_days:isBig&&market.candidate_a?.regime==="chaos"?2:0,decision_utc:"00:00",entry_utc:"01:00",rebalance_hours:24,round_trip_cost_rate:.001803,exit_mode:isBig&&market.candidate_a?.regime==="chaos"?"hourly_close_3pct_trailing":"daily_regime_direction_rebalance",fixed_take_profit:false,trailing_stop_pct:isBig&&market.candidate_a?.regime==="chaos"?3:null,trailing_activation_pct:isBig&&market.candidate_a?.regime==="chaos"?0:null}},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
               await triggerRealTrade(s);
             }catch(e){if(!String(e).includes("409"))throw e}
@@ -431,13 +456,13 @@ async function manageSignals(market,old){
     }
     const big=byKey[key(symbol,CANDIDATE_A_BIG)],small=byKey[key(symbol,CANDIDATE_A_SMALL)];
     m.trade_signal=big?signalView(big,Number(m.price)):null;m.tactical_signal=small?signalView(small,Number(m.price)):null;
-    m.tactical_response={side:small?.side||m.candidate_a_small_side||"wait",status:small?.status||"watch",confidence:Number(small?.confidence||0),reason:"후보군 A 알트 상대강도 일일 포지션",required_checks:1};
-    if(big){m.recommendation=`후보군 A BTC ${big.side==="long"?"롱":"숏"} · ${Number(big.entry_metrics?.strategy_config?.exposure_multiplier||1)}x`;m.direction_confidence=Number(big.confidence)}
-    else if(small)m.recommendation=`후보군 A 알트 ${small.side==="long"?"상대강도 롱":"상대약도 숏"}`;
+    m.tactical_response={side:small?.side||m.candidate_a_small_side||"wait",status:small?.status||"watch",confidence:Number(small?.confidence||0),reason:"연구 A 알트 상대강도 일일 포지션",required_checks:1};
+    if(big){m.recommendation=`연구 A BTC ${big.side==="long"?"롱":"숏"} · ${Number(big.entry_metrics?.strategy_config?.exposure_multiplier||1)}x`;m.direction_confidence=Number(big.confidence)}
+    else if(small)m.recommendation=`연구 A 알트 ${small.side==="long"?"상대강도 롱":"상대약도 숏"}`;
   }
   active=Object.values(byKey).map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   const recent=await recentSignals(),actions=COINS.reduce((o,x)=>{o[x]=market[x]?.flow_action||"wait";return o},{}),openFinal=Object.values(byKey),usedMargin=openFinal.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealizedPnl=openFinal.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealizedPnl),availableMargin=Math.max(0,equity-usedMargin),account={initial_balance_usd:1000,balance_usd:balance,realized_pnl_usd:realizedPnl,unrealized_pnl_usd:unrealizedPnl,equity_usd:equity,used_margin_usd:usedMargin,available_margin_usd:availableMargin,return_pct:(balance/1000-1)*100,open_positions:openFinal.length,updated_at:now.toISOString()};
-  return {active,candidates,health,recent,cooldowns,account,regime:{mode:"candidate_a",actions,candidate_a:market.candidate_a,checked_at:now.toISOString()}};
+  return {active,candidates,health,recent,cooldowns,account,regime:{mode:"research_a",actions,research_a:market.candidate_a,checked_at:now.toISOString()}};
 }
 
 async function current(){try{const r=await fetch(PROJECT_URL+"/rest/v1/coin_snapshots?id=eq.live&select=payload",{headers:{apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY}});const rows=await r.json();return rows[0]?.payload||{}}catch{return {}}}
