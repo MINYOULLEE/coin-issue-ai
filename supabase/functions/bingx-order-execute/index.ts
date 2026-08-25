@@ -761,10 +761,11 @@ Deno.serve(async (req: Request) => {
       : 0;
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
-    // 연구 A 최대 노출 9x를 거래소 레버리지 10x로 구현하면 최대 담보 사용률은 90%다.
-    // 큰 그림 BTC는 최대 80%, 작은 그림 각 leg는 5%로 고정해 백테스트의 비중을 그대로 보존한다.
-    const totalCapUsd = equity * (candidateA ? 1.0 : Number(state.total_margin_cap_pct ?? 70) / 100);
-    const perSymbolCapUsd = equity * (candidateA ? 1.0 : Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
+    // 시장별 A-G의 exposure_multiplier는 계좌 대비 명목노출이고, 담보 사용률과 분리한다.
+    // 거래소 10x 레버리지 기준 3x 노출은 담보 30%, 5x 노출은 50%를 사용한다.
+    // 신규 주문 합산 담보는 80%, 단일 종목은 60%를 넘지 않아 보호 여유를 남긴다.
+    const totalCapUsd = equity * (candidateA ? 0.80 : Number(state.total_margin_cap_pct ?? 70) / 100);
+    const perSymbolCapUsd = equity * (candidateA ? 0.60 : Number(state.per_symbol_margin_cap_pct ?? 25) / 100);
     const remainingTotal = Math.max(0, totalCapUsd - usedTotal);
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
