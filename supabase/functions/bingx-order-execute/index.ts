@@ -30,7 +30,7 @@ const ENV_URLS: Record<string, string[]> = {
 const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "TON", "AAVE"];
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, candidate_a_big: 3600000, candidate_a_small: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 17;
+const EXECUTOR_VERSION = 18;
 const DEFAULT_STRATEGY_EPOCH = "candidate_a_v1";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -238,6 +238,7 @@ async function handleReprice(payload: any): Promise<Response> {
     const row = rows?.[0];
     if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
     const newStop = Number(payload.invalidation_price), newTarget = Number(payload.target_price);
+    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(row.signal_type);
     if (!(newStop > 0) || !(newTarget > 0)) return Response.json({ ok: false, error: "invalid reprice values" });
 
     const bxSymbol = String(row.bingx_symbol);
@@ -268,10 +269,12 @@ async function handleReprice(payload: any): Promise<Response> {
       symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
       stopPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
     });
-    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
-      symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
-      stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
-    });
+    if (!candidateA) {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+        symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
+        stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
+      });
+    }
 
     await db(`real_trades?id=eq.${row.id}`, {
       method: "PATCH",
@@ -335,6 +338,7 @@ async function handleProtect(payload: any): Promise<Response> {
     }
     for (const row of rows) {
       const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT", closeSide = row.side === "long" ? "SELL" : "BUY";
+      const candidateA = ["candidate_a_big", "candidate_a_small"].includes(row.signal_type);
       try {
         const livePosition = livePositions.get(bxSymbol + "|" + positionSide);
         const markPrice = Number(livePosition?.markPrice ?? livePosition?.price ?? 0);
@@ -358,8 +362,15 @@ async function handleProtect(payload: any): Promise<Response> {
         const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
         const mine = list.filter((o: any) => String(o.positionSide) === positionSide);
         const hasSl = mine.some((o: any) => String(o.type) === "STOP_MARKET");
-        const hasTp = mine.some((o: any) => String(o.type) === "TAKE_PROFIT_MARKET");
-        if (hasSl && hasTp) {
+        let hasTp = mine.some((o: any) => String(o.type) === "TAKE_PROFIT_MARKET");
+        if (candidateA && hasTp) {
+          for (const o of mine.filter((x: any) => String(x.type) === "TAKE_PROFIT_MARKET")) {
+            try { await fetchSigned(API_KEY, SECRET_KEY, "DELETE", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId: o.orderId ?? o.orderID, recvWindow: 5000 }); }
+            catch (e) { console.error("protect: candidate A TP cancel failed", e instanceof Error ? e.message : String(e)); }
+          }
+          hasTp = false;
+        }
+        if (hasSl && (candidateA || hasTp)) {
           if (!row.protective_verified) {
             await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: true, measurement_updated_at: new Date().toISOString() }) });
           }
@@ -380,7 +391,7 @@ async function handleProtect(payload: any): Promise<Response> {
             slOk = true;
           } catch (e) { slErr = e instanceof Error ? e.message : String(e); }
         }
-        if (!hasTp) {
+        if (!candidateA && !hasTp) {
           try {
             await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET", stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000 });
             tpOk = true;
@@ -389,13 +400,13 @@ async function handleProtect(payload: any): Promise<Response> {
 
         const nowIso = new Date().toISOString();
         const patch: any = {
-          protective_verified: slOk && tpOk,
+          protective_verified: slOk && (candidateA || tpOk),
           protect_retry_count: Number(row.protect_retry_count || 0) + 1,
           measurement_updated_at: nowIso,
         };
         if (!row.stop_order_created_at && slOk) patch.stop_order_created_at = nowIso;
         if (!row.target_order_created_at && tpOk) patch.target_order_created_at = nowIso;
-        if (slOk && tpOk && row.entry_filled_at) {
+        if (slOk && (candidateA || tpOk) && row.entry_filled_at) {
           patch.protective_latency_ms = Math.max(0, Date.parse(nowIso) - Date.parse(row.entry_filled_at));
         }
         await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify(patch) });
@@ -866,12 +877,13 @@ Deno.serve(async (req: Request) => {
     const expectedFeeUsdBeforeEntry = notional * feeRate;
     const expectedSlippageUsd = notional * oneWaySlippageRate * 2;
     const expectedTradingCostUsd = expectedFeeUsdBeforeEntry + expectedSlippageUsd;
-    const grossTargetUsdBeforeEntry = notional * Math.abs(targetPrice - entry) / entry;
+    const candidateExpectedMoveRate = signal.signal_type === "candidate_a_big" ? 0.03 : signal.signal_type === "candidate_a_small" ? 0.015 : null;
+    const grossTargetUsdBeforeEntry = notional * (candidateExpectedMoveRate ?? Math.abs(targetPrice - entry) / entry);
     const grossStopUsdBeforeEntry = notional * Math.abs(entry - stopPrice) / entry;
     const expectedNetProfitBeforeEntry = grossTargetUsdBeforeEntry - expectedTradingCostUsd;
     const expectedNetLossBeforeEntry = grossStopUsdBeforeEntry + expectedTradingCostUsd;
     const expectedNetRrBeforeEntry = expectedNetProfitBeforeEntry / Math.max(0.000001, expectedNetLossBeforeEntry);
-    const minimumNetRr = signal.signal_type === "tactical" ? 1.35 : 1.50;
+    const minimumNetRr = candidateA ? 0.20 : signal.signal_type === "tactical" ? 1.35 : 1.50;
     const minimumCostCoverage = 3.0;
     const costCoverage = grossTargetUsdBeforeEntry / Math.max(0.000001, expectedTradingCostUsd);
     const economics = {
@@ -927,7 +939,7 @@ Deno.serve(async (req: Request) => {
     const effectiveNotional = roundTo(actualExecutedQty * actualFillPrice, 2);
     const estimatedRoundTripFee = roundTo(effectiveNotional * feeRate, 6);
     const estimatedSlippageCost = effectiveNotional * oneWaySlippageRate * 2;
-    const grossTargetUsd = effectiveNotional * Math.abs(targetPrice - actualFillPrice) / actualFillPrice;
+    const grossTargetUsd = effectiveNotional * (candidateExpectedMoveRate ?? Math.abs(targetPrice - actualFillPrice) / actualFillPrice);
     const grossStopUsd = effectiveNotional * Math.abs(actualFillPrice - stopPrice) / actualFillPrice;
     const expectedNetProfitUsd = grossTargetUsd - estimatedRoundTripFee - estimatedSlippageCost;
     const expectedNetRr = expectedNetProfitUsd / Math.max(0.000001, grossStopUsd + estimatedRoundTripFee + estimatedSlippageCost);
@@ -947,14 +959,16 @@ Deno.serve(async (req: Request) => {
       slAttached = true;
       stopCreatedAt = new Date().toISOString();
     } catch (e) { slError = e instanceof Error ? e.message : String(e); console.error("STOP_MARKET attach failed:", bxSymbol, slError); }
-    try {
-      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
-        symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
-        stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
-      });
-      tpAttached = true;
-      targetCreatedAt = new Date().toISOString();
-    } catch (e) { tpError = e instanceof Error ? e.message : String(e); console.error("TAKE_PROFIT_MARKET attach failed:", bxSymbol, tpError); }
+    if (!candidateA) {
+      try {
+        await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+          symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
+          stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+        });
+        tpAttached = true;
+        targetCreatedAt = new Date().toISOString();
+      } catch (e) { tpError = e instanceof Error ? e.message : String(e); console.error("TAKE_PROFIT_MARKET attach failed:", bxSymbol, tpError); }
+    }
 
     // 손절이 안 걸리면 무방비 레버리지 포지션을 남겨둘 수 없으니 즉시 시장가로 안전 청산한다.
     const lastProtectionAt = targetCreatedAt || stopCreatedAt;
@@ -988,7 +1002,7 @@ Deno.serve(async (req: Request) => {
         slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
         entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
         stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
-        protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && tpAttached,
+        protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && (candidateA || tpAttached),
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
         strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, candidate_a: candidateA, exposure_multiplier: exposureMultiplier || null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
