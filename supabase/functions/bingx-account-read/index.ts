@@ -77,7 +77,7 @@ async function db(path: string, init: RequestInit = {}) {
 }
 
 
-const TRACKED_SYMBOLS=["BTC-USDT","ETH-USDT","XRP-USDT","SOL-USDT","BNB-USDT","DOGE-USDT","ADA-USDT","LINK-USDT","AVAX-USDT","SUI-USDT","LTC-USDT","BCH-USDT","TRX-USDT","TON-USDT","AAVE-USDT"];
+const TRACKED_SYMBOLS=["BTC-USDT","ETH-USDT","XRP-USDT","SOL-USDT","BNB-USDT","DOGE-USDT","ADA-USDT","LINK-USDT","AVAX-USDT","SUI-USDT","LTC-USDT","BCH-USDT","TRX-USDT","AAVE-USDT"];
 function isoTime(v:unknown):string|null{
   const x=Number(v||0); if(!x)return null;
   const ms=x<100000000000?x*1000:x;
@@ -188,28 +188,37 @@ async function syncActualBingxHistory(){
 }
 
 const CORS={"Access-Control-Allow-Origin":"https://minyoullee.github.io","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-dashboard-session","Access-Control-Allow-Methods":"POST, OPTIONS","Cache-Control":"no-store"};
-const PASSWORD_SALT="scv3Xkm5i8d6NhNjZ1JM6Q",PASSWORD_HASH="XH7wcnYgsa9H0KizBb6Ya2Y9KhnoNehg4IRFkGLFuGg",SESSION_SECRET="cxpJJemKx6_lG70gL3Ae23n42mmQZTx0mfB7cRqpzQQ";
+type DashboardAuth={password_salt:string;password_hash:string;session_secret:string};
+let dashboardAuthCache:DashboardAuth|null=null;
+async function dashboardAuth():Promise<DashboardAuth>{
+  if(dashboardAuthCache)return dashboardAuthCache;
+  const rows=await db("private_runtime_secrets?id=eq.bingx_dashboard_auth&select=secret_value&limit=1"),v=rows?.[0]?.secret_value||{};
+  if(!v.password_salt||!v.password_hash||!v.session_secret)throw new Error("dashboard auth secrets are not configured");
+  dashboardAuthCache={password_salt:String(v.password_salt),password_hash:String(v.password_hash),session_secret:String(v.session_secret)};
+  return dashboardAuthCache;
+}
 const attempts=new Map<string,{count:number;reset:number}>(),te=new TextEncoder();
 function fromB64u(s:string){const p=s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4);return Uint8Array.from(atob(p),c=>c.charCodeAt(0))}
 function toB64u(a:Uint8Array){return btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
-async function passwordHash(password:string){const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:fromB64u(PASSWORD_SALT),iterations:210000,hash:"SHA-256"},k,256);return toB64u(new Uint8Array(bits))}
+async function passwordHash(password:string,auth:DashboardAuth){const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:fromB64u(auth.password_salt),iterations:210000,hash:"SHA-256"},k,256);return toB64u(new Uint8Array(bits))}
 function same(a:string,b:string){if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
-async function sign(v:string){const k=await crypto.subtle.importKey("raw",te.encode(SESSION_SECRET),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return toB64u(new Uint8Array(await crypto.subtle.sign("HMAC",k,te.encode(v))))}
-async function issueSession(){const p=toB64u(te.encode(JSON.stringify({exp:Date.now()+14400000,nonce:crypto.randomUUID()})));return p+"."+await sign(p)}
-async function validSession(t:string){const [p,s]=t.split(".");if(!p||!s||!same(await sign(p),s))return false;try{return Number(JSON.parse(new TextDecoder().decode(fromB64u(p))).exp)>Date.now()}catch{return false}}
+async function sign(v:string,auth:DashboardAuth){const k=await crypto.subtle.importKey("raw",te.encode(auth.session_secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return toB64u(new Uint8Array(await crypto.subtle.sign("HMAC",k,te.encode(v))))}
+async function issueSession(auth:DashboardAuth){const p=toB64u(te.encode(JSON.stringify({exp:Date.now()+14400000,nonce:crypto.randomUUID()})));return p+"."+await sign(p,auth)}
+async function validSession(t:string,auth:DashboardAuth){const [p,s]=t.split(".");if(!p||!s||!same(await sign(p,auth),s))return false;try{return Number(JSON.parse(new TextDecoder().decode(fromB64u(p))).exp)>Date.now()}catch{return false}}
 
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405,headers:CORS});
  let body:Record<string,unknown>={};try{body=await req.json()}catch{}
- if(body.action==="login"){const ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown",now=Date.now(),a=attempts.get(ip);if(a&&a.reset>now&&a.count>=5)return Response.json({ok:false,error:"15분 후 다시 시도하세요."},{status:429,headers:{...CORS,"Retry-After":"900"}});const ok=same(await passwordHash(String(body.password||"")),PASSWORD_HASH);if(!ok){attempts.set(ip,{count:a&&a.reset>now?a.count+1:1,reset:now+900000});return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS})}attempts.delete(ip);return Response.json({ok:true,session:await issueSession(),expires_in:14400},{headers:CORS})}
+ if(body.action==="login"){try{const auth=await dashboardAuth(),ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown",now=Date.now(),a=attempts.get(ip);if(a&&a.reset>now&&a.count>=5)return Response.json({ok:false,error:"15분 후 다시 시도하세요."},{status:429,headers:{...CORS,"Retry-After":"900"}});const ok=same(await passwordHash(String(body.password||""),auth),auth.password_hash);if(!ok){attempts.set(ip,{count:a&&a.reset>now?a.count+1:1,reset:now+900000});return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS})}attempts.delete(ip);return Response.json({ok:true,session:await issueSession(auth),expires_in:14400},{headers:CORS})}catch(e){console.error("dashboard login unavailable",e instanceof Error?e.message:String(e));return Response.json({ok:false,error:"인증 설정을 불러오지 못했습니다."},{status:503,headers:CORS})}}
  if(body.action==="internal_history_sync"){
    const supplied=req.headers.get("x-internal-key")||"";
    if(!INTERNAL_TRADE_SECRET||!same(supplied,INTERNAL_TRADE_SECRET))return Response.json({ok:false,error:"forbidden"},{status:403,headers:CORS});
    try{const result=await syncActualBingxHistory();if(Array.isArray(result?.errors)&&result.errors.length)console.error("internal_history_sync partial warnings",JSON.stringify(result.errors));return Response.json(result,{headers:CORS})}
    catch(e){console.error("internal_history_sync failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:String(e instanceof Error?e.message:e)},{status:502,headers:CORS})}
  }
- if(!await validSession(req.headers.get("x-dashboard-session")||""))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
+ let auth:DashboardAuth;try{auth=await dashboardAuth()}catch(e){console.error("dashboard auth unavailable",e instanceof Error?e.message:String(e));return Response.json({ok:false,error:"인증 설정을 불러오지 못했습니다."},{status:503,headers:CORS})}
+ if(!await validSession(req.headers.get("x-dashboard-session")||"",auth))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
 
  // 실거래 긴급 정지 스위치 상태 조회. test_mode 여부와 상관없이 지금 도는 실제 주문을 전부 보여준다.
  if(body.action==="trading_state"){
