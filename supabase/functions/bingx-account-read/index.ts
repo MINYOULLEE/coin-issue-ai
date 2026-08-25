@@ -260,14 +260,18 @@ Deno.serve(async(req:Request)=>{
       const totalFee=closed.reduce((a:number,x:any)=>a+Math.abs(n(x.fee_usd)),0);
       const winPnl=wins.reduce((a:number,v:number)=>a+v,0),lossPnl=losses.reduce((a:number,v:number)=>a+v,0);
       const openPnl=mapped.filter((x:any)=>x.status==="open"&&x.net_pnl_usd!=null).reduce((a:number,x:any)=>a+n(x.net_pnl_usd),0);
-      const currentBalance=100+totalPnl+openPnl;
+      // 실거래 기록의 "현재 담보금"은 확정된 종료 손익만 반영한다.
+      // 진행 중 포지션의 미실현 손익은 계속 변하므로 별도 equity 필드로 제공한다.
+      const currentBalance=100+totalPnl;
+      const equityIncludingOpen=currentBalance+openPnl;
      let equity=100,peak=100,maxDd=0;[...closed].reverse().forEach((x:any)=>{equity+=n(x.net_pnl_usd);peak=Math.max(peak,equity);if(peak>0)maxDd=Math.max(maxDd,(peak-equity)/peak*100)});
      return Response.json({ok:true,source:"bingx_position_history",sync,page,limit,total:mapped.length,pages:Math.max(1,Math.ceil(mapped.length/limit)),rows,stats:{
        closed:closed.length,wins:wins.length,losses:losses.length,win_rate:closed.length?wins.length/closed.length*100:0,
        total_pnl_usd:totalPnl,avg_pnl_usd:closed.length?totalPnl/closed.length:0,
        avg_margin_return_pct:rois.length?rois.reduce((a:number,v:number)=>a+v,0)/rois.length:0,
        account_return_pct:totalPnl,profit_factor:losses.length?wins.reduce((a:number,v:number)=>a+v,0)/Math.abs(losses.reduce((a:number,v:number)=>a+v,0)):wins.length?null:0,
-       max_drawdown_pct:maxDd,total_fee_usd:totalFee,win_pnl_usd:winPnl,loss_pnl_usd:lossPnl,current_balance_usd:currentBalance
+       max_drawdown_pct:maxDd,total_fee_usd:totalFee,win_pnl_usd:winPnl,loss_pnl_usd:lossPnl,
+       current_balance_usd:currentBalance,open_pnl_usd:openPnl,equity_including_open_usd:equityIncludingOpen
      }},{headers:CORS});
    }catch(e){console.error("trade_history failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:"BingX 실제 포지션 기록 동기화 실패: "+(e instanceof Error?e.message:String(e))},{status:502,headers:CORS})}
  }
