@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 39;
+const COLLECTOR_VERSION = 40;
 const STRATEGY_EPOCH = "market_suite_2026_08_25";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "market_suite_abcd_fg_v1";
@@ -340,7 +340,7 @@ async function manageSignals(market,old){
     if(stopped||expired||regimeExit){
       const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1),outcome=result>.1?"success":result<-.1?"failure":"neutral",reason=stopped?`${s.signal_type.toUpperCase()} 시간봉 손실 제한`:regimeExit?"D 전환장 종료":"전략 보유시간 종료";
       const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),net=notional*result/100-Number(s.fee_usd||0);
-      await triggerClose(s,reason);await patchSignal(s.id,{status:outcome,closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[s.id];if(notional)realizedPnl+=net;
+      await triggerClose(s,reason);await patchSignal(s.id,{status:outcome,closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[s.id];if(notional)realizedPnl+=net;\n      if(s.signal_type==="strategy_g"){const streak=result<0?Number(candidates.g_loss_streak||0)+1:0;candidates.g_loss_streak=streak;if(streak>=2){candidates.g_loss_streak=0;candidates.g_skip_next=true}}
     }else if(newHour)byId[s.id]=await patchSignal(s.id,{last_reviewed_at:new Date(closedHourAt).toISOString(),updated_at:nowIso});
   }
   const open=()=>Object.values(byId),hasType=(t)=>open().some(x=>x.signal_type===t);
@@ -372,7 +372,7 @@ async function manageSignals(market,old){
     const touched=Math.abs(close-level)<=tol||(p.breakout_side==="long"?close<level:close>level),reclaimed=p.breakout_side==="long"?close>level:close<level,failed=p.breakout_side==="long"?close<level:close>level;
     if(p.f_eligible&&newHour&&Date.now()<=Date.parse(p.expires_f)){if(touched)p.retested=true;if(p.retested&&reclaimed&&!p.ready_at)p.ready_at=new Date(Math.ceil(Date.now()/3600000)*3600000).toISOString()}
     if(p.ready_at&&Date.now()>=Date.parse(p.ready_at)){await enter(p.symbol,"strategy_f",p.breakout_side,.25,10,24,["저변동 진짜 돌파","6시간 내 0.25 채널 재시험·재돌파","24시간 보유","거래소 장애·급변 대비 8% 비상 하드스톱"],.08);delete candidates.fg_pending}
-    else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;await enter(p.symbol,"strategy_g",side,finalLev,10,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
+    else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;if(candidates.g_skip_next){candidates.g_skip_next=false;candidates.last_g_skip={symbol:p.symbol,side,skipped_at:nowIso,reason:"G 2연패 후 다음 신호 1건 정지"}}else await enter(p.symbol,"strategy_g",side,finalLev,10,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
     else if(Date.now()>Date.parse(p.expires_g))delete candidates.fg_pending;
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
