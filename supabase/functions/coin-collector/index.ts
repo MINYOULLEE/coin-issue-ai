@@ -341,6 +341,11 @@ async function manageSignals(market,old){
           const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),gross=notional*result/100,net=gross-fee,leveraged=margin?net/margin*100:null;
           await triggerClose(s,reason);
           await patchSignal(s.id,{status:outcome,closed_at:now.toISOString(),exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:leveraged,close_reason:reason,updated_at:now.toISOString()});if(notional)realizedPnl+=net;
+          // 손절·트레일링 종료 직후 같은 분에 다시 진입하지 않는다. 알트 leg는 원래 예정된
+          // 24시간 리밸런싱 시각까지 같은 방향 슬롯 전체를 잠근다.
+          const cooldownUntil=isBig?new Date(now.getTime()+24*60*60000).toISOString():s.expires_at;
+          cooldowns[k+":"+s.side]=cooldownUntil;
+          if(!isBig)cooldowns[CANDIDATE_A_SMALL+":"+s.side]=cooldownUntil;
           await triggerSync();
           delete byKey[k];delete candidates[k];delete health[k];s=null;
         }else{
@@ -368,7 +373,7 @@ async function manageSignals(market,old){
         if(!isBig&&Object.values(byKey).some(x=>x.signal_type===CANDIDATE_A_SMALL&&x.side===sideNow)){
           delete candidates[k];continue;
         }
-        const cooldownKey=k+":"+sideNow,cooling=Date.parse(String(cooldowns[cooldownKey]||0))>Date.now();
+        const cooldownKey=k+":"+sideNow,cooling=Date.parse(String(cooldowns[cooldownKey]||0))>Date.now()||(!isBig&&Date.parse(String(cooldowns[CANDIDATE_A_SMALL+":"+sideNow]||0))>Date.now());
         if(!cooling){
           const prev=candidates[k],sameSide=prev?.side===sideNow,count=sameSide?Number(prev.count||0)+1:1,required=1;
           candidates[k]={side:sideNow,count,required,first_seen:sameSide?prev.first_seen:now.toISOString(),last_seen:now.toISOString(),armed:sameSide?!!prev.armed:false,armed_at:sameSide?prev.armed_at:undefined,armed_price:sameSide?prev.armed_price:undefined};
