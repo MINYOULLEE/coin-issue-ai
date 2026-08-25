@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 33;
+const COLLECTOR_VERSION = 34;
 const STRATEGY_EPOCH = "research_a_2026_08_25";
 const SIGNAL_MODEL_VERSION = "research_a_regime_v1";
 const CANDIDATE_A_BIG = "research_a_big";
@@ -294,9 +294,9 @@ function signalView(s,price){
   const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),fee=Number(s.fee_usd||0),net=notional?notional*pnl/100-fee:null;
   return {...s,signal_type:s.signal_type||"swing",horizon_minutes:Number(s.horizon_minutes||1440),entry_price:entry,current_net_pnl_usd:net,current_leveraged_return_pct:margin&&net!=null?net/margin*100:null,invalidation_price:Number(s.invalidation_price),target_price:Number(s.target_price),current_price:price,current_pnl_pct:pnl,remaining_sec:Math.max(0,Math.floor((Date.parse(s.expires_at)-Date.now())/1000))};
 }
-function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000,equity=1000,market={}){
+function positionPlan(entry,invalidation,confidence,type,microVol,availableMargin=1000,equity=1000,market={},researchExposure=null){
   if(type===CANDIDATE_A_BIG||type===CANDIDATE_A_SMALL){
-    const exposure=type===CANDIDATE_A_BIG?Number(market.trend_strength_percentile_90d>=90?8:1):.5,leverage=10;
+    const exposure=Number(researchExposure??(type===CANDIDATE_A_BIG?(market.trend_strength_percentile_90d>=90?8:1):.5)),leverage=10;
     const margin=Math.max(0,Math.min(availableMargin,equity*exposure/leverage));
     return {account_equity_usd:equity,margin_usd:margin,leverage,notional_usd:margin*leverage,fee_usd:margin*leverage*.001,risk_usd:null,risk_pct:null};
   }
@@ -443,9 +443,8 @@ async function manageSignals(market,old){
               confidence=80;reasons=[`연구 A 알트 상대강도 ${sideNow==="long"?"최강":"최약"} 종목`,`손실 5종 제외 후 다음 순위 재선정`,`계좌 노출 0.5x · 24시간 리밸런싱`]
             }
             try{
-              const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m);
+              const openNow=Object.values(byKey),usedMargin=openNow.reduce((sum,x)=>sum+Number(x.margin_usd||0),0),unrealized=openNow.reduce((sum,x)=>{const px=Number(market[x.symbol]?.price||x.entry_price),raw=(px/Number(x.entry_price)-1)*100*(x.side==="long"?1:-1);return sum+(Number(x.notional_usd||0)?Number(x.notional_usd)*raw/100-Number(x.fee_usd||0):0)},0),balance=Math.max(0,1000+realizedPnl),equity=Math.max(0,balance+unrealized),available=Math.max(0,equity-usedMargin),exposureMultiplier=isBig?Number(market.candidate_a?.big_exposure_multiplier||1):.5,plan=positionPlan(entry,invalidation,confidence,type,m.micro_volatility_pct,available,equity,m,exposureMultiplier);
               if(plan.margin_usd<=0){candidates[k].blocked="담보 부족";continue}
-              const exposureMultiplier=isBig?Number(market.candidate_a?.big_exposure_multiplier||1):.5;
               s=await insertSignal({symbol,side:sideNow,signal_type:type,horizon_minutes:horizon,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence,reasons,...plan,entry_metrics:{momentum_7d_pct:m.momentum_7d_pct,trend_strength_percentile_90d:m.trend_strength_percentile_90d,relative_strength_score:m.relative_strength_score,relative_return_12h_pct:m.relative_return_12h_pct,relative_return_24h_pct:m.relative_return_24h_pct,strategy_config:{candidate:"연구 A",locked:true,market_regime:market.candidate_a?.regime,role:isBig?"btc_big_picture":"alt_relative_strength",exposure_multiplier:exposureMultiplier,exchange_leverage:10,max_total_exposure:9,minimum_hold_days:isBig&&market.candidate_a?.regime==="chaos"?2:0,decision_utc:"00:00",entry_utc:"01:00",rebalance_hours:24,round_trip_cost_rate:.001803,exit_mode:isBig&&market.candidate_a?.regime==="chaos"?"hourly_close_3pct_trailing":"daily_regime_direction_rebalance",fixed_take_profit:false,trailing_stop_pct:isBig&&market.candidate_a?.regime==="chaos"?3:null,trailing_activation_pct:isBig&&market.candidate_a?.regime==="chaos"?0:null}},created_at:created,expires_at:expires,updated_at:created});
               byKey[k]=s;delete candidates[k];
               await triggerRealTrade(s);
