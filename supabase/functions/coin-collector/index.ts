@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 36;
+const COLLECTOR_VERSION = 37;
 const STRATEGY_EPOCH = "market_suite_2026_08_25";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "market_suite_abcd_fg_v1";
@@ -58,17 +58,17 @@ function scenarios(price,change,rsi,vr,days){
 async function json(url,timeout=12000){const ac=new AbortController();const t=setTimeout(()=>ac.abort(),timeout);try{const r=await fetch(url,{headers:{"User-Agent":"CoinIssueAI-Cloud/1.0","Accept":"application/json"},signal:ac.signal});if(!r.ok)throw Error(url+" "+r.status);return await r.json()}finally{clearTimeout(t)}}
 async function fetchMarket(){
   const symbols=encodeURIComponent(JSON.stringify(COINS.map(x=>x+"USDT")));
-  const tickers=await json("https://api.binance.com/api/v3/ticker/24hr?symbols="+symbols);
+  const tickers=await json("https://data-api.binance.vision/api/v3/ticker/24hr?symbols="+symbols);
   const entries=await Promise.all(tickers.map(async t=>{
     const s=t.symbol.replace("USDT",""),price=Number(t.lastPrice),change=Number(t.priceChangePercent);
     let closes=[],vols=[],micro=[],hourRows=[],fourHourRows=[],dayRows=[],depth={bids:[],asks:[]},fundingRaw=0;
     try{
       const [rows,oneMinute,book,fourHour,day,premium]=await Promise.all([
-        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=1000"),
-        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1m&limit=60"),
-        json("https://api.binance.com/api/v3/depth?symbol="+s+"USDT&limit=20"),
-        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=4h&limit=120"),
-        json("https://api.binance.com/api/v3/klines?symbol="+s+"USDT&interval=1d&limit=100"),
+        json("https://data-api.binance.vision/api/v3/klines?symbol="+s+"USDT&interval=1h&limit=1000"),
+        json("https://data-api.binance.vision/api/v3/klines?symbol="+s+"USDT&interval=1m&limit=60"),
+        json("https://data-api.binance.vision/api/v3/depth?symbol="+s+"USDT&limit=20"),
+        json("https://data-api.binance.vision/api/v3/klines?symbol="+s+"USDT&interval=4h&limit=120"),
+        json("https://data-api.binance.vision/api/v3/klines?symbol="+s+"USDT&interval=1d&limit=100"),
         json("https://open-api.bingx.com/openApi/swap/v2/quote/premiumIndex?symbol="+s+"-USDT")
       ]);
       // 신호 계산에는 종료된 봉만 사용한다. 진행 중인 시간봉/일봉을 섞으면 01:00 UTC
@@ -355,9 +355,9 @@ async function manageSignals(market,old){
   const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
   if((dailyEntry||immediateStart)&&candidates.last_daily_key!==dailyKey){
     candidates.last_daily_key=dailyKey;const rf=market.BTC?.research_features?.[0]||{},regime=String(market.candidate_a?.regime||"chaos"),strength=Number(market.BTC?.trend_strength_percentile_90d||0);let selected=null;
-    if(regime==="chaos"&&strength>=90){const side=Number(rf.mom7||0)>=0?"long":"short";selected={type:side==="long"?"strategy_a":"strategy_b",side,exposure:3,leverage:3,hours:48,reasons:["강추세 혼조장",`90일 강도 ${strength.toFixed(1)}%`,`BTC 7일 ${side.toUpperCase()}`]}}
-    else if(regime==="bear"){const side=Number(rf.mom10||0)>=0?"short":"long";selected={type:"strategy_c",side,exposure:1,leverage:1,hours:120,reasons:["하락장 과열 되돌림","BTC 10일 방향 반대","5일 보유"]}}
-    else if(regime==="transition"){const side=Number(rf.mom30||0)>=0?"long":"short";selected={type:"strategy_d",side,exposure:.25,leverage:1,hours:336,reasons:["전환장 장기 방향","BTC 30일 추세","국면 종료 시 정리"]}}
+    if(regime==="chaos"&&strength>=90){const side=Number(rf.mom7||0)>=0?"long":"short";selected={type:side==="long"?"strategy_a":"strategy_b",side,exposure:3,leverage:10,hours:48,reasons:["강추세 혼조장",`90일 강도 ${strength.toFixed(1)}%`,`BTC 7일 ${side.toUpperCase()}`]}}
+    else if(regime==="bear"){const side=Number(rf.mom10||0)>=0?"short":"long";selected={type:"strategy_c",side,exposure:1,leverage:10,hours:120,reasons:["하락장 과열 되돌림","BTC 10일 방향 반대","5일 보유"]}}
+    else if(regime==="transition"){const side=Number(rf.mom30||0)>=0?"long":"short";selected={type:"strategy_d",side,exposure:.25,leverage:10,hours:336,reasons:["전환장 장기 방향","BTC 30일 추세","국면 종료 시 정리"]}}
     if(selected)await enter("BTC",selected.type,selected.side,selected.exposure,selected.leverage,selected.hours,selected.reasons,.03);
     else{
       const allEligible=COINS.map(symbol=>({symbol,...market[symbol]?.suite_setup})).filter(x=>x.breakout_side&&x.low_volatility&&x.normal_volume).sort((a,b)=>Number(b.volume_multiple)-Number(a.volume_multiple));
@@ -370,8 +370,8 @@ async function manageSignals(market,old){
     const setup=market[p.symbol]?.suite_setup||{},close=Number(setup.close||market[p.symbol]?.price),level=p.breakout_side==="long"?Number(p.prior_high):Number(p.prior_low),tol=Number(p.channel_unit)*.25,hours=Math.max(1,Math.ceil((Date.now()-Date.parse(p.armed_at))/3600000)),newHour=Number(setup.closed_at||0)>Number(p.last_closed_at||0);p.last_closed_at=setup.closed_at;
     const touched=Math.abs(close-level)<=tol||(p.breakout_side==="long"?close<level:close>level),reclaimed=p.breakout_side==="long"?close>level:close<level,failed=p.breakout_side==="long"?close<level:close>level;
     if(p.f_eligible&&newHour&&Date.now()<=Date.parse(p.expires_f)){if(touched)p.retested=true;if(p.retested&&reclaimed&&!p.ready_at)p.ready_at=new Date(Math.ceil(Date.now()/3600000)*3600000).toISOString()}
-    if(p.ready_at&&Date.now()>=Date.parse(p.ready_at)){await enter(p.symbol,"strategy_f",p.breakout_side,.25,1,24,["저변동 진짜 돌파","6시간 내 0.25 채널 재시험·재돌파","24시간 보유"],0);delete candidates.fg_pending}
-    else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;await enter(p.symbol,"strategy_g",side,finalLev,finalLev,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
+    if(p.ready_at&&Date.now()>=Date.parse(p.ready_at)){await enter(p.symbol,"strategy_f",p.breakout_side,.25,10,24,["저변동 진짜 돌파","6시간 내 0.25 채널 재시험·재돌파","24시간 보유"],0);delete candidates.fg_pending}
+    else if(newHour&&failed&&(Date.now()>Date.parse(p.expires_f)||!p.retested)&&Date.now()<=Date.parse(p.expires_g)){const side=p.breakout_side==="long"?"short":"long",lev=hours<=3?5:hours<=6?3:1,finalLev=p.symbol==="DOGE"?Math.min(3,lev):lev;await enter(p.symbol,"strategy_g",side,finalLev,10,24,["가짜 돌파 후 채널 복귀",`${hours}시간 회수 · ${finalLev}배`,`24시간 보유·5% 시간봉 제한`],.05);delete candidates.fg_pending}
     else if(Date.now()>Date.parse(p.expires_g))delete candidates.fg_pending;
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
