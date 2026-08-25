@@ -30,7 +30,7 @@ const ENV_URLS: Record<string, string[]> = {
 const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "TON", "AAVE"];
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, candidate_a_big: 3600000, candidate_a_small: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 18;
+const EXECUTOR_VERSION = 19;
 const DEFAULT_STRATEGY_EPOCH = "candidate_a_v1";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -358,6 +358,11 @@ async function handleProtect(payload: any): Promise<Response> {
             }),
           });
         }
+        if (row.signal_type === "candidate_a_small") {
+          if (!row.protective_verified) await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: true, measurement_updated_at: new Date().toISOString() }) });
+          results.push({ id: row.id, symbol: row.symbol, skipped: "exact 24h rebalance; no protective orders" });
+          continue;
+        }
         const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
         const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
         const mine = list.filter((o: any) => String(o.positionSide) === positionSide);
@@ -589,6 +594,7 @@ Deno.serve(async (req: Request) => {
     const state = stateRows?.[0];
     if (!state) { await insertRejected(signal, "설정 없음"); return Response.json({ ok: false, error: "no trading state" }); }
     if (!state.enabled) return Response.json({ ok: true, skipped: "real trading disabled (kill switch)" });
+    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(signal.signal_type);
 
     // 3. 신호 신선도 확인
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
@@ -682,11 +688,11 @@ Deno.serve(async (req: Request) => {
         cooldown_until: cooldownUntil ? new Date(cooldownUntil).toISOString() : null,
       },
     };
-    if (dailyNetPnl <= -dailyLossLimitUsd) {
+    if (!candidateA && dailyNetPnl <= -dailyLossLimitUsd) {
       await insertRejected(signal, `일일 손실 회로차단: ${dailyNetPnl.toFixed(2)} USDT / 한도 -${dailyLossLimitUsd.toFixed(2)} USDT (한국시간 자정까지)`, breakerMetrics);
       return Response.json({ ok: true, skipped: "daily loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
-    if (consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
+    if (!candidateA && consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
       const remainingMinutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
       await insertRejected(signal, `연속 손실 회로차단: ${consecutiveLosses}연패 / ${maxConsecutiveLosses}회, 재개까지 약 ${remainingMinutes}분`, breakerMetrics);
       return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
@@ -715,7 +721,7 @@ Deno.serve(async (req: Request) => {
     const latestDirectionWasLoss = directionPnls.length > 0 && directionPnls[0] < 0;
     const directionPersistentlyWeak = directionPnls.length >= directionMinSamples && directionExpectancy < 0 && directionProfitFactor < directionProfitFactorFloor;
     const directionLossStreak = directionConsecutiveLosses >= directionMaxConsecutiveLosses;
-    if (latestDirectionWasLoss && (directionPersistentlyWeak || directionLossStreak) && Date.now() < directionCooldownUntil) {
+    if (!candidateA && latestDirectionWasLoss && (directionPersistentlyWeak || directionLossStreak) && Date.now() < directionCooldownUntil) {
       const remainingMinutes = Math.ceil((directionCooldownUntil - Date.now()) / 60000);
       const sideLabel = signal.side === "long" ? "LONG" : "SHORT";
       const directionMetrics = {
@@ -735,7 +741,6 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "direction circuit breaker", direction: directionMetrics.strategy_config });
     }
 
-    const candidateA = ["candidate_a_big", "candidate_a_small"].includes(signal.signal_type);
     const signalStrategy = signal.entry_metrics?.strategy_config || {};
     const exposureMultiplier = candidateA
       ? Number(signalStrategy.exposure_multiplier ?? (signal.signal_type === "candidate_a_small" ? 0.5 : 1))
@@ -898,7 +903,7 @@ Deno.serve(async (req: Request) => {
         cost_coverage: roundTo(costCoverage, 3), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta,
       },
     };
-    if (!(expectedNetProfitBeforeEntry > 0) || expectedNetRrBeforeEntry < minimumNetRr || costCoverage < minimumCostCoverage) {
+    if (!candidateA && (!(expectedNetProfitBeforeEntry > 0) || expectedNetRrBeforeEntry < minimumNetRr || costCoverage < minimumCostCoverage)) {
       const reason = `비용 차감 기대수익 부족: 순손익비 ${expectedNetRrBeforeEntry.toFixed(2)}R/${minimumNetRr.toFixed(2)}R, 비용커버 ${costCoverage.toFixed(2)}배/${minimumCostCoverage.toFixed(2)}배`;
       await insertRejected(signal, reason, economics);
       return Response.json({ ok: true, skipped: "low fee-adjusted expectancy", economics });
@@ -951,14 +956,16 @@ Deno.serve(async (req: Request) => {
     const closeSide = signal.side === "long" ? "SELL" : "BUY";
     let slAttached = false, tpAttached = false, slError = "", tpError = "";
     let stopCreatedAt: string | null = null, targetCreatedAt: string | null = null;
-    try {
-      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
-        symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
-        stopPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
-      });
-      slAttached = true;
-      stopCreatedAt = new Date().toISOString();
-    } catch (e) { slError = e instanceof Error ? e.message : String(e); console.error("STOP_MARKET attach failed:", bxSymbol, slError); }
+    if (signal.signal_type !== "candidate_a_small") {
+      try {
+        await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+          symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
+          stopPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+        });
+        slAttached = true;
+        stopCreatedAt = new Date().toISOString();
+      } catch (e) { slError = e instanceof Error ? e.message : String(e); console.error("STOP_MARKET attach failed:", bxSymbol, slError); }
+    }
     if (!candidateA) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
@@ -974,7 +981,7 @@ Deno.serve(async (req: Request) => {
     const lastProtectionAt = targetCreatedAt || stopCreatedAt;
     const protectiveLatencyMs = lastProtectionAt ? Math.max(0, Date.parse(lastProtectionAt) - entryFilledAt.getTime()) : null;
 
-    if (!slAttached) {
+    if (!slAttached && signal.signal_type !== "candidate_a_small") {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000,
@@ -1002,7 +1009,7 @@ Deno.serve(async (req: Request) => {
         slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
         entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
         stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
-        protective_latency_ms: protectiveLatencyMs, protective_verified: slAttached && (candidateA || tpAttached),
+        protective_latency_ms: protectiveLatencyMs, protective_verified: signal.signal_type === "candidate_a_small" ? true : slAttached && (candidateA || tpAttached),
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
         strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, candidate_a: candidateA, exposure_multiplier: exposureMultiplier || null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
