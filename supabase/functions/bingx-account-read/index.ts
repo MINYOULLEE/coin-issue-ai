@@ -77,7 +77,7 @@ async function db(path: string, init: RequestInit = {}) {
 }
 
 
-const TRACKED_SYMBOLS=["BTC-USDT","ETH-USDT","XRP-USDT","SOL-USDT","BNB-USDT"];
+const TRACKED_SYMBOLS=["BTC-USDT","ETH-USDT","XRP-USDT","SOL-USDT","BNB-USDT","DOGE-USDT","ADA-USDT","LINK-USDT","AVAX-USDT","SUI-USDT","LTC-USDT","BCH-USDT","TRX-USDT","TON-USDT","AAVE-USDT"];
 function isoTime(v:unknown):string|null{
   const x=Number(v||0); if(!x)return null;
   const ms=x<100000000000?x*1000:x;
@@ -163,6 +163,23 @@ async function syncActualBingxHistory(){
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
   const rows=[...byId.values()];
   for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
+  // 동일 종목을 종료 직후 재진입해도 손익이 앞뒤 거래에 섞이지 않도록 BingX의 positionHistory
+  // 한 건을 진입 시각이 가장 가까운 내부 주문 한 건에 1:1로 매칭한다.
+  const internal=(await db(`real_trades?created_at=gte.${new Date(now-7*86400000).toISOString()}&status=eq.closed&select=id,signal_id,symbol,side,created_at,entry_filled_at`))||[];
+  const matched=new Set<number>();
+  for(const actual of closedRows.filter(x=>x.opened_at&&x.closed_at)){
+    const opened=Date.parse(actual.opened_at),symbol=String(actual.symbol||"").replace("-USDT","");
+    const match=internal.filter((x:any)=>!matched.has(Number(x.id))&&x.symbol===symbol&&x.side===actual.side)
+      .map((x:any)=>({row:x,gap:Math.abs(Date.parse(x.entry_filled_at||x.created_at)-opened)}))
+      .filter((x:any)=>x.gap<=120000).sort((a:any,b:any)=>a.gap-b.gap)[0]?.row;
+    if(!match)continue;matched.add(Number(match.id));
+    const pnl=actual.realized_pnl_usd==null?null:Number(actual.realized_pnl_usd),entry=Number(actual.entry_price||0),close=Number(actual.close_price||0);
+    await db(`real_trades?id=eq.${match.id}`,{method:"PATCH",body:JSON.stringify({entry_price:entry||undefined,last_mark_price:close||undefined,closed_at:actual.closed_at,net_pnl_usd:pnl,fee_usd:actual.fee_usd,close_reason:"BingX positionHistory 주문별 동기화",measurement_updated_at:syncedAt})});
+    if(match.signal_id){
+      const resultPct=entry&&close?(close/entry-1)*100*(actual.side==="long"?1:-1):null;
+      await db(`trade_signals?id=eq.${match.signal_id}`,{method:"PATCH",body:JSON.stringify({status:pnl!=null&&pnl>0?"success":pnl!=null&&pnl<0?"failure":"neutral",closed_at:actual.closed_at,exit_price:close||null,result_pct:resultPct,net_pnl_usd:pnl,close_reason:"BingX positionHistory 주문별 동기화",updated_at:syncedAt})});
+    }
+  }
   return {ok:true,open:openRows.length,closed:closedRows.length,errors};
 }
 
