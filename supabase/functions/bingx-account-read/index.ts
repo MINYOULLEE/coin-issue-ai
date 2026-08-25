@@ -114,8 +114,12 @@ async function syncActualBingxHistory(){
       opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:null,raw:v,synced_at:syncedAt};
   });
   const closedRows:any[]=[];
-  for(let i=0;i<TRACKED_SYMBOLS.length;i++){
-    const symbol=TRACKED_SYMBOLS[i];
+  // 기본 종목과 최근 7일 동안 실제 주문이 있었던 후보군 A 종목만 조회한다. 매분 15종목
+  // 전체를 호출하면 BingX 제한에 걸릴 수 있지만, 이 방식이면 새로 거래된 종목도 즉시 포함된다.
+  const recentTracked=(await db(`real_trades?created_at=gte.${new Date(now-7*86400000).toISOString()}&select=bingx_symbol`))||[];
+  const historySymbols=[...new Set([...TRACKED_SYMBOLS.slice(0,5),...openRows.map((x:any)=>x.symbol),...recentTracked.map((x:any)=>String(x.bingx_symbol||"")).filter(Boolean)])];
+  for(let i=0;i<historySymbols.length;i++){
+    const symbol=historySymbols[i];
     if(i>0)await sleep(550);
     try{
       const data=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v1/trade/positionHistory",
@@ -202,7 +206,7 @@ Deno.serve(async(req:Request)=>{
  if(body.action==="internal_history_sync"){
    const supplied=req.headers.get("x-internal-key")||"";
    if(!INTERNAL_TRADE_SECRET||!same(supplied,INTERNAL_TRADE_SECRET))return Response.json({ok:false,error:"forbidden"},{status:403,headers:CORS});
-   try{const result=await syncActualBingxHistory();if(Array.isArray(result?.errors)&&result.errors.length){console.error("internal_history_sync errors",JSON.stringify(result.errors));return Response.json(result,{status:502,headers:CORS})}return Response.json(result,{headers:CORS})}
+   try{const result=await syncActualBingxHistory();if(Array.isArray(result?.errors)&&result.errors.length)console.error("internal_history_sync partial warnings",JSON.stringify(result.errors));return Response.json(result,{headers:CORS})}
    catch(e){console.error("internal_history_sync failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:String(e instanceof Error?e.message:e)},{status:502,headers:CORS})}
  }
  if(!await validSession(req.headers.get("x-dashboard-session")||""))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
