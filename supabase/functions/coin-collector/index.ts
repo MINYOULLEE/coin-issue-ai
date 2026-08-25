@@ -340,7 +340,8 @@ async function manageSignals(market,old){
     if(stopped||expired||regimeExit){
       const result=(price/Number(s.entry_price)-1)*100*(s.side==="long"?1:-1),outcome=result>.1?"success":result<-.1?"failure":"neutral",reason=stopped?`${s.signal_type.toUpperCase()} 시간봉 손실 제한`:regimeExit?"D 전환장 종료":"전략 보유시간 종료";
       const notional=Number(s.notional_usd||0),margin=Number(s.margin_usd||0),net=notional*result/100-Number(s.fee_usd||0);
-      await triggerClose(s,reason);await patchSignal(s.id,{status:outcome,closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[s.id];if(notional)realizedPnl+=net;\n      if(s.signal_type==="strategy_g"){const streak=result<0?Number(candidates.g_loss_streak||0)+1:0;candidates.g_loss_streak=streak;if(streak>=2){candidates.g_loss_streak=0;candidates.g_skip_next=true}}
+      await triggerClose(s,reason);await patchSignal(s.id,{status:outcome,closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[s.id];if(notional)realizedPnl+=net;
+      if(s.signal_type==="strategy_g"){const streak=result<0?Number(candidates.g_loss_streak||0)+1:0;candidates.g_loss_streak=streak;if(streak>=2){candidates.g_loss_streak=0;candidates.g_skip_next=true}}
     }else if(newHour)byId[s.id]=await patchSignal(s.id,{last_reviewed_at:new Date(closedHourAt).toISOString(),updated_at:nowIso});
   }
   const open=()=>Object.values(byId),hasType=(t)=>open().some(x=>x.signal_type===t);
