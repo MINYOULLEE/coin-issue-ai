@@ -354,7 +354,8 @@ async function manageSignals(market,old){
     byId[s.id]=s;await triggerRealTrade(s);return s;
   }
   const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
-  const dailyWindowClosed=utcHour>1||(utcHour===1&&utcMinute>=10);\n  if(dailyWindowClosed&&candidates.last_daily_key!==dailyKey&&candidates.daily_audit?.date!==dailyKey)candidates.daily_audit={date:dailyKey,status:"missed",checked_at:nowIso,reason:"UTC 01:00~01:09 판정 완료 기록 없음",late_entry_attempted:false};
+  const dailyWindowClosed=utcHour>1||(utcHour===1&&utcMinute>=10);
+  if(dailyWindowClosed&&candidates.last_daily_key!==dailyKey&&candidates.daily_audit?.date!==dailyKey)candidates.daily_audit={date:dailyKey,status:"missed",checked_at:nowIso,reason:"UTC 01:00~01:09 판정 완료 기록 없음",late_entry_attempted:false};
   if((dailyEntry||immediateStart)&&candidates.last_daily_key!==dailyKey){
     candidates.last_daily_key=dailyKey;candidates.daily_audit={date:dailyKey,status:"evaluating",checked_at:nowIso,reason:null,late_entry_attempted:false};const rf=market.BTC?.research_features?.[0]||{},regime=String(market.candidate_a?.regime||"chaos"),strength=Number(market.BTC?.trend_strength_percentile_90d||0);let selected=null;
     if(regime==="bull"){selected={type:"strategy_a",side:"long",exposure:2,leverage:10,hours:48,reasons:["상승장 추세 추종","BTC 다중 30일 구간 상승","BTC 14일 LONG"]}}
