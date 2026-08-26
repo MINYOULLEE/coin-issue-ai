@@ -1,7 +1,7 @@
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 40;
+const COLLECTOR_VERSION = 41;
 const STRATEGY_EPOCH = "market_suite_2026_08_25";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "market_suite_abcd_fg_v1";
@@ -346,21 +346,21 @@ async function manageSignals(market,old){
   }
   const open=()=>Object.values(byId),hasType=(t)=>open().some(x=>x.signal_type===t);
   async function enter(symbol,type,side,exposure,leverage,hours,reasons,stopPct){
-    if(open().length>=4||open().some(x=>x.symbol===symbol&&x.side===side))return null;
+    if(legacyActive.length+open().length>=4||legacyActive.some(x=>x.symbol===symbol&&x.side===side)||open().some(x=>x.symbol===symbol&&x.side===side))return null;
     const entry=Number(market[symbol]?.price||0);if(!(entry>0))return null;
     const invalidation=stopPct?entry*(side==="long"?1-stopPct:1+stopPct):entry,target=entry,created=nowIso,expires=new Date(now.getTime()+hours*3600000).toISOString();
     const plan={leverage,account_equity_usd:null,margin_usd:null,notional_usd:null,fee_usd:null,risk_usd:null,risk_pct:stopPct?exposure*stopPct*100:null};
     const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:80,reasons,...plan,entry_metrics:{strategy_config:{candidate:"시장별 A-G",market_regime:market.candidate_a?.regime,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:6,fixed_take_profit:false,exit_mode:"hourly_review_or_horizon",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:type==="strategy_f"?stopPct:null}},created_at:created,expires_at:expires,updated_at:created});
     byId[s.id]=s;await triggerRealTrade(s);return s;
   }
-  const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());
+  const utcHour=now.getUTCHours(),utcMinute=now.getUTCMinutes(),dailyEntry=utcHour===1&&utcMinute<10,dailyKey=nowIso.slice(0,10),immediateStart=dailyKey===IMMEDIATE_START_DATE_UTC&&!(await strategyEpochStarted());\n  const dailyWindowClosed=utcHour>1||(utcHour===1&&utcMinute>=10);\n  if(dailyWindowClosed&&candidates.last_daily_key!==dailyKey&&candidates.daily_audit?.date!==dailyKey)candidates.daily_audit={date:dailyKey,status:"missed",checked_at:nowIso,reason:"UTC 01:00~01:09 판정 완료 기록 없음",late_entry_attempted:false};
   if((dailyEntry||immediateStart)&&candidates.last_daily_key!==dailyKey){
-    candidates.last_daily_key=dailyKey;const rf=market.BTC?.research_features?.[0]||{},regime=String(market.candidate_a?.regime||"chaos"),strength=Number(market.BTC?.trend_strength_percentile_90d||0);let selected=null;
+    candidates.last_daily_key=dailyKey;candidates.daily_audit={date:dailyKey,status:"evaluating",checked_at:nowIso,reason:null,late_entry_attempted:false};const rf=market.BTC?.research_features?.[0]||{},regime=String(market.candidate_a?.regime||"chaos"),strength=Number(market.BTC?.trend_strength_percentile_90d||0);let selected=null;
     if(regime==="bull"){selected={type:"strategy_a",side:"long",exposure:2,leverage:10,hours:48,reasons:["상승장 추세 추종","BTC 다중 30일 구간 상승","BTC 14일 LONG"]}}
     else if(regime==="chaos"&&strength>=90){const side=Number(rf.mom7||0)>=0?"long":"short";selected={type:side==="long"?"strategy_a":"strategy_b",side,exposure:3,leverage:10,hours:48,reasons:["강추세 혼조장",`90일 강도 ${strength.toFixed(1)}%`,`BTC 7일 ${side.toUpperCase()}`]}}
     else if(regime==="bear"){const side=Number(rf.mom10||0)>=0?"short":"long";selected={type:"strategy_c",side,exposure:1,leverage:10,hours:120,reasons:["하락장 과열 되돌림","BTC 10일 방향 반대","5일 보유"]}}
     else if(regime==="transition"){const side=Number(rf.mom30||0)>=0?"long":"short";selected={type:"strategy_d",side,exposure:.25,leverage:10,hours:336,reasons:["전환장 장기 방향","BTC 30일 추세","국면 종료 시 정리"]}}
-    if(selected)await enter("BTC",selected.type,selected.side,selected.exposure,selected.leverage,selected.hours,selected.reasons,.03);
+    if(selected){const entered=await enter("BTC",selected.type,selected.side,selected.exposure,selected.leverage,selected.hours,selected.reasons,.03);candidates.daily_audit={date:dailyKey,status:entered?"entered":"blocked",checked_at:nowIso,regime,selected:{symbol:"BTC",type:selected.type,side:selected.side,exposure:selected.exposure},reason:entered?"신규 신호 생성":legacyActive.some(x=>x.symbol==="BTC"&&x.side===selected.side)?"승계 BTC 동일방향 포지션 보유":"동시 포지션·중복 제한",late_entry_attempted:false}}
     else{
       const allEligible=COINS.map(symbol=>({symbol,...market[symbol]?.suite_setup})).filter(x=>x.breakout_side&&x.low_volatility&&x.normal_volume).sort((a,b)=>Number(b.volume_multiple)-Number(a.volume_multiple));
       const fEligible=allEligible.filter(x=>!["BNB","DOGE","TRX"].includes(x.symbol)),chosen=fEligible[0]||allEligible[0];
