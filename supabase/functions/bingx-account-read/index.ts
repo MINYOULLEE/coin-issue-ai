@@ -116,8 +116,11 @@ async function syncActualBingxHistory(){
   const closedRows:any[]=[];
   // 기본 종목과 최근 7일 동안 실제 주문이 있었던 후보군 A 종목만 조회한다. 매분 15종목
   // 전체를 호출하면 BingX 제한에 걸릴 수 있지만, 이 방식이면 새로 거래된 종목도 즉시 포함된다.
+  // 다만 과거에 거부됐을 뿐 BingX에 애초에 없는 종목이 섞여 들어오면 매분 같은 오류가
+  // 반복되므로, 존재하지 않는 것으로 이미 확인된 종목은 여기서 걸러낸다.
+  const KNOWN_INVALID_SYMBOLS = new Set(["TON-USDT"]);
   const recentTracked=(await db(`real_trades?created_at=gte.${new Date(now-7*86400000).toISOString()}&select=bingx_symbol`))||[];
-  const historySymbols=[...new Set([...TRACKED_SYMBOLS.slice(0,5),...openRows.map((x:any)=>x.symbol),...recentTracked.map((x:any)=>String(x.bingx_symbol||"")).filter(Boolean)])];
+  const historySymbols=[...new Set([...TRACKED_SYMBOLS.slice(0,5),...openRows.map((x:any)=>x.symbol),...recentTracked.map((x:any)=>String(x.bingx_symbol||"")).filter(Boolean)])].filter(s=>!KNOWN_INVALID_SYMBOLS.has(s));
   for(let i=0;i<historySymbols.length;i++){
     const symbol=historySymbols[i];
     if(i>0)await sleep(550);
