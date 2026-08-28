@@ -359,8 +359,11 @@ async function handleProtect(payload: any): Promise<Response> {
           });
         }
         if (SUITE_TYPES.includes(row.signal_type)) {
-          if (!row.protective_verified) await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: true, measurement_updated_at: new Date().toISOString() }) });
-          results.push({ id: row.id, symbol: row.symbol, skipped: "A-G hourly strategy exit; no fixed protective order" });
+          // Daily-rebalance strategies intentionally have no exchange SL/TP.
+          // Keep protective_verified=false so the database never claims that
+          // a protective order exists when there is none.
+          if (row.protective_verified) await db("real_trades?id=eq." + row.id, { method: "PATCH", body: JSON.stringify({ protective_verified: false, measurement_updated_at: new Date().toISOString() }) });
+          results.push({ id: row.id, symbol: row.symbol, skipped: "daily rebalance strategy; no fixed protective order" });
           continue;
         }
         const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
@@ -431,6 +434,8 @@ async function handleProtect(payload: any): Promise<Response> {
 // 하나하나 대조한다. 진입가/수량이 실제 체결값과 다르거나, open인데 실제 포지션이 없거나
 // 수량이 다르면 전부 잡아낸다. 결과는 로그로 남겨서 바로 확인할 수 있게 한다.
 async function handleAudit(): Promise<Response> {
+  let unrecordedLiveEntry: null | { bxSymbol: string; closeSide: string; positionSide: string; quantity: number } = null;
+  let reservationHeld = false;
   try {
     if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
 
@@ -926,6 +931,25 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "low fee-adjusted expectancy", economics });
     }
 
+    // Final admission is serialized in Postgres. This closes the race where
+    // two concurrent invocations both read the same open-position counts.
+    const reservation = await db("rpc/reserve_real_trade_slot", {
+      method: "POST",
+      body: JSON.stringify({
+        p_signal_id: signal.id,
+        p_symbol: signal.symbol,
+        p_side: signal.side,
+        p_max_concurrent: Number(state.max_concurrent_positions),
+        p_max_same_direction: Number(state.max_same_direction),
+      }),
+    });
+    if (!reservation?.reserved) {
+      const reason = String(reservation?.reason || "live order slot unavailable");
+      await insertRejected(signal, "최종 주문 슬롯 거절: " + reason);
+      return Response.json({ ok: true, skipped: reason });
+    }
+    reservationHeld = true;
+
     // 8. 레버리지 설정 후 시장가 진입 (손절/익절은 부착 파라미터가 조용히 실패하는 사례가 확인되어
     //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걱고 각각
     //    성공 여부를 직접 확인한다.)
@@ -958,6 +982,7 @@ Deno.serve(async (req: Request) => {
     if (!(actualFillPrice > 0)) actualFillPrice = entry;
     if (!(actualExecutedQty > 0)) actualExecutedQty = quantity;
     const entryFilledAt = new Date();
+    unrecordedLiveEntry = { bxSymbol, closeSide: signal.side === "long" ? "SELL" : "BUY", positionSide, quantity: actualExecutedQty };
     const effectiveNotional = roundTo(actualExecutedQty * actualFillPrice, 2);
     const estimatedRoundTripFee = roundTo(effectiveNotional * feeRate, 6);
     const estimatedSlippageCost = effectiveNotional * oneWaySlippageRate * 2;
@@ -1017,7 +1042,7 @@ Deno.serve(async (req: Request) => {
         side: signal.side, signal_type: signal.signal_type, status: "open",
         test_mode: !!state.test_mode, margin_usd: marginUsd, leverage: finalLeverage,
         notional_usd: effectiveNotional, quantity: actualExecutedQty, entry_price: actualFillPrice,
-        stop_price: stopPrice, target_price: targetPrice,
+        stop_price: candidateA ? null : stopPrice, target_price: candidateA ? null : targetPrice,
         base_stop_price: baseStopPrice, base_target_price: baseTargetPrice,
         adaptive_levels_applied: adaptiveLevelsApplied, bingx_order_id: orderId,
         strategy_epoch: signal.strategy_epoch || DEFAULT_STRATEGY_EPOCH,
@@ -1027,12 +1052,15 @@ Deno.serve(async (req: Request) => {
         slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1),
         entry_submitted_at: entrySubmittedAt.toISOString(), entry_filled_at: entryFilledAt.toISOString(),
         stop_order_created_at: stopCreatedAt, target_order_created_at: targetCreatedAt,
-        protective_latency_ms: protectiveLatencyMs, protective_verified: emergencyHardStopRequired ? slAttached : candidateA ? true : slAttached && tpAttached,
+        protective_latency_ms: protectiveLatencyMs, protective_verified: candidateA ? (emergencyHardStopRequired ? slAttached : false) : slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
         strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, market_suite: candidateA, exposure_multiplier: exposureMultiplier || null, max_gross_exposure: candidateA ? 6 : null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
       }),
     });
+    unrecordedLiveEntry = null;
+    await db("trade_execution_reservations?signal_id=eq." + signal.id, { method: "DELETE" });
+    reservationHeld = false;
 
     // 계획 단계의 가상 금액을 남기지 않고, 실제 BingX 체결값으로 신호 기록을 동기화한다.
     try {
@@ -1058,6 +1086,26 @@ Deno.serve(async (req: Request) => {
     return Response.json({ ok: true, order_id: orderId, quantity: actualExecutedQty, fill_price: actualFillPrice, slippage_pct: (actualFillPrice / entry - 1) * 100 * (signal.side === "long" ? 1 : -1), margin_usd: marginUsd, leverage: finalLeverage, protective_latency_ms: protectiveLatencyMs });
   } catch (e) {
     console.error("bingx-order-execute failed:", e instanceof Error ? e.message : String(e));
+    // If BingX accepted the entry but the later database write failed, do not
+    // leave an orphaned live position that the reconciler cannot discover.
+    if (unrecordedLiveEntry) {
+      try {
+        await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+          symbol: unrecordedLiveEntry.bxSymbol,
+          side: unrecordedLiveEntry.closeSide,
+          positionSide: unrecordedLiveEntry.positionSide,
+          type: "MARKET",
+          quantity: unrecordedLiveEntry.quantity,
+          recvWindow: 5000,
+        });
+      } catch (closeError) {
+        console.error("EMERGENCY CLOSE FAILED for unrecorded entry:", unrecordedLiveEntry.bxSymbol, closeError instanceof Error ? closeError.message : String(closeError));
+      }
+    }
+    if (reservationHeld) {
+      try { await db("trade_execution_reservations?signal_id=eq." + signal.id, { method: "DELETE" }); }
+      catch (releaseError) { console.error("reservation release failed:", releaseError instanceof Error ? releaseError.message : String(releaseError)); }
+    }
     try { await insertRejected(signal, "실행 오류: " + (e instanceof Error ? e.message : String(e))); } catch { /* ignore */ }
     return Response.json({ ok: false, error: "order execution failed" }, { status: 502 });
   }
