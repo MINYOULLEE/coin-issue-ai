@@ -1,0 +1,212 @@
+{
+  "generated_at": "2026-08-28T02:46:24.147823+00:00",
+  "range": [
+    "2021-08-28",
+    "2026-08-28"
+  ],
+  "symbols_downloaded": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "TRX",
+    "SOL",
+    "BNB"
+  ],
+  "baseline_symbols": [
+    "BTC",
+    "ETH",
+    "XRP",
+    "TRX",
+    "SOL"
+  ],
+  "candle_counts": {
+    "BTC": 43824,
+    "ETH": 43824,
+    "XRP": 43824,
+    "TRX": 43824,
+    "SOL": 43824,
+    "BNB": 43824
+  },
+  "calibration_grid": [
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0,
+      "final_multiple": 4183.964138396924,
+      "return_pct": 418296.41383969237,
+      "mdd_pct": -35.13960270812664,
+      "target_changes": 2630
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0,
+      "final_multiple": 3828.217373139665,
+      "return_pct": 382721.7373139665,
+      "mdd_pct": -32.6596296272059,
+      "target_changes": 2630
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0004,
+      "final_multiple": 2610.716950583785,
+      "return_pct": 260971.6950583785,
+      "mdd_pct": -35.53409228615037,
+      "target_changes": 2630
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0004,
+      "final_multiple": 2388.737488176541,
+      "return_pct": 238773.7488176541,
+      "mdd_pct": -33.083927507326734,
+      "target_changes": 2630
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0005,
+      "final_multiple": 2320.3066231883595,
+      "return_pct": 231930.66231883594,
+      "mdd_pct": -35.63235339156524,
+      "target_changes": 2630
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0005,
+      "final_multiple": 2123.0196608004812,
+      "return_pct": 212201.96608004812,
+      "mdd_pct": -33.18959881918061,
+      "target_changes": 2630
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0006,
+      "final_multiple": 2062.186894296538,
+      "return_pct": 206118.6894296538,
+      "mdd_pct": -35.730470388570765,
+      "target_changes": 2630
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.0006,
+      "final_multiple": 1886.8468835470644,
+      "return_pct": 188584.68835470645,
+      "mdd_pct": -33.29510933993562,
+      "target_changes": 2630
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.001,
+      "final_multiple": 1286.5572186885133,
+      "return_pct": 128555.72186885134,
+      "mdd_pct": -36.1215013510065,
+      "target_changes": 2630
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 0,
+      "fee_per_turnover": 0.001,
+      "final_multiple": 1177.1660877592294,
+      "return_pct": 117616.60877592294,
+      "mdd_pct": -33.715548217076915,
+      "target_changes": 2630
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0,
+      "final_multiple": 5258.970625050628,
+      "return_pct": 525797.0625050628,
+      "mdd_pct": -27.321036455881053,
+      "target_changes": 2677
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0,
+      "final_multiple": 4373.905805577832,
+      "return_pct": 437290.58055778325,
+      "mdd_pct": -37.48357227217311,
+      "target_changes": 2677
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0004,
+      "final_multiple": 3268.3682332451262,
+      "return_pct": 326736.82332451263,
+      "mdd_pct": -27.33811514016633,
+      "target_changes": 2677
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0004,
+      "final_multiple": 2718.314249952555,
+      "return_pct": 271731.42499525554,
+      "mdd_pct": -37.51420154588755,
+      "target_changes": 2677
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0005,
+      "final_multiple": 2901.8913434150586,
+      "return_pct": 290089.1343415059,
+      "mdd_pct": -27.392963312742136,
+      "target_changes": 2677
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0005,
+      "final_multiple": 2413.5140313693787,
+      "return_pct": 241251.40313693788,
+      "mdd_pct": -37.521857684402974,
+      "target_changes": 2677
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0006,
+      "final_multiple": 2576.4893718740486,
+      "return_pct": 257548.93718740487,
+      "mdd_pct": -27.499466505391336,
+      "target_changes": 2677
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.0006,
+      "final_multiple": 2142.8759780420355,
+      "return_pct": 214187.59780420354,
+      "mdd_pct": -37.52951335097565,
+      "target_changes": 2677
+    },
+    {
+      "method": "hourly_mark",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.001,
+      "final_multiple": 1600.9862518529037,
+      "return_pct": 159998.62518529038,
+      "mdd_pct": -27.9239745058816,
+      "target_changes": 2677
+    },
+    {
+      "method": "daily_fixed_notional",
+      "decision_hour_utc": 23,
+      "fee_per_turnover": 0.001,
+      "final_multiple": 1331.5463349944619,
+      "return_pct": 133054.63349944618,
+      "mdd_pct": -37.56013129806374,
+      "target_changes": 2677
+    }
+  ]
+}
