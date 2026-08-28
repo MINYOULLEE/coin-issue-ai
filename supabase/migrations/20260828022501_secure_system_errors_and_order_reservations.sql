@@ -90,5 +90,3 @@ grant execute on function public.reserve_real_trade_slot(bigint,text,text,intege
 -- This maintenance function is invoked by the database cron job, not by
 -- browser clients. Do not expose its SECURITY DEFINER privileges over RPC.
 revoke all on function public.capture_recent_http_errors() from public, anon, authenticated;
-
-

@@ -7,4 +7,3 @@ const SOL = {"left":[1,2,3,4,5,-1,-1,8,-1,-1,11,12,-1,-1,15,-1,-1,18,19,20,-1,-1
 export const ANSWER_FEATURES = ["return_1h","return_3h","return_6h","return_12h","return_24h","return_72h","return_168h","return_336h","return_720h","ema_gap_12_72","ema_gap_24_168","ema_gap_72_336","ema_gap_168_720","channel_24","vol_24","channel_72","vol_72","channel_168","vol_168","channel_336","vol_336","channel_720","vol_720","rsi_14","rsi_72","rsi_168","atr_24","atr_72","atr_168","body","upper_wick","lower_wick","volume_rank_30d","dollar_volume_rank_30d","volume_change_24h"] as const;
 const TREES:Record<string,any>={BTC,ETH,XRP,TRX,SOL};
 export function evaluateAnswerTree(asset:string,x:number[]){const t=TREES[asset];if(!t)throw new Error('unknown answer tree '+asset);let n=0;while(t.left[n]!==-1)n=x[t.feature[n]]<=t.threshold[n]?t.left[n]:t.right[n];const p=[...t.probability[n]],i=p.indexOf(Math.max(...p));return {direction:t.classes[i],confidence:p[i],probabilities:p,leaf:n};}
-
