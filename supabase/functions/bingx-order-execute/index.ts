@@ -29,9 +29,10 @@ const ENV_URLS: Record<string, string[]> = {
 };
 const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "AAVE"];
 const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strategy_f","strategy_g"];
-const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000 };
+const DAILY_REBALANCE_TYPES = [...SUITE_TYPES, "answer_mdd30"];
+const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 22;
+const EXECUTOR_VERSION = 37;
 const DEFAULT_STRATEGY_EPOCH = "market_suite_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -239,7 +240,8 @@ async function handleReprice(payload: any): Promise<Response> {
     const row = rows?.[0];
     if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
     const newStop = Number(payload.invalidation_price), newTarget = Number(payload.target_price);
-    const candidateA = SUITE_TYPES.includes(row.signal_type);
+    const candidateA = DAILY_REBALANCE_TYPES.includes(row.signal_type);
+    if (candidateA) return Response.json({ ok: true, skipped: "daily rebalance strategy; no fixed repricing" });
     if (!(newStop > 0) || !(newTarget > 0)) return Response.json({ ok: false, error: "invalid reprice values" });
 
     const bxSymbol = String(row.bingx_symbol);
@@ -338,7 +340,7 @@ async function handleProtect(payload: any): Promise<Response> {
     }
     for (const row of rows) {
       const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT", closeSide = row.side === "long" ? "SELL" : "BUY";
-      const candidateA = SUITE_TYPES.includes(row.signal_type);
+      const candidateA = DAILY_REBALANCE_TYPES.includes(row.signal_type);
       try {
         const livePosition = livePositions.get(bxSymbol + "|" + positionSide);
         const markPrice = Number(livePosition?.markPrice ?? livePosition?.price ?? 0);
@@ -358,7 +360,7 @@ async function handleProtect(payload: any): Promise<Response> {
             }),
           });
         }
-        if (SUITE_TYPES.includes(row.signal_type)) {
+        if (DAILY_REBALANCE_TYPES.includes(row.signal_type)) {
           // Daily-rebalance strategies intentionally have no exchange SL/TP.
           // Keep protective_verified=false so the database never claims that
           // a protective order exists when there is none.
@@ -579,7 +581,7 @@ Deno.serve(async (req: Request) => {
   try {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
-    if (!["swing", "tactical", ...SUITE_TYPES].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
+    if (!["swing", "tactical", ...DAILY_REBALANCE_TYPES].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
     if (!(Number(signal.invalidation_price) > 0) || !(Number(signal.target_price) > 0)) {
       await insertRejected(signal, "손절가/목표가 없음");
       return Response.json({ ok: false, error: "missing stop or target price" });
@@ -599,7 +601,7 @@ Deno.serve(async (req: Request) => {
     const state = stateRows?.[0];
     if (!state) { await insertRejected(signal, "설정 없음"); return Response.json({ ok: false, error: "no trading state" }); }
     if (!state.enabled) return Response.json({ ok: true, skipped: "real trading disabled (kill switch)" });
-    const candidateA = SUITE_TYPES.includes(signal.signal_type);
+    const candidateA = DAILY_REBALANCE_TYPES.includes(signal.signal_type);
 
     // 3. 신호 신선도 확인
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
@@ -667,7 +669,7 @@ Deno.serve(async (req: Request) => {
     const kstDayStartUtc = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), utcNow.getUTCDate()));
     const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,side,signal_type,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
     const strategyClosed = candidateA
-      ? recentClosed.filter((x: any) => SUITE_TYPES.includes(x.signal_type))
+      ? recentClosed.filter((x: any) => x.signal_type === signal.signal_type)
       : recentClosed;
     const dailyClosed = strategyClosed.filter((x: any) => x.closed_at && Date.parse(x.closed_at) >= kstDayStartUtc.getTime());
     const dailyNetPnl = dailyClosed.reduce((sum: number, x: any) => sum + Number(x.net_pnl_usd || 0), 0);
@@ -764,6 +766,9 @@ Deno.serve(async (req: Request) => {
     const exposureMultiplier = candidateA
       ? Number(signalStrategy.exposure_multiplier ?? 1)
       : 0;
+    const strategyMaxGrossExposure = candidateA
+      ? clamp(Number(signalStrategy.max_gross_exposure ?? (signal.signal_type === "answer_mdd30" ? 1.6 : 6)), 0.1, 6)
+      : 6;
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     // 시장별 A-G의 exposure_multiplier는 계좌 대비 명목노출이고, 담보 사용률과 분리한다.
@@ -801,7 +806,7 @@ Deno.serve(async (req: Request) => {
     const riskPct = (signal.signal_type === "tactical" ? Number(state.tactical_risk_pct ?? 1.0) : Number(state.swing_risk_pct ?? 1.5)) * riskMultiplier;
     const riskUsd = equity * (riskPct / 100);
     const usedGross = open.reduce((s: number, x: any) => s + Number(x.notional_usd || 0), 0);
-    const remainingGross = Math.max(0, equity * 6 - usedGross);
+    const remainingGross = Math.max(0, equity * strategyMaxGrossExposure - usedGross);
     const rawMargin = candidateA ? equity * exposureMultiplier / leverage : riskUsd / (stopPct * leverage);
 
     let marginUsd = Math.min(rawMargin, remainingTotal, remainingSymbol, remainingGross / leverage);
@@ -1055,7 +1060,7 @@ Deno.serve(async (req: Request) => {
         protective_latency_ms: protectiveLatencyMs, protective_verified: candidateA ? (emergencyHardStopRequired ? slAttached : false) : slAttached && tpAttached,
         expected_fee_usd: estimatedRoundTripFee, expected_net_profit_usd: expectedNetProfitUsd,
         expected_net_rr: expectedNetRr,
-        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, market_suite: candidateA, exposure_multiplier: exposureMultiplier || null, max_gross_exposure: candidateA ? 6 : null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
+        strategy_config: { risk_multiplier: riskMultiplier, risk_pct: riskPct, stop_pct: stopPct, market_suite: candidateA, daily_rebalance: candidateA, exposure_multiplier: exposureMultiplier || null, max_gross_exposure: candidateA ? strategyMaxGrossExposure : null, fee_rate: feeRate, one_way_slippage_rate: oneWaySlippageRate, expected_trading_cost_usd: roundTo(estimatedRoundTripFee + estimatedSlippageCost, 6), minimum_net_rr: minimumNetRr, mfe_mae_adaptive: adaptiveLevelMeta },
       }),
     });
     unrecordedLiveEntry = null;
