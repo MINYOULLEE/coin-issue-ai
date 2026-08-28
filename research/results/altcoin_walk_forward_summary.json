@@ -1,0 +1,383 @@
+{
+  "generated_at": "2026-08-28T07:27:14.054367+00:00",
+  "count": 17,
+  "minimum_gate_count": 4,
+  "portfolio_candidate_count": 0,
+  "portfolio_gate_definition": "all validation folds positive; holdout >=5%; holdout MDD <=20%; return/MDD >=0.5",
+  "results": [
+    {
+      "symbol": "XLM",
+      "minimum_gate": true,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -0.5580912920247094,
+      "worst_validation_mdd_pct": -11.146296428990643,
+      "holdout_return_pct": 4.001151821759841,
+      "holdout_mdd_pct": -8.370433636941232,
+      "holdout_return_to_mdd": 0.47801010022964147,
+      "model": {
+        "neutral": 0.001,
+        "depth": 5,
+        "min_samples_leaf": 20,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "BCH",
+      "minimum_gate": true,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 24.522776936124522,
+      "worst_validation_mdd_pct": -11.0283576825986,
+      "holdout_return_pct": 2.591102333288209,
+      "holdout_mdd_pct": -18.199591748252807,
+      "holdout_return_to_mdd": 0.14237145366389656,
+      "model": {
+        "neutral": 0.005,
+        "depth": 4,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          1.0,
+          1.5
+        ]
+      }
+    },
+    {
+      "symbol": "DOGE",
+      "minimum_gate": true,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 1.2192791793492974,
+      "worst_validation_mdd_pct": -2.7804299224164275,
+      "holdout_return_pct": 0.6848801930933179,
+      "holdout_mdd_pct": -1.214962933196928,
+      "holdout_return_to_mdd": 0.563704599029367,
+      "model": {
+        "neutral": 0.005,
+        "depth": 3,
+        "min_samples_leaf": 2,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "ATOM",
+      "minimum_gate": true,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -0.25887171384526564,
+      "worst_validation_mdd_pct": -2.729177538048122,
+      "holdout_return_pct": 0.5039584161132815,
+      "holdout_mdd_pct": -0.6277763118902713,
+      "holdout_return_to_mdd": 0.8027674930833774,
+      "model": {
+        "neutral": 0.0075,
+        "depth": 4,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "ALGO",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": -0.23450787991845523,
+      "holdout_return_pct": 0.0,
+      "holdout_mdd_pct": 0.0,
+      "holdout_return_to_mdd": 0.0,
+      "model": {
+        "neutral": 0.001,
+        "depth": 3,
+        "min_samples_leaf": 10,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          1.0,
+          1.5
+        ]
+      }
+    },
+    {
+      "symbol": "ICP",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -0.5477308816428605,
+      "worst_validation_mdd_pct": -2.4953036346860746,
+      "holdout_return_pct": 0.0,
+      "holdout_mdd_pct": 0.0,
+      "holdout_return_to_mdd": 0.0,
+      "model": {
+        "neutral": 0.01,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "LINK",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": 0.0,
+      "holdout_return_pct": 0.0,
+      "holdout_mdd_pct": 0.0,
+      "holdout_return_to_mdd": 0.0,
+      "model": {
+        "neutral": 0.003,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "LTC",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": -3.665049588855618,
+      "holdout_return_pct": -2.605758453298712,
+      "holdout_mdd_pct": -3.15213325701017,
+      "holdout_return_to_mdd": -0.8266650680150179,
+      "model": {
+        "neutral": 0.001,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "VET",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": -5.028347333456251,
+      "holdout_return_pct": -3.782404143020335,
+      "holdout_mdd_pct": -5.98161376434293,
+      "holdout_return_to_mdd": -0.6323384110100304,
+      "model": {
+        "neutral": 0.001,
+        "depth": 3,
+        "min_samples_leaf": 2,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "BNB",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -1.218784955457497,
+      "worst_validation_mdd_pct": -4.263211456817551,
+      "holdout_return_pct": -4.124256789629699,
+      "holdout_mdd_pct": -4.124256789629699,
+      "holdout_return_to_mdd": -1.0,
+      "model": {
+        "neutral": 0.01,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "DOT",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -0.4854553791949323,
+      "worst_validation_mdd_pct": -1.8238183494679427,
+      "holdout_return_pct": -4.150530972167554,
+      "holdout_mdd_pct": -4.150530972167554,
+      "holdout_return_to_mdd": -1.0,
+      "model": {
+        "neutral": 0.002,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "AVAX",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": 0.0,
+      "holdout_return_pct": -4.200832843440594,
+      "holdout_mdd_pct": -4.200832843440594,
+      "holdout_return_to_mdd": -1.0,
+      "model": {
+        "neutral": 0.001,
+        "depth": 3,
+        "min_samples_leaf": 10,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "FIL",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -0.4214483358649601,
+      "worst_validation_mdd_pct": -0.7896649878027073,
+      "holdout_return_pct": -4.860359030619166,
+      "holdout_mdd_pct": -4.860359030619166,
+      "holdout_return_to_mdd": -1.0,
+      "model": {
+        "neutral": 0.002,
+        "depth": 3,
+        "min_samples_leaf": 2,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "ETC",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.2448757871839513,
+      "worst_validation_mdd_pct": -4.886155183497831,
+      "holdout_return_pct": -5.225986024832396,
+      "holdout_mdd_pct": -9.59499676426504,
+      "holdout_return_to_mdd": -0.5446574035642937,
+      "model": {
+        "neutral": 0.0075,
+        "depth": 3,
+        "min_samples_leaf": 20,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "AAVE",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 8.024396449517912,
+      "worst_validation_mdd_pct": -6.981121311134341,
+      "holdout_return_pct": -5.283810721591298,
+      "holdout_mdd_pct": -28.858744695235284,
+      "holdout_return_to_mdd": -0.18309218842993125,
+      "model": {
+        "neutral": 0.005,
+        "depth": 3,
+        "min_samples_leaf": 10,
+        "low": 0.55,
+        "high": 0.7,
+        "exposures": [
+          0.0,
+          1.0,
+          1.5
+        ]
+      }
+    },
+    {
+      "symbol": "ADA",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": 0.0,
+      "worst_validation_mdd_pct": -3.354643179758432,
+      "holdout_return_pct": -5.886306046195655,
+      "holdout_mdd_pct": -5.886306046195655,
+      "holdout_return_to_mdd": -1.0,
+      "model": {
+        "neutral": 0.003,
+        "depth": 3,
+        "min_samples_leaf": 2,
+        "low": 0.6,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    },
+    {
+      "symbol": "UNI",
+      "minimum_gate": false,
+      "portfolio_candidate_gate": false,
+      "worst_validation_return_pct": -2.8717814355417537,
+      "worst_validation_mdd_pct": -3.2311560621201774,
+      "holdout_return_pct": -6.708060262093407,
+      "holdout_mdd_pct": -11.923492771760092,
+      "holdout_return_to_mdd": -0.5625918839805858,
+      "model": {
+        "neutral": 0.003,
+        "depth": 3,
+        "min_samples_leaf": 2,
+        "low": 0.55,
+        "high": 0.75,
+        "exposures": [
+          0.0,
+          0.25,
+          0.5
+        ]
+      }
+    }
+  ]
+}

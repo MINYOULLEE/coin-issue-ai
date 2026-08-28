@@ -1,0 +1,999 @@
+{
+  "symbol": "LINK",
+  "generated_at": "2026-08-28T07:19:26.785860+00:00",
+  "samples": 1796,
+  "fold_boundaries": [
+    718,
+    987,
+    1257,
+    1526
+  ],
+  "selected": {
+    "score": -0.03,
+    "neutral": 0.003,
+    "depth": 3,
+    "min_samples_leaf": 20,
+    "low": 0.6,
+    "high": 0.75,
+    "exposures": [
+      0.0,
+      0.25,
+      0.5
+    ],
+    "folds": [
+      {
+        "multiple": 1.0,
+        "return_pct": 0.0,
+        "mdd_pct": 0.0,
+        "changes": 0,
+        "year_end_multiple": {
+          "2023": 1.0,
+          "2024": 1.0
+        }
+      },
+      {
+        "multiple": 1.0,
+        "return_pct": 0.0,
+        "mdd_pct": 0.0,
+        "changes": 0,
+        "year_end_multiple": {
+          "2024": 1.0,
+          "2025": 1.0
+        }
+      },
+      {
+        "multiple": 1.0,
+        "return_pct": 0.0,
+        "mdd_pct": 0.0,
+        "changes": 0,
+        "year_end_multiple": {
+          "2025": 1.0
+        }
+      }
+    ],
+    "worst_fold_multiple": 1.0,
+    "worst_fold_mdd_pct": 0.0
+  },
+  "holdout_range": [
+    "2025-12-01T00:00:00+00:00",
+    "2026-08-27T00:00:00+00:00"
+  ],
+  "holdout": {
+    "multiple": 1.0,
+    "return_pct": 0.0,
+    "mdd_pct": 0.0,
+    "changes": 0,
+    "year_end_multiple": {
+      "2025": 1.0,
+      "2026": 1.0
+    }
+  },
+  "tree": {
+    "nodes": 15,
+    "depth": 3,
+    "leaves": 8
+  },
+  "promotion_gate": false,
+  "top_20": [
+    {
+      "score": -0.03,
+      "neutral": 0.003,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.003,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.003,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        1.0,
+        1.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 2,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 2,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 2,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        1.0,
+        1.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 5,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 5,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 5,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        1.0,
+        1.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 10,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 10,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 10,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        1.0,
+        1.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.5,
+        1.0
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.03,
+      "neutral": 0.0075,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        1.0,
+        1.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2024": 1.0,
+            "2025": 1.0
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": 0.0
+    },
+    {
+      "score": -0.07915383782392207,
+      "neutral": 0.001,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.040034568396096,
+          "return_pct": 4.003456839609609,
+          "mdd_pct": -0.012500000000015277,
+          "changes": 8,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.040034568396096
+          }
+        },
+        {
+          "multiple": 1.073189446880506,
+          "return_pct": 7.31894468805061,
+          "mdd_pct": -2.4261436882304643,
+          "changes": 22,
+          "year_end_multiple": {
+            "2024": 1.0368794579514529,
+            "2025": 1.073189446880506
+          }
+        },
+        {
+          "multiple": 1.0343640272931451,
+          "return_pct": 3.436402729314514,
+          "mdd_pct": -0.918795769557823,
+          "changes": 6,
+          "year_end_multiple": {
+            "2025": 1.0343640272931451
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0343640272931451,
+      "worst_fold_mdd_pct": -2.4261436882304643
+    },
+    {
+      "score": -0.08882907538890367,
+      "neutral": 0.0075,
+      "depth": 4,
+      "min_samples_leaf": 20,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.015233934877592,
+          "return_pct": 1.523393487759206,
+          "mdd_pct": -0.6719453726572677,
+          "changes": 8,
+          "year_end_multiple": {
+            "2023": 1.015233934877592,
+            "2024": 1.015233934877592
+          }
+        },
+        {
+          "multiple": 0.9919251708413084,
+          "return_pct": -0.8074829158691621,
+          "mdd_pct": -1.469340408672648,
+          "changes": 10,
+          "year_end_multiple": {
+            "2024": 0.995316302752216,
+            "2025": 0.9919251708413084
+          }
+        },
+        {
+          "multiple": 1.0230845845400969,
+          "return_pct": 2.3084584540096875,
+          "mdd_pct": -1.0146717791014392,
+          "changes": 12,
+          "year_end_multiple": {
+            "2025": 1.0230845845400969
+          }
+        }
+      ],
+      "worst_fold_multiple": 0.9919251708413084,
+      "worst_fold_mdd_pct": -1.469340408672648
+    },
+    {
+      "score": -0.09223848830501652,
+      "neutral": 0.001,
+      "depth": 3,
+      "min_samples_leaf": 5,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.073189446880506,
+          "return_pct": 7.31894468805061,
+          "mdd_pct": -2.4261436882304643,
+          "changes": 22,
+          "year_end_multiple": {
+            "2024": 1.0368794579514529,
+            "2025": 1.073189446880506
+          }
+        },
+        {
+          "multiple": 1.0343640272931451,
+          "return_pct": 3.436402729314514,
+          "mdd_pct": -0.918795769557823,
+          "changes": 6,
+          "year_end_multiple": {
+            "2025": 1.0343640272931451
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": -2.4261436882304643
+    },
+    {
+      "score": -0.09223848830501652,
+      "neutral": 0.001,
+      "depth": 3,
+      "min_samples_leaf": 10,
+      "low": 0.6,
+      "high": 0.75,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2023": 1.0,
+            "2024": 1.0
+          }
+        },
+        {
+          "multiple": 1.073189446880506,
+          "return_pct": 7.31894468805061,
+          "mdd_pct": -2.4261436882304643,
+          "changes": 22,
+          "year_end_multiple": {
+            "2024": 1.0368794579514529,
+            "2025": 1.073189446880506
+          }
+        },
+        {
+          "multiple": 1.0343640272931451,
+          "return_pct": 3.436402729314514,
+          "mdd_pct": -0.918795769557823,
+          "changes": 6,
+          "year_end_multiple": {
+            "2025": 1.0343640272931451
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": -2.4261436882304643
+    },
+    {
+      "score": -0.1006395775313812,
+      "neutral": 0.002,
+      "depth": 3,
+      "min_samples_leaf": 20,
+      "low": 0.55,
+      "high": 0.7,
+      "exposures": [
+        0.0,
+        0.25,
+        0.5
+      ],
+      "folds": [
+        {
+          "multiple": 1.0422614427388333,
+          "return_pct": 4.2261442738833255,
+          "mdd_pct": -1.2925687161477128,
+          "changes": 20,
+          "year_end_multiple": {
+            "2023": 1.0238371903053134,
+            "2024": 1.0422614427388333
+          }
+        },
+        {
+          "multiple": 1.0425655779536531,
+          "return_pct": 4.256557795365312,
+          "mdd_pct": -2.458301053483858,
+          "changes": 16,
+          "year_end_multiple": {
+            "2024": 0.997310540498578,
+            "2025": 1.0425655779536531
+          }
+        },
+        {
+          "multiple": 1.0,
+          "return_pct": 0.0,
+          "mdd_pct": 0.0,
+          "changes": 0,
+          "year_end_multiple": {
+            "2025": 1.0
+          }
+        }
+      ],
+      "worst_fold_multiple": 1.0,
+      "worst_fold_mdd_pct": -2.458301053483858
+    }
+  ]
+}

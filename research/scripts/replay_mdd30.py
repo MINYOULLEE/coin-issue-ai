@@ -5,11 +5,15 @@ import csv
 import json
 import math
 import re
+import sys
 import time
 import urllib.parse
 import urllib.request
 from datetime import datetime, timezone
 from pathlib import Path
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8")
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -225,10 +229,14 @@ def main() -> None:
     parser.add_argument("--symbols", nargs="+", default=["BTC", "ETH", "XRP", "TRX", "SOL", "BNB"])
     parser.add_argument("--start", default="2021-08-28")
     parser.add_argument("--end", default=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    parser.add_argument("--download-only", action="store_true")
     args = parser.parse_args()
     start_ms = int(datetime.fromisoformat(args.start).replace(tzinfo=timezone.utc).timestamp() * 1000)
     end_ms = int(datetime.fromisoformat(args.end).replace(tzinfo=timezone.utc).timestamp() * 1000) + 86_399_999
     paths = {s: download(s, start_ms, end_ms) for s in args.symbols}
+    if args.download_only:
+        print(json.dumps({"downloaded": args.symbols, "paths": {s: str(p) for s, p in paths.items()}}, ensure_ascii=False, indent=2))
+        return
     trees = load_trees()
     baseline_symbols = [s for s in args.symbols if s in trees]
     series = {s: read_candles(paths[s]) for s in baseline_symbols}
