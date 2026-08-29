@@ -3,7 +3,8 @@ import { ANSWER_FEATURES, evaluateAnswerTree } from "./answer_trees.ts";
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 52;
+const COLLECTOR_VERSION = 57;
+const REQUIRED_EXECUTOR_VERSION = 40;
 const STRATEGY_EPOCH = "answer_mdd30_2026_08_27";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "answer_mdd30_five_asset_v1";
@@ -374,6 +375,9 @@ async function manageSignals(market,old){
   await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})},health={},cooldowns={};const now=new Date(),nowIso=now.toISOString();
+  const liveOpenResponse=await fetch(PROJECT_URL+"/rest/v1/real_trades?status=eq.open&select=signal_id,executor_version",{headers:adminHeaders()});
+  if(!liveOpenResponse.ok)throw Error("open real trade fetch "+liveOpenResponse.status+" "+await liveOpenResponse.text());
+  const legacyExecutorSignalIds=new Set((await liveOpenResponse.json()).filter((x:any)=>Number(x.executor_version||0)<REQUIRED_EXECUTOR_VERSION).map((x:any)=>Number(x.signal_id)));
   // 전략 세대 전환 때문에 이미 열려 있는 실거래를 시장가로 닫지 않는다. 이전 세대
   // 포지션은 BingX 동기화/보호 주문이 계속 관리하고, 신규 진입만 A-G 세대로 만든다.
   // legacyActive는 화면과 heartbeat에도 남겨 운영자가 승계 포지션을 계속 확인할 수 있게 한다.
@@ -412,11 +416,17 @@ async function manageSignals(market,old){
   // Five independent answer trees make one decision from the completed 00:00
   // UTC candle. Orders follow the close, exactly matching the research ledger.
   const closedHourAt=Number(market.BTC?.suite_setup?.closed_at||0),closedDate=new Date(closedHourAt),isAnswerDecisionHour=closedDate.getUTCHours()===0;
-  const newAnswerDecision=isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0);
+  const forceAnswerRebalance=candidates.force_mdd30_rebalance===true;
+  const forceAnswerSymbols=Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
+  const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
+  const newAnswerDecision=forceAnswerRebalance||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
   if(newAnswerDecision){
-    candidates.last_mdd30_decision_closed_at=closedHourAt;const audit=[];
+    if(!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
+    candidates.force_mdd30_rebalance=false;candidates.force_mdd30_symbols=[];const audit=[];
     for(const symbol of ANSWER_ASSETS){
-      const answer=market[symbol]?.answer_mdd30||null;
+      if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
+      const storedAnswer=forceAnswerRebalance?forcedAuditAnswers.get(symbol):null;
+      const answer=storedAnswer?{...(market[symbol]?.answer_mdd30||{}),...storedAnswer}:market[symbol]?.answer_mdd30||null;
       const carriedIndex=legacyActive.findIndex(x=>x.symbol===symbol);
       if(carriedIndex>=0){
         const carried=legacyActive[carriedIndex],reason="30% 방어형 세대 전환 리밸런싱";
@@ -426,8 +436,8 @@ async function manageSignals(market,old){
         }else{audit.push({symbol,status:"close_failed",reason:"승계 포지션 청산 실패 · 신규진입 차단"});continue}
       }
       const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
-      if(current&&(!answer?.side||current.side!==answer.side||Math.abs(Number(current.entry_metrics?.strategy_config?.exposure_multiplier||0)-Number(answer.exposure||0))>.000001)){
-        const reason=!answer?.side?`${symbol} 현금 전환`:current.side!==answer.side?`${symbol} 방향 전환`:`${symbol} 확신도 배수 변경`;
+      if(current&&(!answer?.side||current.side!==answer.side||Math.abs(Number(current.entry_metrics?.strategy_config?.exposure_multiplier||0)-Number(answer.exposure||0))>.000001||legacyExecutorSignalIds.has(Number(current.id)))){
+        const reason=!answer?.side?`${symbol} 현금 전환`:current.side!==answer.side?`${symbol} 방향 전환`:legacyExecutorSignalIds.has(Number(current.id))?`${symbol} 최종 v${REQUIRED_EXECUTOR_VERSION} 포지션 크기 교정`:`${symbol} 확신도 배수 변경`;
         if(await triggerClose(current,reason)){
           const price=Number(market[symbol]?.price||current.entry_price),result=(price/Number(current.entry_price)-1)*100*(current.side==="long"?1:-1),notional=Number(current.notional_usd||0),margin=Number(current.margin_usd||0),net=notional*result/100-Number(current.fee_usd||0);
           await patchSignal(current.id,{status:result>.1?"success":result<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[current.id];

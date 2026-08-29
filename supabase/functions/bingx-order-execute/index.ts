@@ -32,7 +32,7 @@ const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strate
 const DAILY_REBALANCE_TYPES = [...SUITE_TYPES, "answer_mdd30"];
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 37;
+const EXECUTOR_VERSION = 40;
 const DEFAULT_STRATEGY_EPOCH = "market_suite_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -81,7 +81,18 @@ async function fetchSigned(
         body,
         signal: AbortSignal.timeout(10000),
       });
-      const json = JSONBigParse.parse(await res.text());
+      const rawResponse = await res.text();
+      let json: any;
+      if (path === "/openApi/swap/v2/trade/order") {
+        json = JSON.parse(rawResponse);
+        const rawOrderId = rawResponse.match(/"order(?:ID|Id)"\s*:\s*"?(\d+)"?/);
+        if (rawOrderId && json?.data) {
+          const target = json.data.order && typeof json.data.order === "object" ? json.data.order : json.data;
+          target.orderID = rawOrderId[1];
+        }
+      } else {
+        json = JSONBigParse.parse(rawResponse);
+      }
       if (json.code !== 0) throw new Error(`BingX ${json.code}: ${json.msg}`);
       return json.data;
     } catch (e) {
@@ -667,7 +678,8 @@ Deno.serve(async (req: Request) => {
     // rejected/진행중 거래는 제외하고, 수수료·펀딩비가 반영된 net_pnl_usd만 사용한다.
     const utcNow = new Date();
     const kstDayStartUtc = new Date(Date.UTC(utcNow.getUTCFullYear(), utcNow.getUTCMonth(), utcNow.getUTCDate()));
-    const recentClosed = (await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,side,signal_type,net_pnl_usd,closed_at&order=closed_at.desc&limit=100")) || [];
+    const recentClosed = ((await db("real_trades?status=eq.closed&net_pnl_usd=not.is.null&select=id,side,signal_type,net_pnl_usd,closed_at,close_reason&order=closed_at.desc&limit=100")) || [])
+      .filter((x: any) => !String(x.close_reason || "").includes("포지션 크기 교정"));
     const strategyClosed = candidateA
       ? recentClosed.filter((x: any) => x.signal_type === signal.signal_type)
       : recentClosed;
@@ -958,7 +970,12 @@ Deno.serve(async (req: Request) => {
     // 8. 레버리지 설정 후 시장가 진입 (손절/익절은 부착 파라미터가 조용히 실패하는 사례가 확인되어
     //    더 이상 진입 주문에 첨부하지 않고, 진입 체결 후 완전히 독립된 주문으로 따로 걱고 각각
     //    성공 여부를 직접 확인한다.)
-    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: finalLeverage });
+    // The answer portfolio already keeps its five symbols configured at 10x.
+    // Re-sending the same leverage change immediately after a close can make
+    // BingX terminate the request while its position state is settling.
+    if (!candidateA) {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: finalLeverage });
+    }
 
     const entrySubmittedAt = new Date();
     const order = await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
@@ -1111,7 +1128,8 @@ Deno.serve(async (req: Request) => {
       try { await db("trade_execution_reservations?signal_id=eq." + signal.id, { method: "DELETE" }); }
       catch (releaseError) { console.error("reservation release failed:", releaseError instanceof Error ? releaseError.message : String(releaseError)); }
     }
-    try { await insertRejected(signal, "실행 오류: " + (e instanceof Error ? e.message : String(e))); } catch { /* ignore */ }
-    return Response.json({ ok: false, error: "order execution failed" }, { status: 502 });
+    const executionError = e instanceof Error ? e.message : String(e);
+    try { await insertRejected(signal, "실행 오류: " + executionError); } catch { /* ignore */ }
+    return Response.json({ ok: false, error: executionError.slice(0, 500) }, { status: 502 });
   }
 });
