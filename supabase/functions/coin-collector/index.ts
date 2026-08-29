@@ -3,7 +3,7 @@ import { ANSWER_FEATURES, evaluateAnswerTree } from "./answer_trees.ts";
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 51;
+const COLLECTOR_VERSION = 52;
 const STRATEGY_EPOCH = "answer_mdd30_2026_08_27";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "answer_mdd30_five_asset_v1";
@@ -403,7 +403,10 @@ async function manageSignals(market,old){
     const plan={leverage,account_equity_usd:referenceEquity,margin_usd:estimatedMargin,notional_usd:estimatedNotional,fee_usd:estimatedNotional*.001,risk_usd:stopPct?estimatedNotional*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
     const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"30% 방어형 5종목 답안지",market_regime:"answer_mdd30",exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:1.6,fixed_take_profit:false,exit_mode:"daily_answer_rebalance",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:null}},created_at:created,expires_at:expires,updated_at:created});
     const execution=await triggerRealTrade(s);
-    if(!execution?.ok||execution?.skipped){await patchSignal(s.id,{status:"rejected",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
+    // trade_signals_status_check does not include "rejected". A failed live
+    // entry is a terminally invalid signal, so use the schema-supported status
+    // and keep the execution reason for auditability.
+    if(!execution?.ok||execution?.skipped){await patchSignal(s.id,{status:"invalidated",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
     byId[s.id]=s;return s;
   }
   // Five independent answer trees make one decision from the completed 00:00
