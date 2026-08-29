@@ -181,7 +181,7 @@ async function syncActualBingxHistory(){
       .filter((x:any)=>x.gap<=120000).sort((a:any,b:any)=>a.gap-b.gap)[0]?.row;
     if(!match)continue;matched.add(Number(match.id));
     const pnl=actual.realized_pnl_usd==null?null:Number(actual.realized_pnl_usd),entry=Number(actual.entry_price||0),close=Number(actual.close_price||0);
-    await db(`real_trades?id=eq.${match.id}`,{method:"PATCH",body:JSON.stringify({entry_price:entry||undefined,last_mark_price:close||undefined,closed_at:actual.closed_at,net_pnl_usd:pnl,fee_usd:actual.fee_usd,close_reason:"BingX positionHistory 주문별 동기화",measurement_updated_at:syncedAt})});
+    await db(`real_trades?id=eq.${match.id}`,{method:"PATCH",body:JSON.stringify({entry_price:entry||undefined,close_price:close||undefined,last_mark_price:close||undefined,closed_at:actual.closed_at,net_pnl_usd:pnl,fee_usd:actual.fee_usd,close_reason:"BingX positionHistory 주문별 동기화",measurement_updated_at:syncedAt,updated_at:syncedAt})});
     if(match.signal_id){
       const resultPct=entry&&close?(close/entry-1)*100*(actual.side==="long"?1:-1):null;
       await db(`trade_signals?id=eq.${match.signal_id}`,{method:"PATCH",body:JSON.stringify({status:pnl!=null&&pnl>0?"success":pnl!=null&&pnl<0?"failure":"neutral",closed_at:actual.closed_at,exit_price:close||null,result_pct:resultPct,net_pnl_usd:pnl,close_reason:"BingX positionHistory 주문별 동기화",updated_at:syncedAt})});

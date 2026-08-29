@@ -13,7 +13,7 @@ async function tg(method:string,body:any={}){if(!BOT)throw new Error("TELEGRAM_B
 async function send(text:string){return tg("sendMessage",{chat_id:CHAT,text,disable_web_page_preview:true,reply_markup:keyboard})}
 function num(v:any,d=2){const x=Number(v);return Number.isFinite(x)?x.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"-"}
 function side(v:string){return String(v).toLowerCase()==="long"?"LONG 🟢":"SHORT 🔴"}
-function price(v:any){const x=Number(v);if(!Number.isFinite(x))return "-";return x<10?num(x,5):num(x,2)}
+function price(v:any){if(v==null||v==="")return "-";const x=Number(v);if(!Number.isFinite(x)||x<=0)return "-";return x<10?num(x,5):num(x,2)}
 
 Deno.serve(async req=>{
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405});
@@ -25,8 +25,10 @@ Deno.serve(async req=>{
   let lastId=Number(st.last_trade_id||0),lastClosed=st.last_closed_at||"1970-01-01T00:00:00Z",lastError=Number(st.last_error_id||0);
   const {data:newRows,error:e1}=await sb.from("real_trades").select("id,symbol,side,status,margin_usd,leverage,notional_usd,entry_price,reject_reason").gt("id",lastId).order("id",{ascending:true});if(e1)throw e1;
   for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(x.status==="open")await send(`🚀 신규 진입\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x\n포지션 규모: ${num(x.notional_usd)} USDT`);else if(x.status==="rejected")await send(`⚠️ 주문 거절/실패\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`)}
-  const {data:closed,error:e2}=await sb.from("real_trades").select("id,symbol,side,entry_price,close_price,net_pnl_usd,margin_usd,closed_at,close_reason").eq("status","closed").gt("closed_at",lastClosed).order("closed_at",{ascending:true});if(e2)throw e2;
-  for(const x of closed||[]){if(x.closed_at>lastClosed)lastClosed=x.closed_at;const pnl=Number(x.net_pnl_usd);const roe=Number(x.margin_usd)>0&&Number.isFinite(pnl)?pnl/Number(x.margin_usd)*100:null;await send(`${pnl>=0?"✅":"🔻"} 포지션 청산\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n청산가: ${price(x.close_price)}\n실현손익: ${pnl>=0?"+":""}${num(pnl)} USDT${roe==null?"":`\n담보수익률: ${roe>=0?"+":""}${num(roe)}%`}\n사유: ${x.close_reason||"전략/거래소 종료"}`)}
+  // Do not notify from the executor's provisional close values. Wait until
+  // BingX positionHistory has supplied the actual close price, fees and PnL.
+  const {data:closed,error:e2}=await sb.from("real_trades").select("id,symbol,side,entry_price,close_price,last_mark_price,net_pnl_usd,margin_usd,closed_at,close_reason").eq("status","closed").eq("close_reason","BingX positionHistory 주문별 동기화").gt("closed_at",lastClosed).order("closed_at",{ascending:true});if(e2)throw e2;
+  for(const x of closed||[]){if(x.closed_at>lastClosed)lastClosed=x.closed_at;const pnl=Number(x.net_pnl_usd);const roe=Number(x.margin_usd)>0&&Number.isFinite(pnl)?pnl/Number(x.margin_usd)*100:null;await send(`${pnl>=0?"✅":"🔻"} 포지션 청산 (거래소 정산)\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n청산가: ${price(x.close_price??x.last_mark_price)}\n실현손익: ${pnl>=0?"+":""}${num(pnl)} USDT${roe==null?"":`\n담보수익률: ${roe>=0?"+":""}${num(roe)}%`}\n사유: ${x.close_reason||"전략/거래소 종료"}`)}
   const {data:errs,error:e3}=await sb.from("system_errors").select("id,source,status_code,message,created_at").gt("id",lastError).order("id",{ascending:true}).limit(20);if(e3)throw e3;
   for(const e of errs||[]){lastError=Math.max(lastError,Number(e.id));await send(`🚨 시스템 오류 감지\n구간: ${e.source}\nHTTP: ${e.status_code??"-"}\n내용: ${String(e.message||"").slice(0,500)}\n시각: ${e.created_at}`)}
   const {data:snap}=await sb.from("coin_snapshots").select("updated_at").eq("id","live").limit(1);const hb=snap?.[0]?.updated_at?Date.parse(snap[0].updated_at):0,stale=!hb||Date.now()-hb>180000,was=!!st.collector_stale;if(stale&&!was)await send(`🚨 시스템 경고\nCoin Collector heartbeat가 3분 이상 멈췄습니다.\n마지막 heartbeat: ${snap?.[0]?.updated_at||"없음"}`);if(!stale&&was)await send("✅ 시스템 복구\nCoin Collector heartbeat가 정상으로 돌아왔습니다.");
