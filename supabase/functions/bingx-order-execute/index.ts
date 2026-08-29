@@ -35,7 +35,7 @@ const MDD30_EXCHANGE_LEVERAGE = 10;
 const MDD30_MAX_GROSS_EXPOSURE = 1.6;
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 41;
+const EXECUTOR_VERSION = 51;
 const DEFAULT_STRATEGY_EPOCH = "market_suite_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -84,24 +84,76 @@ async function fetchSigned(
         body,
         signal: AbortSignal.timeout(10000),
       });
-      const rawResponse = await res.text();
-      let json: any;
-      if (path === "/openApi/swap/v2/trade/order") {
-        json = JSON.parse(rawResponse);
-        const rawOrderId = rawResponse.match(/"order(?:ID|Id)"\s*:\s*"?(\d+)"?/);
-        if (rawOrderId && json?.data) {
-          const target = json.data.order && typeof json.data.order === "object" ? json.data.order : json.data;
-          target.orderID = rawOrderId[1];
-        }
-      } else {
-        json = JSONBigParse.parse(rawResponse);
-      }
+      // BingX order IDs exceed JavaScript's safe integer range. The same
+      // json-bigint parser is used for every endpoint so the response cannot
+      // be rounded or hit a separate plain-JSON order path in Edge Runtime.
+      const json = JSONBigParse.parse(await res.text());
       if (json.code !== 0) throw new Error(`BingX ${json.code}: ${json.msg}`);
       return json.data;
     } catch (e) {
       if (!isNetworkOrTimeout(e) || base === urls[urls.length - 1]) throw e;
     }
   }
+}
+
+// The live order endpoint can return an order id larger than JavaScript's safe
+// integer range. In Supabase Edge the response-body read itself has also been
+// observed to terminate the isolate before our catch/finally runs. Submit the
+// order without consuming that body, then reconcile it through BingX's
+// clientOrderId lookup endpoint. The stable client id also makes a retry
+// idempotent from this executor's point of view.
+async function submitMarketOrderAndLookup(
+  params: Record<string, unknown>,
+  clientOrderId: string,
+  signalId: number,
+): Promise<any> {
+  await traceExecution(signalId, "transport_enter", { clientOrderId });
+  const all = { ...params, clientOrderId, timestamp: Date.now() };
+  validateParams(all);
+  const canonical = buildCanonical(all);
+  const signature = createHmac("sha256", SECRET_KEY).update(canonical).digest("hex");
+  await traceExecution(signalId, "transport_before_rpc");
+  const requestId = Number(await db("rpc/submit_bingx_order_transport", {
+    method: "POST",
+    body: JSON.stringify({ p_body: { ...all, signature }, p_api_key: API_KEY }),
+  }));
+  await traceExecution(signalId, "transport_after_rpc", { requestId });
+  if (!(requestId > 0)) throw new Error("BingX pg_net transport did not return a request id");
+
+  let transport: any = null;
+  for (const delayMs of [100, 200, 400, 800, 1600]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    const rows = await db("rpc/get_bingx_order_transport", {
+      method: "POST",
+      body: JSON.stringify({ p_request_id: requestId }),
+    });
+    if (Array.isArray(rows) && rows.length) { transport = rows[0]; break; }
+  }
+  await traceExecution(signalId, "transport_response", { requestId, status_code: transport?.status_code ?? null, error_msg: transport?.error_msg ?? null });
+  if (!transport) throw new Error(`BingX pg_net response timed out (${requestId})`);
+  if (transport.timed_out || transport.error_msg) throw new Error(`BingX transport: ${transport.error_msg || "timed out"}`);
+  if (Number(transport.status_code) !== 200) throw new Error(`BingX live order HTTP ${transport.status_code}`);
+  const submitted = JSONBigParse.parse(String(transport.content || "{}"));
+  if (submitted.code !== 0) throw new Error(`BingX ${submitted.code}: ${submitted.msg}`);
+
+  let lastLookupError: unknown = null;
+  for (const delayMs of [100, 250, 500, 1000]) {
+    await new Promise((resolve) => setTimeout(resolve, delayMs));
+    try {
+      const found = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/order", {
+        symbol: params.symbol,
+        clientOrderId,
+        recvWindow: 5000,
+      });
+      const order = found?.order ?? found;
+      const orderId = String(order?.orderID ?? order?.orderId ?? "");
+      if (orderId) return order;
+      lastLookupError = new Error("BingX lookup returned no order id");
+    } catch (e) {
+      lastLookupError = e;
+    }
+  }
+  throw new Error(`Live order was not confirmed by clientOrderId ${clientOrderId}: ${lastLookupError instanceof Error ? lastLookupError.message : String(lastLookupError)}`);
 }
 
 function adminHeaders(extra: Record<string, string> = {}) {
@@ -114,6 +166,14 @@ async function db(path: string, init: RequestInit = {}) {
   // Prefer: return=minimal 인 POST/PATCH는 201/200이어도 본문이 비어있다. 상태코드만으로 판단하지 않는다.
   if (!text) return null;
   try { return JSON.parse(text); } catch { throw new Error("db json parse failed on " + path + " (len=" + text.length + ")"); }
+}
+
+async function traceExecution(signalId: number, stage: string, detail: Record<string, unknown> = {}) {
+  await db("trade_execution_trace", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ signal_id: signalId, stage, detail }),
+  });
 }
 
 async function insertRejected(signal: any, reason: string, metrics: Record<string, any> = {}) {
@@ -559,6 +619,37 @@ async function handleBackfillFees(): Promise<Response> {
   }
 }
 
+async function handleMdd30LeverageRepair(): Promise<Response> {
+  try {
+    const raw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { recvWindow: 5000 });
+    const positions = (Array.isArray(raw) ? raw : raw?.positions || []).filter((p: any) => {
+      const asset = String(p.symbol || "").replace("-USDT", "");
+      return MDD30_ASSETS.has(asset) && Math.abs(Number(p.positionAmt ?? p.positionAmount ?? 0)) > 0;
+    });
+    const repaired: any[] = [];
+    for (const p of positions) {
+      const symbol = String(p.symbol), positionSide = String(p.positionSide), before = Number(p.leverage || 0);
+      if (before !== MDD30_EXCHANGE_LEVERAGE) {
+        await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", {
+          symbol, side: positionSide, leverage: MDD30_EXCHANGE_LEVERAGE, recvWindow: 5000,
+        });
+      }
+      const qty = Math.abs(Number(p.positionAmt ?? p.positionAmount ?? 0));
+      const entry = Number(p.avgPrice ?? p.entryPrice ?? 0);
+      const notional = qty * entry, margin = notional / MDD30_EXCHANGE_LEVERAGE;
+      const rows = await db(`real_trades?status=eq.open&bingx_symbol=eq.${encodeURIComponent(symbol)}&select=id,signal_id`);
+      for (const row of rows || []) {
+        await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ leverage: MDD30_EXCHANGE_LEVERAGE, notional_usd: notional, margin_usd: margin, updated_at: new Date().toISOString() }) });
+        await db(`trade_signals?id=eq.${row.signal_id}`, { method: "PATCH", body: JSON.stringify({ leverage: MDD30_EXCHANGE_LEVERAGE, notional_usd: notional, margin_usd: margin, updated_at: new Date().toISOString() }) });
+      }
+      repaired.push({ symbol, positionSide, before, after: MDD30_EXCHANGE_LEVERAGE, margin_usd: margin });
+    }
+    return Response.json({ ok: true, repaired });
+  } catch (e) {
+    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405 });
   if (!INTERNAL_KEY || req.headers.get("x-internal-key") !== INTERNAL_KEY) {
@@ -578,6 +669,7 @@ Deno.serve(async (req: Request) => {
 
   // 전체 실거래 기록을 BingX 실제 체결 내역·실시간 포지션과 하나하나 대조하는 전수검사.
   if (signal?.action === "audit") return await handleAudit();
+  if (signal?.action === "repair_mdd30_leverage") return await handleMdd30LeverageRepair();
 
   // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
   if (signal?.action === "protect") return await handleProtect(signal);
@@ -588,8 +680,26 @@ Deno.serve(async (req: Request) => {
   // 새 주문이 들어올 때만 정산이 도아서, 새 신호가 한동안 없으면 이미 끝난 실거래가
   // 계속 '진행 중'으로 남는 빈틈이 있었다.
   if (signal?.action === "sync") {
+    // A hard Edge-runtime termination cannot reach the normal catch/finally
+    // cleanup. Reclaim only reservations older than two minutes; fresh ones
+    // remain protected from concurrent duplicate orders.
+    await db(`trade_execution_reservations?created_at=lt.${encodeURIComponent(new Date(Date.now() - 120000).toISOString())}`, { method: "DELETE" });
     await reconcileOpenTrades();
     return Response.json({ ok: true, synced: true });
+  }
+
+  // BingX's official test-order endpoint validates the identical signed POST
+  // transport and order parameters without creating an exchange order.
+  if (signal?.action === "order_transport_test") {
+    try {
+      const result = await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order/test", {
+        symbol: "BTC-USDT", side: "BUY", positionSide: "LONG", type: "MARKET",
+        quantity: "0.0001", clientOrderId: `ciaitest${Date.now()}`, recvWindow: 5000,
+      });
+      return Response.json({ ok: true, tested: true, live_order_created: false, result: result ?? null });
+    } catch (e) {
+      return Response.json({ ok: false, tested: true, live_order_created: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+    }
   }
 
   try {
@@ -620,6 +730,7 @@ Deno.serve(async (req: Request) => {
     if (!state) { await insertRejected(signal, "설정 없음"); return Response.json({ ok: false, error: "no trading state" }); }
     if (!state.enabled) return Response.json({ ok: true, skipped: "real trading disabled (kill switch)" });
     const candidateA = DAILY_REBALANCE_TYPES.includes(signal.signal_type);
+    const manualImmediateMdd30 = signal.signal_type === "answer_mdd30" && signal.entry_metrics?.strategy_config?.manual_immediate_rebalance === true;
 
     // 3. 신호 신선도 확인
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
@@ -723,7 +834,10 @@ Deno.serve(async (req: Request) => {
       await insertRejected(signal, `일일 손실 회로차단: ${dailyNetPnl.toFixed(2)} USDT / 한도 -${dailyLossLimitUsd.toFixed(2)} USDT (UTC 자정까지)`, breakerMetrics);
       return Response.json({ ok: true, skipped: "daily loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
-    if (consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
+    // A user-requested immediate MDD30 rebalance may bypass only the generic
+    // per-leg loss streak once. The daily-loss breaker and every exposure,
+    // margin, symbol, duplicate, and exchange guard remain active.
+    if (!manualImmediateMdd30 && consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
       const remainingMinutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
       await insertRejected(signal, `연속 손실 회로차단: ${consecutiveLosses}연패 / ${maxConsecutiveLosses}회, 재개까지 약 ${remainingMinutes}분`, breakerMetrics);
       return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
@@ -963,8 +1077,46 @@ Deno.serve(async (req: Request) => {
       return Response.json({ ok: true, skipped: "low fee-adjusted expectancy", economics });
     }
 
-    // Final admission is serialized in Postgres. This closes the race where
-    // two concurrent invocations both read the same open-position counts.
+    // Validate the exact live-order payload against BingX without creating an
+    // order. A validation failure never acquires a reservation or touches the
+    // live endpoint.
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order/test", {
+      symbol: bxSymbol, side, positionSide, type: "MARKET", quantity,
+      clientOrderId: `ciaipre${signal.id}`, recvWindow: 5000,
+    });
+
+    // MDD30 hands reservation + order execution to the small worker. The long
+    // admission function was observed to terminate immediately after a
+    // successful reservation RPC, so the split must happen before that RPC.
+    if (candidateA) {
+      const workerPayload = {
+        signal,
+        symbol: bxSymbol,
+        side,
+        positionSide,
+        quantity,
+        margin_usd: marginUsd,
+        leverage: finalLeverage,
+        signal_price: entry,
+        equity,
+        fee_rate: feeRate,
+        exposure_multiplier: exposureMultiplier,
+        max_gross_exposure: strategyMaxGrossExposure,
+        max_concurrent_positions: Number(state.max_concurrent_positions),
+        max_same_direction: Number(state.max_same_direction),
+        executor_version: EXECUTOR_VERSION,
+      };
+      EdgeRuntime.waitUntil(fetch(PROJECT_URL + "/functions/v1/bingx-order-submit", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
+        body: JSON.stringify(workerPayload),
+      }).then(async (r) => {
+        if (!r.ok) console.error("bingx-order-submit failed", r.status, await r.text());
+      }).catch((e) => console.error("bingx-order-submit dispatch failed", e instanceof Error ? e.message : String(e))));
+      return Response.json({ ok: true, queued: true, signal_id: signal.id });
+    }
+
+    // Final admission for non-MDD30 strategies remains serialized here.
     const reservation = await db("rpc/reserve_real_trade_slot", {
       method: "POST",
       body: JSON.stringify({
@@ -993,15 +1145,15 @@ Deno.serve(async (req: Request) => {
     }
 
     const entrySubmittedAt = new Date();
-    const order = await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
+    const liveClientOrderId = `ciai${signal.id}`;
+    const order = await submitMarketOrderAndLookup({
       symbol: bxSymbol,
       side,
       positionSide,
       type: "MARKET",
       quantity,
-      clientOrderId: `ciai${signal.id}`,
       recvWindow: 5000,
-    });
+    }, liveClientOrderId, Number(signal.id));
 
     const orderId = String(order?.orderID ?? order?.orderId ?? order?.order?.orderID ?? order?.order?.orderId ?? "");
     let actualFillPrice = Number(order?.avgPrice ?? order?.order?.avgPrice ?? 0);

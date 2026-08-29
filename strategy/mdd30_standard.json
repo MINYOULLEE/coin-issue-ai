@@ -12,11 +12,23 @@
   "fixed_stop_loss": false,
   "exit_mode": "daily_answer_rebalance",
   "sizing_mode": "live_bingx_equity_compounding",
+  "answer_trees_sha256": "9A483FD33C540F6601B01901143313B81C89E8C3A9CCD257141F86694F34E31B",
+  "current_replay": {
+    "generated_at": "2026-08-29T15:51:35.954379+00:00",
+    "range": ["2021-08-28", "2026-08-29"],
+    "method": "hourly_mark",
+    "decision_hour_utc": 0,
+    "fee_per_turnover": 0.0004,
+    "compound_return_pct": 257597.52,
+    "max_drawdown_pct": -35.53,
+    "verification_status": "reproduced_from_current_source_and_downloaded_market_data"
+  },
   "reference_replay": {
     "years": 5,
     "compound_return_pct": 799385.16,
     "max_drawdown_pct": -29.22,
-    "label": "검증된 5년 실체결형 재생",
-    "disclaimer": "과거 성과 · 미래 보장 아님"
+    "label": "기존 5년 성과 기록",
+    "verification_status": "legacy_claim_not_reproduced_from_current_artifacts",
+    "disclaimer": "현재 보관된 소스만으로 동일 수치를 재현하지 못함 · 과거 성과는 미래를 보장하지 않음"
   }
 }

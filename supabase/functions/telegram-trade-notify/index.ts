@@ -15,12 +15,19 @@ async function send(text:string){return tg("sendMessage",{chat_id:CHAT,text,disa
 function num(v:any,d=2){const x=Number(v);return Number.isFinite(x)?x.toLocaleString("en-US",{minimumFractionDigits:d,maximumFractionDigits:d}):"-"}
 function side(v:string){return String(v).toLowerCase()==="long"?"LONG 🟢":"SHORT 🔴"}
 function price(v:any){if(v==null||v==="")return "-";const x=Number(v);if(!Number.isFinite(x)||x<=0)return "-";return x<10?num(x,5):num(x,2)}
+function secureEqual(a:string,b:string){if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
+async function schedulerAuthorized(req:Request){
+ const supplied=req.headers.get("x-scheduler-key")||"";if(!supplied)return false;
+ const {data,error}=await sb.from("private_runtime_secrets").select("secret_value").eq("id","scheduler_auth").limit(1);
+ const expected=String(data?.[0]?.secret_value?.key||"");return !error&&!!expected&&secureEqual(supplied,expected);
+}
 
 Deno.serve(async req=>{
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405});
+ if(!await schedulerAuthorized(req))return Response.json({ok:false,error:"scheduler authorization required"},{status:401});
  try{
   const body=await req.json().catch(()=>({}));
-  if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 08:00 태국시간 재판정`);return Response.json({ok:true,test_sent:true})}
+  if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 07:00 태국시간 재판정`);return Response.json({ok:true,test_sent:true})}
   const {data:rows}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);const st=rows?.[0]||{};
   if(st.test_action==="show_history_menu")await send("✅ 실거래 기록 메뉴가 추가됐습니다.\n아래의 📋 기록 버튼을 누르면 최신 성과를 확인할 수 있습니다.");
   let lastId=Number(st.last_trade_id||0),lastClosed=st.last_closed_at||"1970-01-01T00:00:00Z",lastError=Number(st.last_error_id||0);

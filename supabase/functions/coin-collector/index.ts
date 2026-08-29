@@ -3,8 +3,8 @@ import { ANSWER_FEATURES, evaluateAnswerTree } from "./answer_trees.ts";
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
-const COLLECTOR_VERSION = 58;
-const REQUIRED_EXECUTOR_VERSION = 41;
+const COLLECTOR_VERSION = 65;
+const REQUIRED_EXECUTOR_VERSION = 49;
 const STRATEGY_EPOCH = "answer_mdd30_2026_08_27";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "answer_mdd30_five_asset_v1";
@@ -237,6 +237,13 @@ async function feed(source){
 function themes(issues){const specs=[["미국 CLARITY 법안·시장구조",["clarity","market structure"]],["미국 CFTC·SEC 암호화폐 정책",["cftc","sec ","digital asset regulation"]],["현물 ETF·기관 자금 흐름",["etf","institutional inflow"]],["대형 해킹·네트워크 위험",["hack","exploit","breach"]]];return specs.map(([title,keys])=>{const hits=issues.filter(x=>keys.some(k=>(x.title+" "+x.summary).toLowerCase().includes(k)));if(!hits.length)return null;return {title,grade:hits.some(x=>x.grade==="S")?"S":hits.length>1?"A":"B",direction:hits.filter(x=>x.direction==="호재").length>hits.filter(x=>x.direction==="악재").length?"호재 우세":"방향 확인 중",reason:"최근 공식 발표와 주요 보도에서 반복 감지되는 시장 핵심 테마입니다.",watch:"확정 문서·시행 시점과 가격·거래량의 동시 반응을 확인하세요.",evidence_count:hits.length,assets:[...new Set(hits.flatMap(x=>x.assets.split(",")))].join(","),url:hits[0].url,source:"클라우드 복수 출처 종합"}}).filter(Boolean)}
 
 function adminHeaders(extra={}){return {apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"Content-Type":"application/json",...extra}}
+function secureEqual(a:string,b:string){if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
+async function schedulerAuthorized(req:Request){
+  const supplied=req.headers.get("x-scheduler-key")||"";if(!supplied)return false;
+  const r=await fetch(PROJECT_URL+"/rest/v1/private_runtime_secrets?id=eq.scheduler_auth&select=secret_value",{headers:adminHeaders()});
+  if(!r.ok)return false;const rows=await r.json();const expected=String(rows?.[0]?.secret_value?.key||"");
+  return !!expected&&secureEqual(supplied,expected);
+}
 const INTERNAL_TRADE_SECRET=Deno.env.get("INTERNAL_TRADE_SECRET")||"";
 // 새 신호가 확정되는 즉시 실거래 실행 함수를 내부 호출한다. 실거래 자체의 성공/실패/거절은
 // bingx-order-execute와 real_trades 테이블에서 전적으로 처리하며, 여기서는 절대 신호 엔진의
@@ -245,9 +252,17 @@ async function triggerRealTrade(signal){
   if(!INTERNAL_TRADE_SECRET)return {ok:false,error:"internal trade secret missing"};
   try{
     const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify(signal)});
-    const j=await r.json().catch(()=>({}));
+    const raw=await r.text();let j:any={};try{j=raw?JSON.parse(raw):{}}catch{}
+    if(!r.ok&&!j.error)j={ok:false,error:`HTTP ${r.status}${raw?` · ${raw.slice(0,300)}`:" · empty response"}`};
     if(!j.ok||j.skipped)console.error("real trade not placed:",signal.symbol,signal.side,signal.signal_type,j.error||j.skipped);return j;
   }catch(e){console.error("triggerRealTrade failed:",e instanceof Error?e.message:String(e));return {ok:false,error:e instanceof Error?e.message:String(e)}}
+}
+async function triggerOrderTransportTest(){
+  if(!INTERNAL_TRADE_SECRET)return {ok:false,error:"internal trade secret missing"};
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"order_transport_test"})});
+    return await r.json().catch(()=>({ok:false,error:`HTTP ${r.status} empty response`}));
+  }catch(e){return {ok:false,error:e instanceof Error?e.message:String(e)}}
 }
 // 연구 A의 혼조장 큰 그림은 진입 순간부터 최고/최저 종가를 따라 3% 트레일링한다.
 // 작은 그림에는 백테스트에 없던 손절·트레일링을 추가하지 않는다.
@@ -313,6 +328,13 @@ async function triggerProtect(){
     }else if(!j.ok)console.error("protect failed:",j.error);
   }catch(e){console.error("triggerProtect failed:",e instanceof Error?e.message:String(e))}
 }
+async function triggerMdd30LeverageRepair(){
+  if(!INTERNAL_TRADE_SECRET)return;
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"repair_mdd30_leverage"})});
+    const j=await r.json().catch(()=>({}));if(!j.ok)console.error("MDD30 leverage repair failed",j.error);
+  }catch(e){console.error("MDD30 leverage repair dispatch failed",e instanceof Error?e.message:String(e))}
+}
 async function activeSignals(){
   const url=PROJECT_URL+"/rest/v1/trade_signals?status=in.(active,weakening)&select=*&order=created_at.desc";
   const r=await fetch(url,{headers:adminHeaders()});if(!r.ok)throw Error("signal fetch "+r.status+" "+await r.text());return await r.json();
@@ -373,11 +395,33 @@ async function manageSignals(market,old){
     if(!r.ok)console.error("BingX history background sync failed",r.status,await r.text());
   }catch(e){console.error("BingX history background sync error",e instanceof Error?e.message:String(e))}
   await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
+  await triggerMdd30LeverageRepair(); // 실제 거래소 레버리지와 DB 담보를 10x 기준으로 일치
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})},health={},cooldowns={};const now=new Date(),nowIso=now.toISOString();
+  if(candidates.run_order_transport_test===true){
+    candidates.run_order_transport_test=false;
+    candidates.last_order_transport_test={...(await triggerOrderTransportTest()),checked_at:nowIso};
+  }
   const liveOpenResponse=await fetch(PROJECT_URL+"/rest/v1/real_trades?status=eq.open&select=signal_id,executor_version",{headers:adminHeaders()});
   if(!liveOpenResponse.ok)throw Error("open real trade fetch "+liveOpenResponse.status+" "+await liveOpenResponse.text());
-  const legacyExecutorSignalIds=new Set((await liveOpenResponse.json()).filter((x:any)=>Number(x.executor_version||0)<REQUIRED_EXECUTOR_VERSION).map((x:any)=>Number(x.signal_id)));
+  const liveOpenRows=await liveOpenResponse.json();
+  const liveOpenSignalIds=new Set(liveOpenRows.map((x:any)=>Number(x.signal_id)));
+  const legacyExecutorSignalIds=new Set(liveOpenRows.filter((x:any)=>Number(x.executor_version||0)<REQUIRED_EXECUTOR_VERSION).map((x:any)=>Number(x.signal_id)));
+  const reservationResponse=await fetch(PROJECT_URL+"/rest/v1/trade_execution_reservations?select=signal_id",{headers:adminHeaders()});
+  if(!reservationResponse.ok)throw Error("reservation fetch "+reservationResponse.status+" "+await reservationResponse.text());
+  const reservedSignalIds=new Set((await reservationResponse.json()).map((x:any)=>Number(x.signal_id)));
+  // The admission endpoint returns after queueing the short order worker. If
+  // the runtime dies before that worker starts, the signal would otherwise be
+  // left active forever without an exchange position. A 90-second grace
+  // period plus both durable guards makes this retry idempotent: an open trade
+  // or an in-flight reservation is never dispatched again.
+  for(const signal of active){
+    const id=Number(signal.id),age=Date.now()-Date.parse(signal.created_at||nowIso);
+    if(signal.strategy_epoch===STRATEGY_EPOCH&&signal.signal_type==="answer_mdd30"&&age>90000&&!liveOpenSignalIds.has(id)&&!reservedSignalIds.has(id)){
+      const recovery=await triggerRealTrade(signal);
+      if(!recovery?.ok)console.error("MDD30 orphan signal recovery failed",id,signal.symbol,recovery?.error||recovery?.skipped);
+    }
+  }
   // 전략 세대 전환 때문에 이미 열려 있는 실거래를 시장가로 닫지 않는다. 이전 세대
   // 포지션은 BingX 동기화/보호 주문이 계속 관리하고, 신규 진입만 A-G 세대로 만든다.
   // legacyActive는 화면과 heartbeat에도 남겨 운영자가 승계 포지션을 계속 확인할 수 있게 한다.
@@ -394,7 +438,7 @@ async function manageSignals(market,old){
     }else if(newHour)byId[s.id]=await patchSignal(s.id,{last_reviewed_at:new Date(closedHourAt).toISOString(),updated_at:nowIso});
   }
   const open=()=>Object.values(byId),hasType=(t)=>open().some(x=>x.signal_type===t);
-  async function enter(symbol,type,side,exposure,leverage,hours,reasons,stopPct,modelConfidence=80){
+  async function enter(symbol,type,side,exposure,leverage,hours,reasons,stopPct,modelConfidence=80,manualImmediate=false){
     if(legacyActive.length+open().length>=5||legacyActive.some(x=>x.symbol===symbol&&x.side===side)||open().some(x=>x.symbol===symbol&&x.side===side))return null;
     const entry=Number(market[symbol]?.price||0);if(!(entry>0))return null;
     const invalidation=stopPct?entry*(side==="long"?1-stopPct:1+stopPct):entry,target=entry,created=nowIso,expires=new Date(now.getTime()+hours*3600000).toISOString();
@@ -405,7 +449,7 @@ async function manageSignals(market,old){
     const referenceEquity=Math.max(0.01,Number(old.paper_account?.equity_usd||old.paper_account?.balance_usd||1000));
     const estimatedNotional=referenceEquity*exposure,estimatedMargin=estimatedNotional/Math.max(1,leverage);
     const plan={leverage,account_equity_usd:referenceEquity,margin_usd:estimatedMargin,notional_usd:estimatedNotional,fee_usd:estimatedNotional*.001,risk_usd:stopPct?estimatedNotional*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
-    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"30% 방어형 5종목 답안지",market_regime:"answer_mdd30",exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:1.6,fixed_take_profit:false,exit_mode:"daily_answer_rebalance",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:null}},created_at:created,expires_at:expires,updated_at:created});
+    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"30% 방어형 5종목 답안지",market_regime:"answer_mdd30",exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:1.6,fixed_take_profit:false,exit_mode:"daily_answer_rebalance",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:null,manual_immediate_rebalance:manualImmediate}},created_at:created,expires_at:expires,updated_at:created});
     const execution=await triggerRealTrade(s);
     // trade_signals_status_check does not include "rejected". A failed live
     // entry is a terminally invalid signal, so use the schema-supported status
@@ -416,8 +460,11 @@ async function manageSignals(market,old){
   // Five independent answer trees make one decision from the completed 00:00
   // UTC candle. Orders follow the close, exactly matching the research ledger.
   const closedHourAt=Number(market.BTC?.suite_setup?.closed_at||0),closedDate=new Date(closedHourAt),isAnswerDecisionHour=closedDate.getUTCHours()===0;
-  const forceAnswerRebalance=candidates.force_mdd30_rebalance===true;
-  const forceAnswerSymbols=Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
+  const commandResponse=await fetch(PROJECT_URL+"/rest/v1/rpc/claim_trade_control_command",{method:"POST",headers:adminHeaders(),body:"{}"});
+  if(!commandResponse.ok)throw Error("trade command claim "+commandResponse.status+" "+await commandResponse.text());
+  const claimedCommands=await commandResponse.json(),tradeCommand=claimedCommands[0]||null;
+  const forceAnswerRebalance=tradeCommand?.command==="force_mdd30"||candidates.force_mdd30_rebalance===true;
+  const forceAnswerSymbols=tradeCommand?.command==="force_mdd30"&&Array.isArray(tradeCommand.symbols)?tradeCommand.symbols.map(String):Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
   const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
   const newAnswerDecision=forceAnswerRebalance||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
   if(newAnswerDecision){
@@ -444,10 +491,11 @@ async function manageSignals(market,old){
         }else{audit.push({symbol,status:"close_failed",reason:"기존 목표 청산 실패 · 신규진입 차단"});continue}
       }
       const stillOpen=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
-      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure),10,24,[`${symbol} 5년 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`원본 ${Number(answer.raw_exposure).toFixed(3)}배 × 방어비중 ${Number(answer.portfolio_weight).toFixed(3)}`],0,Number(answer.confidence)*100):null;
+      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure),10,24,[`${symbol} 5년 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`원본 ${Number(answer.raw_exposure).toFixed(3)}배 × 방어비중 ${Number(answer.portfolio_weight).toFixed(3)}`],0,Number(answer.confidence)*100,forceAnswerRebalance):null;
       audit.push({symbol,status:entered?"entered":stillOpen?"held":answer?.side?"entry_failed":"cash",answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
     candidates.hourly_audit={closed_at:closedDate.toISOString(),status:"completed",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
+    if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   for(const symbol of COINS){const mine=active.filter(x=>x.symbol===symbol);market[symbol].trade_signal=mine[0]||null;market[symbol].tactical_signal=mine[1]||null;if(mine[0])market[symbol].recommendation=`${mine[0].signal_type.toUpperCase()} ${mine[0].side.toUpperCase()} · ${Number(mine[0].entry_metrics?.strategy_config?.exposure_multiplier||0)}x`}
@@ -482,9 +530,10 @@ async function historyResponse(req){
 }
 
 Deno.serve(async req=>{
-  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,apikey,content-type"}});
+  if(req.method==="OPTIONS")return new Response(null,{status:204,headers:{"Access-Control-Allow-Origin":"*","Access-Control-Allow-Headers":"authorization,apikey,content-type,x-scheduler-key"}});
   if(req.method==="GET")try{return await historyResponse(req)}catch(e){return Response.json({ok:false,error:String(e)},{status:500,headers:{"Access-Control-Allow-Origin":"*"}})}
   if(req.method!=="POST")return new Response("POST required",{status:405});
+  if(!await schedulerAuthorized(req))return Response.json({ok:false,error:"scheduler authorization required"},{status:401});
   try{
     const old=await current();
     const [market,feeds]=await Promise.all([fetchMarket(),Promise.all(SOURCES.map(feed))]);
