@@ -30,9 +30,12 @@ const ENV_URLS: Record<string, string[]> = {
 const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX", "SUI", "LTC", "BCH", "TRX", "AAVE"];
 const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strategy_f","strategy_g"];
 const DAILY_REBALANCE_TYPES = [...SUITE_TYPES, "answer_mdd30"];
+const MDD30_ASSETS = new Set(["BTC", "ETH", "XRP", "TRX", "SOL"]);
+const MDD30_EXCHANGE_LEVERAGE = 10;
+const MDD30_MAX_GROSS_EXPOSURE = 1.6;
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
-const EXECUTOR_VERSION = 40;
+const EXECUTOR_VERSION = 41;
 const DEFAULT_STRATEGY_EPOCH = "market_suite_2026_08_25";
 
 function isNetworkOrTimeout(e: unknown): boolean {
@@ -593,6 +596,10 @@ Deno.serve(async (req: Request) => {
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
     if (!["swing", "tactical", ...DAILY_REBALANCE_TYPES].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
+    if (signal.signal_type === "answer_mdd30" && !MDD30_ASSETS.has(signal.symbol)) {
+      await insertRejected(signal, "MDD30 최종 기준 외 종목");
+      return Response.json({ ok: false, error: "answer_mdd30 only supports BTC/ETH/XRP/TRX/SOL" }, { status: 400 });
+    }
     if (!(Number(signal.invalidation_price) > 0) || !(Number(signal.target_price) > 0)) {
       await insertRejected(signal, "손절가/목표가 없음");
       return Response.json({ ok: false, error: "missing stop or target price" });
@@ -640,12 +647,14 @@ Deno.serve(async (req: Request) => {
     // 6. 현재 열려있는 실거래 포지션 기준으로 위험 한도 계산 (먼저 종료된 포지션 정리)
     await reconcileOpenTrades();
     const open = await db("real_trades?status=eq.open&select=symbol,side,margin_usd,notional_usd");
-    if (open.length >= state.max_concurrent_positions) {
+    const mdd30 = signal.signal_type === "answer_mdd30";
+    const concurrentLimit = mdd30 ? 5 : Number(state.max_concurrent_positions);
+    if (open.length >= concurrentLimit) {
       await insertRejected(signal, "동시 포지션 한도 초과");
       return Response.json({ ok: true, skipped: "max concurrent positions reached" });
     }
     const sameDir = open.filter((x: any) => x.side === signal.side).length;
-    if (sameDir >= state.max_same_direction) {
+    if (!mdd30 && sameDir >= state.max_same_direction) {
       await insertRejected(signal, "동일 방향 포지션 한도 초과");
       return Response.json({ ok: true, skipped: "max same-direction positions reached" });
     }
@@ -779,7 +788,7 @@ Deno.serve(async (req: Request) => {
       ? Number(signalStrategy.exposure_multiplier ?? 1)
       : 0;
     const strategyMaxGrossExposure = candidateA
-      ? clamp(Number(signalStrategy.max_gross_exposure ?? (signal.signal_type === "answer_mdd30" ? 1.6 : 6)), 0.1, 6)
+      ? (mdd30 ? MDD30_MAX_GROSS_EXPOSURE : clamp(Number(signalStrategy.max_gross_exposure ?? 6), 0.1, 6))
       : 6;
     const usedTotal = open.reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
     const usedSymbol = open.filter((x: any) => x.symbol === signal.symbol).reduce((s: number, x: any) => s + Number(x.margin_usd || 0), 0);
@@ -791,7 +800,13 @@ Deno.serve(async (req: Request) => {
     const remainingTotal = Math.max(0, totalCapUsd - usedTotal);
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
-    const leverage = Math.max(1, Math.min(Number(signalStrategy.exchange_leverage ?? signal.leverage ?? 1), Number(state.max_leverage)));
+    if (mdd30 && Number(state.max_leverage) < MDD30_EXCHANGE_LEVERAGE) {
+      await insertRejected(signal, "MDD30 최종 기준은 거래소 레버리지 10x 필요");
+      return Response.json({ ok: false, error: "real_trading_state.max_leverage must be at least 10 for answer_mdd30" }, { status: 400 });
+    }
+    const leverage = mdd30
+      ? MDD30_EXCHANGE_LEVERAGE
+      : Math.max(1, Math.min(Number(signalStrategy.exchange_leverage ?? signal.leverage ?? 1), Number(state.max_leverage)));
 
     // 6-4. 최근 실전 성과 기반 동적 사이징(6순위): 같은 유형(전술/스윙)의 최근 청산 20건 승률을 보고
     //      잘 맞고 있으면 리스크를 살짝 늘리고, 부진하면 줄인다. 표본 8건 미만이면 아직 못 믿으니 1.0 유지.

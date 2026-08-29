@@ -6,6 +6,7 @@ const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BOT=Deno.env.get("TELEGRAM_BOT_TOKEN")||"";
 const CHAT="6818439075";
 const COIN_ISSUE_URL="https://minyoullee.github.io/coin-issue-ai/";
+const MDD30_STANDARD="MDD30 최종 기준 · 5개 독립 트리";
 const sb=createClient(URL,SERVICE);
 const keyboard={keyboard:[["💰 잔고","📊 포지션"],["📋 기록","🟢 시스템"],["🔗 Coin Issue AI","❓ 도움말"]],resize_keyboard:true,is_persistent:true};
 
@@ -19,12 +20,12 @@ Deno.serve(async req=>{
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405});
  try{
   const body=await req.json().catch(()=>({}));
-  if(body.action==="test"){await send("✅ Coin Issue AI · 자동 알림 엔진 정상\n조회 버튼은 Webhook 실시간 처리 중입니다.");return Response.json({ok:true,test_sent:true})}
+  if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 08:00 태국시간 재판정`);return Response.json({ok:true,test_sent:true})}
   const {data:rows}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);const st=rows?.[0]||{};
   if(st.test_action==="show_history_menu")await send("✅ 실거래 기록 메뉴가 추가됐습니다.\n아래의 📋 기록 버튼을 누르면 최신 성과를 확인할 수 있습니다.");
   let lastId=Number(st.last_trade_id||0),lastClosed=st.last_closed_at||"1970-01-01T00:00:00Z",lastError=Number(st.last_error_id||0);
-  const {data:newRows,error:e1}=await sb.from("real_trades").select("id,symbol,side,status,margin_usd,leverage,notional_usd,entry_price,reject_reason").gt("id",lastId).order("id",{ascending:true});if(e1)throw e1;
-  for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(x.status==="open")await send(`🚀 신규 진입\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x\n포지션 규모: ${num(x.notional_usd)} USDT`);else if(x.status==="rejected")await send(`⚠️ 주문 거절/실패\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`)}
+  const {data:newRows,error:e1}=await sb.from("real_trades").select("id,symbol,side,signal_type,status,margin_usd,leverage,notional_usd,entry_price,reject_reason,strategy_config").gt("id",lastId).order("id",{ascending:true});if(e1)throw e1;
+  for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(x.status==="open"){const exposure=x.strategy_config?.exposure_multiplier;await send(`🚀 신규 진입\n${x.symbol} ${side(x.side)}\n${x.signal_type==="answer_mdd30"?`${MDD30_STANDARD}\n`:""}진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x${exposure==null?"":`\n목표 실질 노출: ${num(exposure,3)}x`}\n포지션 규모: ${num(x.notional_usd)} USDT${x.signal_type==="answer_mdd30"?"\n총 실질 노출 한도: 1.6x":""}`)}else if(x.status==="rejected")await send(`⚠️ 주문 거절/실패\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`)}
   // Do not notify from the executor's provisional close values. Wait until
   // BingX positionHistory has supplied the actual close price, fees and PnL.
   const {data:closed,error:e2}=await sb.from("real_trades").select("id,symbol,side,entry_price,close_price,last_mark_price,net_pnl_usd,margin_usd,closed_at,close_reason").eq("status","closed").eq("close_reason","BingX positionHistory 주문별 동기화").gt("closed_at",lastClosed).order("closed_at",{ascending:true});if(e2)throw e2;

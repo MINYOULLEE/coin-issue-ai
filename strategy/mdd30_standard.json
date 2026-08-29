@@ -1,0 +1,22 @@
+{
+  "standard_version": "mdd30_final_2026_08_29",
+  "strategy_id": "answer_mdd30",
+  "display_name": "30% 방어형 · 종목별 A+B",
+  "assets": ["BTC", "ETH", "XRP", "TRX", "SOL"],
+  "independent_tree_count": 5,
+  "decision_hour_utc": 0,
+  "decision_hour_asia_bangkok": 7,
+  "exchange_leverage": 10,
+  "max_gross_exposure": 1.6,
+  "fixed_take_profit": false,
+  "fixed_stop_loss": false,
+  "exit_mode": "daily_answer_rebalance",
+  "sizing_mode": "live_bingx_equity_compounding",
+  "reference_replay": {
+    "years": 5,
+    "compound_return_pct": 799385.16,
+    "max_drawdown_pct": -29.22,
+    "label": "검증된 5년 실체결형 재생",
+    "disclaimer": "과거 성과 · 미래 보장 아님"
+  }
+}
