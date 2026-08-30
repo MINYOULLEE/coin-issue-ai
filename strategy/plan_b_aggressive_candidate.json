@@ -1,0 +1,9 @@
+{
+  "plan": "B",
+  "status": "superseded_use_canonical",
+  "canonical": "strategy/plan_b_standard.json",
+  "strategy_id": "b_reserved_margin_stage16",
+  "enabled": false,
+  "test_mode": true,
+  "note": "Stage16 user adoption supersedes former Stage14 candidate; no separate parameters here"
+}

@@ -1,68 +1,24 @@
+import { PLAN_B_STANDARD as STANDARD } from "../_shared/plan_b_sizing.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createHmac } from "node:crypto";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 import JSONBig from "npm:json-bigint@1.0.0";
-
-const API_KEY = Deno.env.get("PLAN_B_BINGX_API_KEY") || "";
-const SECRET_KEY = Deno.env.get("PLAN_B_BINGX_SECRET_KEY") || "";
-const BASES = ["https://open-api.bingx.com", "https://open-api.bingx.pro"];
-const parseBig = JSONBig({ storeAsString: true });
-const CORS = {
-  "Access-Control-Allow-Origin": "https://minyoullee.github.io",
-  "Access-Control-Allow-Headers": "authorization, apikey, content-type, x-dashboard-session",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-  "Cache-Control": "no-store",
-};
-
-function canonical(params: Record<string, unknown>): string {
-  return Object.keys(params).sort().map((key) => `${key}=${params[key]}`).join("&");
-}
-
-async function signed(path: string, params: Record<string, unknown> = {}): Promise<any> {
-  const all = { ...params, timestamp: Date.now() };
-  const query = canonical(all);
-  const signature = createHmac("sha256", SECRET_KEY).update(query).digest("hex");
-  let last: unknown;
-  for (const base of BASES) {
-    try {
-      const response = await fetch(`${base}${path}?${query}&signature=${signature}`, {
-        headers: { "X-BX-APIKEY": API_KEY, "X-SOURCE-KEY": "COIN-ISSUE-PLAN-B" },
-        signal: AbortSignal.timeout(10_000),
-      });
-      const json = parseBig.parse(await response.text());
-      if (Number(json.code) !== 0) throw new Error(`BingX ${json.code}: ${json.msg}`);
-      return json.data;
-    } catch (error) {
-      last = error;
-    }
-  }
-  throw last instanceof Error ? last : new Error(String(last));
-}
-
-Deno.serve(async (request) => {
-  if (request.method === "OPTIONS") return new Response("ok", { headers: CORS });
-  if (request.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405, headers: CORS });
-  const body = await request.json().catch(() => ({}));
-  if (body.action !== "connection_check") {
-    return Response.json({ ok: false, locked: true, error: "B플랜 계좌 조회는 비밀번호 연결 준비 중입니다." }, { status: 401, headers: CORS });
-  }
-  if (!API_KEY || !SECRET_KEY) {
-    return Response.json({ ok: false, configured: false, error: "PLAN_B BingX secrets missing" }, { status: 503, headers: CORS });
-  }
-  try {
-    const data = await signed("/openApi/swap/v3/user/balance", { recvWindow: 5000 });
-    const balance = Array.isArray(data) ? data : (Array.isArray(data?.balance) ? data.balance : [data?.balance || data || {}]);
-    const usdt = balance.find((row: any) => String(row?.asset || "").toUpperCase() === "USDT") || balance[0] || {};
-    return Response.json({
-      ok: true,
-      configured: true,
-      plan: "B",
-      exchange: "BingX",
-      futures_access: true,
-      account_fingerprint: createHmac("sha256", SECRET_KEY).update(API_KEY).digest("hex").slice(0, 12),
-      has_usdt_wallet: String(usdt?.asset || "USDT").toUpperCase() === "USDT",
-      trading_enabled: false,
-    }, { headers: CORS });
-  } catch (error) {
-    return Response.json({ ok: false, configured: true, futures_access: false, error: error instanceof Error ? error.message : String(error) }, { status: 502, headers: CORS });
-  }
+const URL=Deno.env.get("SUPABASE_URL")!,SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,API=Deno.env.get("PLAN_B_BINGX_API_KEY")||"",SECRET=Deno.env.get("PLAN_B_BINGX_SECRET_KEY")||"";const sb=createClient(URL,SERVICE,{auth:{persistSession:false}}),parse=JSONBig({storeAsString:true});
+const CORS={"Access-Control-Allow-Origin":"https://minyoullee.github.io","Access-Control-Allow-Headers":"authorization, apikey, content-type, x-dashboard-session","Access-Control-Allow-Methods":"POST, OPTIONS","Cache-Control":"no-store"};
+function canonical(p:any){return Object.keys(p).sort().map(k=>`${k}=${p[k]}`).join("&")}
+async function bx(path:string,p:any={}){const q={...p,timestamp:Date.now()},s=canonical(q),sig=createHmac("sha256",SECRET).update(s).digest("hex"),r=await fetch(`https://open-api.bingx.com${path}?${s}&signature=${sig}`,{headers:{"X-BX-APIKEY":API,"X-SOURCE-KEY":"COIN-ISSUE-PLAN-B"},signal:AbortSignal.timeout(10000)}),j=parse.parse(await r.text());if(Number(j.code)!==0)throw Error(`BingX ${j.code}: ${j.msg}`);return j.data}
+const te=new TextEncoder();function b64u(a:Uint8Array){return btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/g,"")}function unb64(s:string){const p=s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4);return Uint8Array.from(atob(p),c=>c.charCodeAt(0))}function same(a:string,b:string){if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
+async function auth(){const{data,error}=await sb.from("private_runtime_secrets").select("secret_value").eq("id","bingx_dashboard_auth").single();if(error)throw error;return data.secret_value}
+async function hash(p:string,a:any){const k=await crypto.subtle.importKey("raw",te.encode(p),"PBKDF2",false,["deriveBits"]),bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:unb64(a.password_salt),iterations:210000,hash:"SHA-256"},k,256);return b64u(new Uint8Array(bits))}
+async function sign(v:string,a:any){const k=await crypto.subtle.importKey("raw",te.encode(a.session_secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return b64u(new Uint8Array(await crypto.subtle.sign("HMAC",k,te.encode(v))))}
+async function issue(a:any){const p=b64u(te.encode(JSON.stringify({plan:"B",exp:Date.now()+14400000,nonce:crypto.randomUUID()})));return `${p}.${await sign(p,a)}`}
+async function valid(v:string,a:any){const[p,s]=v.split(".");if(!p||!s||!same(await sign(p,a),s))return false;try{const z=JSON.parse(new TextDecoder().decode(unb64(p)));return z.plan==="B"&&z.exp>Date.now()}catch{return false}}
+Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});if(req.method!=="POST")return Response.json({ok:false},{status:405,headers:CORS});const body=await req.json().catch(()=>({}));
+ if(body.action==="connection_check"){if(!API||!SECRET)return Response.json({ok:false,configured:false,error:"PLAN_B secrets missing"},{status:503,headers:CORS});try{await bx("/openApi/swap/v3/user/balance",{recvWindow:5000});return Response.json({ok:true,configured:true,plan:"B",profile:"aggressive",futures_access:true,account_fingerprint:createHmac("sha256",SECRET).update(API).digest("hex").slice(0,12)},{headers:CORS})}catch(e){return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502,headers:CORS})}}
+ if(body.action==="login"){try{const a=await auth();if(!same(await hash(String(body.password||""),a),a.password_hash))return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS});return Response.json({ok:true,session:await issue(a),expires_in:14400},{headers:CORS})}catch{return Response.json({ok:false,error:"인증 설정 오류"},{status:503,headers:CORS})}}
+ if(body.action==="trade_history"){const page=Math.min(100000,Math.max(1,Math.floor(Number(body.page)||1))),limit=Math.min(50,Math.max(1,Math.floor(Number(body.limit)||20))),from=(page-1)*limit,{data,count,error}=await sb.from("plan_b_real_trades").select("*",{count:"exact"}).order("created_at",{ascending:false}).range(from,from+limit-1);if(error)return Response.json({ok:false,error:error.message},{status:502,headers:CORS});const{data:stats,error:statsError}=await sb.rpc("plan_b_history_stats");if(statsError)return Response.json({ok:false,error:"B statistics unavailable"},{status:503,headers:CORS});return Response.json({ok:true,page,limit,total:count||0,pages:Math.max(1,Math.ceil((count||0)/limit)),rows:data||[],stats},{headers:CORS})}
+ let a:any;try{a=await auth();if(!await valid(req.headers.get("x-dashboard-session")||"",a))return Response.json({ok:false,locked:true},{status:401,headers:CORS})}catch{return Response.json({ok:false,error:"인증 설정 오류"},{status:503,headers:CORS})}
+ if(body.action==="trading_state"){const{data:state}=await sb.from("plan_b_trading_state").select("*").eq("id","singleton").single(),{data:trades}=await sb.from("plan_b_real_trades").select("*").order("created_at",{ascending:false}).limit(30);return Response.json({ok:true,state,open_trades:(trades||[]).filter((x:any)=>x.status==="open"),recent_trades:trades||[]},{headers:CORS})}
+ if(body.action==="trading_toggle"){if(body.enabled&&!STANDARD.live_ready)return Response.json({ok:false,error:"B Stage16 채택 완료 · 주문 예약/체결 검증 전에는 활성화할 수 없습니다."},{status:409,headers:CORS});const{data,error}=await sb.from("plan_b_trading_state").update({enabled:!!body.enabled,updated_at:new Date().toISOString()}).eq("id","singleton").select().single();if(error)return Response.json({ok:false,error:error.message},{status:502,headers:CORS});return Response.json({ok:true,state:data},{headers:CORS})}
+ if(!API||!SECRET)return Response.json({ok:false,error:"PLAN_B secrets missing"},{status:503,headers:CORS});try{const[b,p]=await Promise.all([bx("/openApi/swap/v3/user/balance",{recvWindow:5000}),bx("/openApi/swap/v2/user/positions",{recvWindow:5000})]),rows=Array.isArray(b)?b:(Array.isArray(b?.balance)?b.balance:[b?.balance||b]),u=rows.find((x:any)=>String(x.asset||"").toUpperCase()==="USDT")||rows[0]||{},positions=(Array.isArray(p)?p:(p?.positions||[])).filter((x:any)=>Math.abs(Number(x.positionAmt??x.positionAmount??0))>0);return Response.json({ok:true,plan:"B",profile:"aggressive",account:{balance:Number(u.balance||0),equity:Number(u.equity||0),available_margin:Number(u.availableMargin||0),used_margin:Number(u.usedMargin||0),unrealized_pnl:Number(u.unrealizedProfit||0)},open_position_count:positions.length,positions},{headers:CORS})}catch(e){return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502,headers:CORS})}
 });

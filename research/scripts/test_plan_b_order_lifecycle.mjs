@@ -1,0 +1,9 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {processReservedOrder} from '../../supabase/functions/_shared/plan_b_order_lifecycle.mjs';
+const order={plan:'B',clientOrderId:'pb16-1',quantity:2,entryDeadline:1000};
+function context(lookup,submit){let claimed=false;return {events:[],store:{async claim(){if(claimed)return false;claimed=true;return true;},async finish(id,event){this.event=event;}},exchange:{lookup,submit},now:()=>0};}
+test('duplicate invocations submit once',async()=>{let n=0;const c=context(async()=>({status:'not_found'}),async()=>{n++;return {status:'filled',quantity:2,price:10};});await Promise.all([processReservedOrder(order,c),processReservedOrder(order,c)]);assert.equal(n,1);assert.equal(c.store.event.release,false);});
+test('ambiguous acceptance does not resubmit or release funds',async()=>{let n=0;const c=context(async()=>({status:'not_found'}),async()=>{n++;throw Error('timeout');});assert.equal((await processReservedOrder(order,c)).status,'unknown');assert.equal(n,1);assert.equal(c.store.event.release,false);});
+test('existing and partial fills are reconciled without new submissions',async()=>{const c=context(async()=>({status:'partially_filled',quantity:1,price:10}),async()=>{throw Error('must not call');});await processReservedOrder(order,c);assert.equal(c.store.event.quantity,1);assert.equal(c.store.event.release,false);});
+test('late unsubmitted orders expire and release; lookup failure does not',async()=>{const c=context(async()=>({status:'not_found'}),async()=>{throw Error('must not submit');});c.now=()=>1000;assert.equal((await processReservedOrder(order,c)).status,'expired');assert.equal(c.store.event.release,true);const d=context(async()=>{throw Error('network');},async()=>{});await processReservedOrder(order,d);assert.equal(d.store.event.release,false);});

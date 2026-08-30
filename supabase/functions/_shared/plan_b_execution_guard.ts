@@ -1,3 +1,4 @@
+import standard from './plan_b_standard.json' with {type:'json'};
 export const PLAN_B_EXECUTION = Object.freeze({
   targetDispatchMs: 1_000,
   warningAfterMs: 10_000,
@@ -25,22 +26,23 @@ export type EntryDecision =
 
 export function planBClientOrderId(signalId: number): string {
   if (!Number.isSafeInteger(signalId) || signalId <= 0) throw new Error("invalid Plan B signal id");
-  return `pb${signalId}`;
+  return `pb16-${signalId}`;
 }
 
 export function validatePlanBEntry(signal: PlanBSignal, nowMs = Date.now()): EntryDecision {
   if (signal.plan !== "B") return { ok: false, ageMs: 0, reason: "plan mismatch" };
-  if (!signal.symbol || !["long", "short"].includes(signal.side)) return { ok: false, ageMs: 0, reason: "invalid signal" };
-  if (!(signal.signalPrice > 0)) return { ok: false, ageMs: 0, reason: "invalid signal price" };
+  if (!Object.hasOwn(standard.symbols,signal.symbol) || !["long", "short"].includes(signal.side) || !Number.isSafeInteger(signal.id) || signal.id<=0) return { ok: false, ageMs: 0, reason: "invalid signal" };
+  if (!Number.isFinite(signal.signalPrice) || !(signal.signalPrice > 0)) return { ok: false, ageMs: 0, reason: "invalid signal price" };
   const confirmedMs = Date.parse(signal.confirmedAt);
   if (!Number.isFinite(confirmedMs)) return { ok: false, ageMs: 0, reason: "invalid confirmation time" };
-  const ageMs = Math.max(0, nowMs - confirmedMs);
-  if (ageMs > PLAN_B_EXECUTION.hardExpiryMs) return { ok: false, ageMs, reason: "signal expired" };
+  if (!Number.isFinite(nowMs) || confirmedMs>nowMs) return {ok:false,ageMs:0,reason:'future/invalid time'};
+  const ageMs = nowMs - confirmedMs;
+  if (ageMs >= PLAN_B_EXECUTION.hardExpiryMs) return { ok: false, ageMs, reason: "signal expired" };
   return { ok: true, ageMs, clientOrderId: planBClientOrderId(signal.id), warning: ageMs > PLAN_B_EXECUTION.warningAfterMs };
 }
 
 export function adverseMovePct(side: "long" | "short", signalPrice: number, currentPrice: number): number {
-  if (!(signalPrice > 0) || !(currentPrice > 0)) return Number.POSITIVE_INFINITY;
+  if (!['long','short'].includes(side) || !Number.isFinite(signalPrice) || !Number.isFinite(currentPrice) || !(signalPrice > 0) || !(currentPrice > 0)) return Number.POSITIVE_INFINITY;
   const move = (currentPrice / signalPrice - 1) * 100;
   return side === "long" ? move : -move;
 }

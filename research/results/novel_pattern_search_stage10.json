@@ -1,0 +1,1187 @@
+{
+  "generated_at": "2026-08-30T11:41:11.305856+00:00",
+  "execution": "signal close; next bar open entry",
+  "costs": {
+    "fee_each_side": 0.0005,
+    "slippage_each_side": 0.0002,
+    "funding_each_8h": 0.0001
+  },
+  "symbols": [
+    "AAVE",
+    "ADA",
+    "ALGO",
+    "ATOM",
+    "AVAX",
+    "BCH",
+    "BNB",
+    "BTC",
+    "DOGE",
+    "DOT",
+    "ETC",
+    "ETH",
+    "FIL",
+    "ICP",
+    "LINK",
+    "LTC",
+    "SOL",
+    "TRX",
+    "UNI",
+    "VET",
+    "XLM",
+    "XRP"
+  ],
+  "strategy_families": 5,
+  "results": [
+    {
+      "symbol": "AAVE",
+      "best": {
+        "symbol": "AAVE",
+        "family": "squeeze_volume_expansion",
+        "params": {
+          "compression": 0.5,
+          "volume": 2.0
+        },
+        "hold_hours": 6,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 1.347363917966326,
+            "return_pct": 34.736391796632596,
+            "mdd_pct": -43.74105013685195,
+            "trades": 49,
+            "win_rate_pct": 59.183673469387756,
+            "avg_trade_pct": 0.9684789876015037
+          },
+          {
+            "multiple": 1.1055401297926206,
+            "return_pct": 10.554012979262062,
+            "mdd_pct": -21.05774795449126,
+            "trades": 63,
+            "win_rate_pct": 41.269841269841265,
+            "avg_trade_pct": 0.32179604940409584
+          },
+          {
+            "multiple": 1.584292581578649,
+            "return_pct": 58.42925815786491,
+            "mdd_pct": -32.79907466269684,
+            "trades": 51,
+            "win_rate_pct": 52.94117647058824,
+            "avg_trade_pct": 1.254902571104542
+          }
+        ],
+        "full": {
+          "multiple": 2.359906590346585,
+          "return_pct": 135.9906590346585,
+          "mdd_pct": -43.74105013685195,
+          "trades": 163,
+          "win_rate_pct": 50.306748466257666,
+          "avg_trade_pct": 0.808151243136585
+        },
+        "transferable": true,
+        "score": 0.314989530258685
+      },
+      "tested": 1145
+    },
+    {
+      "symbol": "ADA",
+      "best": {
+        "symbol": "ADA",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            7,
+            8,
+            9
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 3,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 2.1273981776168354,
+            "return_pct": 112.73981776168354,
+            "mdd_pct": -14.535691325896604,
+            "trades": 56,
+            "win_rate_pct": 62.5,
+            "avg_trade_pct": 1.5162525113046625
+          },
+          {
+            "multiple": 1.1686757961395209,
+            "return_pct": 16.86757961395209,
+            "mdd_pct": -36.263403586988964,
+            "trades": 56,
+            "win_rate_pct": 55.35714285714286,
+            "avg_trade_pct": 0.4400600609593146
+          },
+          {
+            "multiple": 1.9956219329151987,
+            "return_pct": 99.56219329151988,
+            "mdd_pct": -13.554235313275498,
+            "trades": 47,
+            "win_rate_pct": 61.702127659574465,
+            "avg_trade_pct": 1.5590762510016667
+          }
+        ],
+        "full": {
+          "multiple": 4.961592597788806,
+          "return_pct": 396.15925977888054,
+          "mdd_pct": -36.26340358698895,
+          "trades": 159,
+          "win_rate_pct": 59.74842767295597,
+          "avg_trade_pct": 1.1498747663135915
+        },
+        "transferable": true,
+        "score": 0.5563030040368147
+      },
+      "tested": 1165
+    },
+    {
+      "symbol": "ALGO",
+      "best": {
+        "symbol": "ALGO",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            7,
+            8,
+            9
+          ],
+          "shock": 0.01
+        },
+        "hold_hours": 3,
+        "leverage": 1.0,
+        "segments": [
+          {
+            "multiple": 1.294685365317324,
+            "return_pct": 29.468536531732404,
+            "mdd_pct": -33.550872715670636,
+            "trades": 298,
+            "win_rate_pct": 56.711409395973156,
+            "avg_trade_pct": 0.11883359190815404
+          },
+          {
+            "multiple": 1.202678233999994,
+            "return_pct": 20.267823399999397,
+            "mdd_pct": -26.044560878154222,
+            "trades": 228,
+            "win_rate_pct": 52.63157894736842,
+            "avg_trade_pct": 0.11619974833704519
+          },
+          {
+            "multiple": 1.1792982747196805,
+            "return_pct": 17.929827471968053,
+            "mdd_pct": -24.535434385074637,
+            "trades": 243,
+            "win_rate_pct": 55.55555555555556,
+            "avg_trade_pct": 0.08667160623164938
+          }
+        ],
+        "full": {
+          "multiple": 1.83627344296697,
+          "return_pct": 83.627344296697,
+          "mdd_pct": -33.550872715670636,
+          "trades": 769,
+          "win_rate_pct": 55.136540962288684,
+          "avg_trade_pct": 0.10788966622076329
+        },
+        "transferable": true,
+        "score": 0.3168541329395356
+      },
+      "tested": 1100
+    },
+    {
+      "symbol": "ATOM",
+      "best": {
+        "symbol": "ATOM",
+        "family": "squeeze_volume_expansion",
+        "params": {
+          "compression": 0.5,
+          "volume": 1.5
+        },
+        "hold_hours": 24,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 1.2661138795428641,
+            "return_pct": 26.611387954286414,
+            "mdd_pct": -48.199330583645384,
+            "trades": 60,
+            "win_rate_pct": 53.333333333333336,
+            "avg_trade_pct": 0.9044256509377245
+          },
+          {
+            "multiple": 1.4496925811285017,
+            "return_pct": 44.96925811285018,
+            "mdd_pct": -37.03584409132432,
+            "trades": 56,
+            "win_rate_pct": 51.78571428571429,
+            "avg_trade_pct": 0.9312921063289648
+          },
+          {
+            "multiple": 1.3237811609227164,
+            "return_pct": 32.37811609227164,
+            "mdd_pct": -37.30510452829962,
+            "trades": 54,
+            "win_rate_pct": 61.111111111111114,
+            "avg_trade_pct": 0.7928986305888688
+          }
+        ],
+        "full": {
+          "multiple": 2.429768415149237,
+          "return_pct": 142.9768415149237,
+          "mdd_pct": -48.199330583645384,
+          "trades": 170,
+          "win_rate_pct": 55.294117647058826,
+          "avg_trade_pct": 0.8778495474263787
+        },
+        "transferable": true,
+        "score": 0.45790125952286526
+      },
+      "tested": 1110
+    },
+    {
+      "symbol": "AVAX",
+      "best": {
+        "symbol": "AVAX",
+        "family": "rsi_extreme_reversion",
+        "params": {
+          "window": 72,
+          "edge": 30
+        },
+        "hold_hours": 12,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 1.3431671216422738,
+            "return_pct": 34.31671216422738,
+            "mdd_pct": -34.72476609332485,
+            "trades": 15,
+            "win_rate_pct": 66.66666666666666,
+            "avg_trade_pct": 2.693141972218137
+          },
+          {
+            "multiple": 3.897817871777645,
+            "return_pct": 289.7817871777645,
+            "mdd_pct": -21.777284163788856,
+            "trades": 18,
+            "win_rate_pct": 77.77777777777779,
+            "avg_trade_pct": 9.127286702174612
+          },
+          {
+            "multiple": 2.3655559677345215,
+            "return_pct": 136.55559677345215,
+            "mdd_pct": -24.338821518149377,
+            "trades": 24,
+            "win_rate_pct": 58.333333333333336,
+            "avg_trade_pct": 4.624780333535397
+          }
+        ],
+        "full": {
+          "multiple": 12.384680944295946,
+          "return_pct": 1138.4680944295947,
+          "mdd_pct": -34.72476609332485,
+          "trades": 57,
+          "win_rate_pct": 66.66666666666666,
+          "avg_trade_pct": 5.5382985653906065
+        },
+        "transferable": true,
+        "score": 0.9241454241347369
+      },
+      "tested": 1125
+    },
+    {
+      "symbol": "BCH",
+      "best": {
+        "symbol": "BCH",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 3,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 2.4865162135966585,
+            "return_pct": 148.65162135966585,
+            "mdd_pct": -22.924567437880604,
+            "trades": 52,
+            "win_rate_pct": 57.692307692307686,
+            "avg_trade_pct": 2.0615538252919383
+          },
+          {
+            "multiple": 1.913947295105942,
+            "return_pct": 91.3947295105942,
+            "mdd_pct": -35.53847557516495,
+            "trades": 50,
+            "win_rate_pct": 57.99999999999999,
+            "avg_trade_pct": 1.6067482780434263
+          },
+          {
+            "multiple": 1.8283362082709465,
+            "return_pct": 82.83362082709465,
+            "mdd_pct": -20.4130540433737,
+            "trades": 43,
+            "win_rate_pct": 69.76744186046511,
+            "avg_trade_pct": 1.5841197715282056
+          }
+        ],
+        "full": {
+          "multiple": 8.701163509389554,
+          "return_pct": 770.1163509389554,
+          "mdd_pct": -35.53847557516494,
+          "trades": 145,
+          "win_rate_pct": 61.37931034482759,
+          "avg_trade_pct": 1.7631404344349306
+        },
+        "transferable": true,
+        "score": 1.1442705658516052
+      },
+      "tested": 1140
+    },
+    {
+      "symbol": "BNB",
+      "best": {
+        "symbol": "BNB",
+        "family": "squeeze_volume_expansion",
+        "params": {
+          "compression": 0.5,
+          "volume": 2.0
+        },
+        "hold_hours": 24,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 1.592022605276567,
+            "return_pct": 59.20226052765669,
+            "mdd_pct": -39.905336281162704,
+            "trades": 43,
+            "win_rate_pct": 58.139534883720934,
+            "avg_trade_pct": 1.4324399999136133
+          },
+          {
+            "multiple": 1.2649625706173995,
+            "return_pct": 26.496257061739946,
+            "mdd_pct": -22.844461666457427,
+            "trades": 55,
+            "win_rate_pct": 50.90909090909091,
+            "avg_trade_pct": 0.7580626337985041
+          },
+          {
+            "multiple": 1.8769858893400015,
+            "return_pct": 87.69858893400016,
+            "mdd_pct": -16.51100900805329,
+            "trades": 55,
+            "win_rate_pct": 52.72727272727272,
+            "avg_trade_pct": 1.466113855988239
+          }
+        ],
+        "full": {
+          "multiple": 3.7799661698727243,
+          "return_pct": 277.99661698727243,
+          "mdd_pct": -39.905336281162704,
+          "trades": 153,
+          "win_rate_pct": 53.59477124183007,
+          "avg_trade_pct": 1.2021217446703023
+        },
+        "transferable": true,
+        "score": 0.567471298252575
+      },
+      "tested": 1035
+    },
+    {
+      "symbol": "BTC",
+      "best": {
+        "symbol": "BTC",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.01
+        },
+        "hold_hours": 12,
+        "leverage": 0.5,
+        "segments": [
+          {
+            "multiple": 0.9844472340230924,
+            "return_pct": -1.5552765976907579,
+            "mdd_pct": -15.780819387409316,
+            "trades": 144,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": -0.002666937704232115
+          },
+          {
+            "multiple": 1.024170724316371,
+            "return_pct": 2.4170724316370906,
+            "mdd_pct": -8.654664643732835,
+            "trades": 88,
+            "win_rate_pct": 56.81818181818182,
+            "avg_trade_pct": 0.03294883889236851
+          },
+          {
+            "multiple": 1.0945600912050872,
+            "return_pct": 9.456009120508725,
+            "mdd_pct": -3.188799156691058,
+            "trades": 73,
+            "win_rate_pct": 56.16438356164384,
+            "avg_trade_pct": 0.12838481984180894
+          }
+        ],
+        "full": {
+          "multiple": 1.1035814956697896,
+          "return_pct": 10.358149566978959,
+          "mdd_pct": -16.765822927893236,
+          "trades": 305,
+          "win_rate_pct": 53.442622950819676,
+          "avg_trade_pct": 0.038975575874003465
+        },
+        "transferable": false,
+        "score": 0.008965219928690468
+      },
+      "tested": 1060
+    },
+    {
+      "symbol": "DOGE",
+      "best": {
+        "symbol": "DOGE",
+        "family": "squeeze_volume_expansion",
+        "params": {
+          "compression": 0.35,
+          "volume": 1.5
+        },
+        "hold_hours": 12,
+        "leverage": 5.0,
+        "segments": [
+          {
+            "multiple": 2.6345674896372744,
+            "return_pct": 163.45674896372745,
+            "mdd_pct": -25.065677986403013,
+            "trades": 27,
+            "win_rate_pct": 55.55555555555556,
+            "avg_trade_pct": 4.630323616904574
+          },
+          {
+            "multiple": 1.2881033933899513,
+            "return_pct": 28.810339338995128,
+            "mdd_pct": -10.996903145164282,
+            "trades": 16,
+            "win_rate_pct": 37.5,
+            "avg_trade_pct": 1.7778054011188267
+          },
+          {
+            "multiple": 2.4490508738917502,
+            "return_pct": 144.90508738917504,
+            "mdd_pct": -19.926407607284524,
+            "trades": 18,
+            "win_rate_pct": 55.55555555555556,
+            "avg_trade_pct": 6.130873939468784
+          }
+        ],
+        "full": {
+          "multiple": 7.874622007800696,
+          "return_pct": 687.4622007800696,
+          "mdd_pct": -25.065677986403013,
+          "trades": 62,
+          "win_rate_pct": 50.0,
+          "avg_trade_pct": 4.170447562289045
+        },
+        "transferable": true,
+        "score": 0.7690821949689952
+      },
+      "tested": 1190
+    },
+    {
+      "symbol": "DOT",
+      "best": {
+        "symbol": "DOT",
+        "family": "rsi_extreme_reversion",
+        "params": {
+          "window": 24,
+          "edge": 20
+        },
+        "hold_hours": 12,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 1.7156145650300396,
+            "return_pct": 71.56145650300397,
+            "mdd_pct": -14.640316808910125,
+            "trades": 43,
+            "win_rate_pct": 58.139534883720934,
+            "avg_trade_pct": 1.423702794332165
+          },
+          {
+            "multiple": 1.1745209968845043,
+            "return_pct": 17.452099688450428,
+            "mdd_pct": -42.37358735786651,
+            "trades": 34,
+            "win_rate_pct": 55.88235294117647,
+            "avg_trade_pct": 0.9903050399478148
+          },
+          {
+            "multiple": 1.3556315764619422,
+            "return_pct": 35.56315764619422,
+            "mdd_pct": -49.523941641467985,
+            "trades": 65,
+            "win_rate_pct": 58.46153846153847,
+            "avg_trade_pct": 0.8988621218485704
+          }
+        ],
+        "full": {
+          "multiple": 2.7316319636187627,
+          "return_pct": 173.16319636187626,
+          "mdd_pct": -49.52394164146801,
+          "trades": 142,
+          "win_rate_pct": 57.74647887323944,
+          "avg_trade_pct": 1.0796875312300414
+        },
+        "transferable": true,
+        "score": 0.41208520711923785
+      },
+      "tested": 1115
+    },
+    {
+      "symbol": "ETC",
+      "best": {
+        "symbol": "ETC",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            0,
+            1,
+            2
+          ],
+          "shock": 0.03
+        },
+        "hold_hours": 24,
+        "leverage": 0.5,
+        "segments": [
+          {
+            "multiple": 1.040954880103841,
+            "return_pct": 4.095488010384107,
+            "mdd_pct": -17.62617890278525,
+            "trades": 52,
+            "win_rate_pct": 69.23076923076923,
+            "avg_trade_pct": 0.14831735071246993
+          },
+          {
+            "multiple": 1.1603770662449244,
+            "return_pct": 16.037706624492444,
+            "mdd_pct": -8.001296058648322,
+            "trades": 23,
+            "win_rate_pct": 69.56521739130434,
+            "avg_trade_pct": 0.6920092801313628
+          },
+          {
+            "multiple": 1.111146475803449,
+            "return_pct": 11.114647580344904,
+            "mdd_pct": -13.578930130506162,
+            "trades": 16,
+            "win_rate_pct": 56.25,
+            "avg_trade_pct": 0.7145247360332251
+          }
+        ],
+        "full": {
+          "multiple": 1.3421540168714745,
+          "return_pct": 34.21540168714745,
+          "mdd_pct": -17.62617890278525,
+          "trades": 91,
+          "win_rate_pct": 67.03296703296702,
+          "avg_trade_pct": 0.3852869390835318
+        },
+        "transferable": true,
+        "score": 0.11370739551241102
+      },
+      "tested": 1125
+    },
+    {
+      "symbol": "ETH",
+      "best": {
+        "symbol": "ETH",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 3,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 1.0556795701758097,
+            "return_pct": 5.567957017580971,
+            "mdd_pct": -26.250376061601123,
+            "trades": 60,
+            "win_rate_pct": 55.00000000000001,
+            "avg_trade_pct": 0.3137854483854069
+          },
+          {
+            "multiple": 1.10845871959954,
+            "return_pct": 10.845871959953989,
+            "mdd_pct": -19.59899663982124,
+            "trades": 21,
+            "win_rate_pct": 61.904761904761905,
+            "avg_trade_pct": 0.6219705166555718
+          },
+          {
+            "multiple": 1.3693755124184588,
+            "return_pct": 36.93755124184588,
+            "mdd_pct": -23.739820915566035,
+            "trades": 48,
+            "win_rate_pct": 54.166666666666664,
+            "avg_trade_pct": 0.792277085685577
+          }
+        ],
+        "full": {
+          "multiple": 1.6024120366453187,
+          "return_pct": 60.241203664531874,
+          "mdd_pct": -29.359711276302658,
+          "trades": 129,
+          "win_rate_pct": 55.81395348837209,
+          "avg_trade_pct": 0.54199851058759
+        },
+        "transferable": true,
+        "score": 0.17206220614841589
+      },
+      "tested": 1090
+    },
+    {
+      "symbol": "FIL",
+      "best": {
+        "symbol": "FIL",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.03
+        },
+        "hold_hours": 3,
+        "leverage": 1.0,
+        "segments": [
+          {
+            "multiple": 1.462028289087191,
+            "return_pct": 46.2028289087191,
+            "mdd_pct": -17.107954569782834,
+            "trades": 43,
+            "win_rate_pct": 74.4186046511628,
+            "avg_trade_pct": 0.9735301313654392
+          },
+          {
+            "multiple": 1.2931126768349084,
+            "return_pct": 29.31126768349084,
+            "mdd_pct": -7.1893844723244555,
+            "trades": 19,
+            "win_rate_pct": 63.1578947368421,
+            "avg_trade_pct": 1.405748325637287
+          },
+          {
+            "multiple": 1.0642938937180562,
+            "return_pct": 6.429389371805616,
+            "mdd_pct": -32.11868512721211,
+            "trades": 34,
+            "win_rate_pct": 70.58823529411765,
+            "avg_trade_pct": 0.3788920290310005
+          }
+        ],
+        "full": {
+          "multiple": 2.0121192484958303,
+          "return_pct": 101.21192484958303,
+          "mdd_pct": -34.242018379912395,
+          "trades": 96,
+          "win_rate_pct": 70.83333333333334,
+          "avg_trade_pct": 0.8484723210716286
+        },
+        "transferable": true,
+        "score": 0.23710869845861152
+      },
+      "tested": 1155
+    },
+    {
+      "symbol": "ICP",
+      "best": {
+        "symbol": "ICP",
+        "family": "rsi_extreme_reversion",
+        "params": {
+          "window": 24,
+          "edge": 20
+        },
+        "hold_hours": 1,
+        "leverage": 5.0,
+        "segments": [
+          {
+            "multiple": 2.2738667766314777,
+            "return_pct": 127.38667766314778,
+            "mdd_pct": -33.747617514754744,
+            "trades": 51,
+            "win_rate_pct": 66.66666666666666,
+            "avg_trade_pct": 2.0001319677945215
+          },
+          {
+            "multiple": 1.8222062652461881,
+            "return_pct": 82.22062652461881,
+            "mdd_pct": -39.082050988903696,
+            "trades": 67,
+            "win_rate_pct": 55.223880597014926,
+            "avg_trade_pct": 1.4686766590592006
+          },
+          {
+            "multiple": 2.2669784396784123,
+            "return_pct": 126.69784396784122,
+            "mdd_pct": -48.85680634195913,
+            "trades": 87,
+            "win_rate_pct": 52.87356321839081,
+            "avg_trade_pct": 1.3495732746734947
+          }
+        ],
+        "full": {
+          "multiple": 9.39312153377155,
+          "return_pct": 839.312153377155,
+          "mdd_pct": -49.8054949384549,
+          "trades": 205,
+          "win_rate_pct": 57.073170731707314,
+          "avg_trade_pct": 1.5503460556638105
+        },
+        "transferable": true,
+        "score": 1.1600424180006381
+      },
+      "tested": 1135
+    },
+    {
+      "symbol": "LINK",
+      "best": {
+        "symbol": "LINK",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.03
+        },
+        "hold_hours": 3,
+        "leverage": 3.0,
+        "segments": [
+          {
+            "multiple": 1.4191254630788879,
+            "return_pct": 41.91254630788879,
+            "mdd_pct": -44.38144823293142,
+            "trades": 31,
+            "win_rate_pct": 54.83870967741935,
+            "avg_trade_pct": 1.7541101517033433
+          },
+          {
+            "multiple": 1.3812559769811745,
+            "return_pct": 38.12559769811745,
+            "mdd_pct": -32.41955677680962,
+            "trades": 22,
+            "win_rate_pct": 72.72727272727273,
+            "avg_trade_pct": 1.9684073050793707
+          },
+          {
+            "multiple": 1.1630475488947287,
+            "return_pct": 16.30475488947287,
+            "mdd_pct": -29.037842323965023,
+            "trades": 24,
+            "win_rate_pct": 62.5,
+            "avg_trade_pct": 0.9411199424250449
+          }
+        ],
+        "full": {
+          "multiple": 2.2797773432018333,
+          "return_pct": 127.97773432018333,
+          "mdd_pct": -44.38144823293142,
+          "trades": 77,
+          "win_rate_pct": 62.33766233766234,
+          "avg_trade_pct": 1.5619383640616995
+        },
+        "transferable": true,
+        "score": 0.35706320281779863
+      },
+      "tested": 1120
+    },
+    {
+      "symbol": "LTC",
+      "best": {
+        "symbol": "LTC",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            0,
+            1,
+            2
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 6,
+        "leverage": 1.0,
+        "segments": [
+          {
+            "multiple": 1.2389281797979832,
+            "return_pct": 23.89281797979832,
+            "mdd_pct": -14.957684154347572,
+            "trades": 93,
+            "win_rate_pct": 51.61290322580645,
+            "avg_trade_pct": 0.2710637932397941
+          },
+          {
+            "multiple": 1.0205767227846207,
+            "return_pct": 2.057672278462075,
+            "mdd_pct": -22.88059774519622,
+            "trades": 52,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": 0.11328088278479224
+          },
+          {
+            "multiple": 1.0680733885950184,
+            "return_pct": 6.807338859501844,
+            "mdd_pct": -21.091121007947155,
+            "trades": 44,
+            "win_rate_pct": 59.09090909090909,
+            "avg_trade_pct": 0.20111265989825267
+          }
+        ],
+        "full": {
+          "multiple": 1.3504947013858886,
+          "return_pct": 35.04947013858886,
+          "mdd_pct": -22.88059774519624,
+          "trades": 189,
+          "win_rate_pct": 52.910052910052904,
+          "avg_trade_pct": 0.21136770217795317
+        },
+        "transferable": true,
+        "score": 0.09548562470351382
+      },
+      "tested": 1085
+    },
+    {
+      "symbol": "SOL",
+      "best": {
+        "symbol": "SOL",
+        "family": "squeeze_volume_expansion",
+        "params": {
+          "compression": 0.5,
+          "volume": 3.0
+        },
+        "hold_hours": 3,
+        "leverage": 5.0,
+        "segments": [
+          {
+            "multiple": 1.4963171029263953,
+            "return_pct": 49.63171029263953,
+            "mdd_pct": -29.251878339325156,
+            "trades": 25,
+            "win_rate_pct": 56.00000000000001,
+            "avg_trade_pct": 2.6127535349237454
+          },
+          {
+            "multiple": 1.4302810454908512,
+            "return_pct": 43.02810454908512,
+            "mdd_pct": -17.205331184999807,
+            "trades": 20,
+            "win_rate_pct": 45.0,
+            "avg_trade_pct": 2.2252628197210975
+          },
+          {
+            "multiple": 1.4533342896147172,
+            "return_pct": 45.333428961471725,
+            "mdd_pct": -31.25525090067699,
+            "trades": 24,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": 2.0909049586738293
+          }
+        ],
+        "full": {
+          "multiple": 3.1103591792450893,
+          "return_pct": 211.03591792450894,
+          "mdd_pct": -31.25525090067699,
+          "trades": 69,
+          "win_rate_pct": 50.72463768115942,
+          "avg_trade_pct": 2.318924837328805
+        },
+        "transferable": true,
+        "score": 0.6415555130798614
+      },
+      "tested": 1130
+    },
+    {
+      "symbol": "TRX",
+      "best": {
+        "symbol": "TRX",
+        "family": "rsi_extreme_reversion",
+        "params": {
+          "window": 24,
+          "edge": 15
+        },
+        "hold_hours": 24,
+        "leverage": 1.0,
+        "segments": [
+          {
+            "multiple": 1.2859458864221205,
+            "return_pct": 28.59458864221205,
+            "mdd_pct": -4.552719934368222,
+            "trades": 16,
+            "win_rate_pct": 62.5,
+            "avg_trade_pct": 1.6610918714469687
+          },
+          {
+            "multiple": 1.0594258823298899,
+            "return_pct": 5.942588232988988,
+            "mdd_pct": -32.05268698616162,
+            "trades": 44,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": 0.2293748440973294
+          },
+          {
+            "multiple": 1.228294849438219,
+            "return_pct": 22.82948494382191,
+            "mdd_pct": -3.5871138096582933,
+            "trades": 29,
+            "win_rate_pct": 62.06896551724138,
+            "avg_trade_pct": 0.7345232775537782
+          }
+        ],
+        "full": {
+          "multiple": 1.673385120736158,
+          "return_pct": 67.3385120736158,
+          "mdd_pct": -32.0526869861616,
+          "trades": 89,
+          "win_rate_pct": 56.17977528089888,
+          "avg_trade_pct": 0.6513611026122871
+        },
+        "transferable": true,
+        "score": 0.18643928925207356
+      },
+      "tested": 910
+    },
+    {
+      "symbol": "UNI",
+      "best": {
+        "symbol": "UNI",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            7,
+            8,
+            9
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 6,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 2.6255149106939086,
+            "return_pct": 162.55149106939086,
+            "mdd_pct": -37.406976314982444,
+            "trades": 92,
+            "win_rate_pct": 53.2608695652174,
+            "avg_trade_pct": 1.4939032086956805
+          },
+          {
+            "multiple": 1.678724325092431,
+            "return_pct": 67.87243250924311,
+            "mdd_pct": -31.110620522795152,
+            "trades": 54,
+            "win_rate_pct": 55.55555555555556,
+            "avg_trade_pct": 1.2783058848866828
+          },
+          {
+            "multiple": 1.659049621065878,
+            "return_pct": 65.9049621065878,
+            "mdd_pct": -36.25755209701429,
+            "trades": 61,
+            "win_rate_pct": 55.73770491803278,
+            "avg_trade_pct": 1.0280265590979247
+          }
+        ],
+        "full": {
+          "multiple": 7.3987102821047666,
+          "return_pct": 639.8710282104767,
+          "mdd_pct": -39.48706783347532,
+          "trades": 208,
+          "win_rate_pct": 54.807692307692314,
+          "avg_trade_pct": 1.2998034606329099
+        },
+        "transferable": true,
+        "score": 1.0065713456921896
+      },
+      "tested": 1155
+    },
+    {
+      "symbol": "VET",
+      "best": {
+        "symbol": "VET",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            7,
+            8,
+            9
+          ],
+          "shock": 0.01
+        },
+        "hold_hours": 3,
+        "leverage": 1.0,
+        "segments": [
+          {
+            "multiple": 1.1513312493402175,
+            "return_pct": 15.133124934021748,
+            "mdd_pct": -38.2781319013499,
+            "trades": 300,
+            "win_rate_pct": 54.333333333333336,
+            "avg_trade_pct": 0.080341266011904
+          },
+          {
+            "multiple": 1.1721901398900716,
+            "return_pct": 17.21901398900716,
+            "mdd_pct": -24.674523294829807,
+            "trades": 228,
+            "win_rate_pct": 49.56140350877193,
+            "avg_trade_pct": 0.10232931560906729
+          },
+          {
+            "multiple": 1.2693690315412554,
+            "return_pct": 26.936903154125535,
+            "mdd_pct": -15.944772911999783,
+            "trades": 216,
+            "win_rate_pct": 51.388888888888886,
+            "avg_trade_pct": 0.1306129123240523
+          }
+        ],
+        "full": {
+          "multiple": 1.7131139636755817,
+          "return_pct": 71.31139636755816,
+          "mdd_pct": -38.2781319013499,
+          "trades": 744,
+          "win_rate_pct": 52.016129032258064,
+          "avg_trade_pct": 0.10167453336617448
+        },
+        "transferable": true,
+        "score": 0.2754970674445265
+      },
+      "tested": 1110
+    },
+    {
+      "symbol": "XLM",
+      "best": {
+        "symbol": "XLM",
+        "family": "rsi_extreme_reversion",
+        "params": {
+          "window": 72,
+          "edge": 30
+        },
+        "hold_hours": 6,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 1.0615404050729966,
+            "return_pct": 6.154040507299663,
+            "mdd_pct": -16.120708227078474,
+            "trades": 17,
+            "win_rate_pct": 52.94117647058824,
+            "avg_trade_pct": 0.5011312003109586
+          },
+          {
+            "multiple": 1.5618062043178724,
+            "return_pct": 56.18062043178724,
+            "mdd_pct": -36.64224151337127,
+            "trades": 20,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": 3.0194720412647054
+          },
+          {
+            "multiple": 1.611034445585336,
+            "return_pct": 61.1034445585336,
+            "mdd_pct": -31.664127968714684,
+            "trades": 24,
+            "win_rate_pct": 62.5,
+            "avg_trade_pct": 2.5447094588807504
+          }
+        ],
+        "full": {
+          "multiple": 2.6709668575802286,
+          "return_pct": 167.09668575802286,
+          "mdd_pct": -36.64224151337129,
+          "trades": 61,
+          "win_rate_pct": 55.73770491803278,
+          "avg_trade_pct": 2.1308475121921044
+        },
+        "transferable": true,
+        "score": 0.30533119701751843
+      },
+      "tested": 1145
+    },
+    {
+      "symbol": "XRP",
+      "best": {
+        "symbol": "XRP",
+        "family": "session_shock_reversion",
+        "params": {
+          "utc_hours": [
+            20,
+            21,
+            22
+          ],
+          "shock": 0.02
+        },
+        "hold_hours": 12,
+        "leverage": 2.0,
+        "segments": [
+          {
+            "multiple": 1.6779754755598337,
+            "return_pct": 67.79754755598337,
+            "mdd_pct": -39.07060942040742,
+            "trades": 68,
+            "win_rate_pct": 51.470588235294116,
+            "avg_trade_pct": 1.168663128012442
+          },
+          {
+            "multiple": 1.5498590504156355,
+            "return_pct": 54.985905041563555,
+            "mdd_pct": -47.092713926313714,
+            "trades": 52,
+            "win_rate_pct": 50.0,
+            "avg_trade_pct": 1.2874963655522913
+          },
+          {
+            "multiple": 1.3577929429594056,
+            "return_pct": 35.77929429594056,
+            "mdd_pct": -35.88855505712861,
+            "trades": 49,
+            "win_rate_pct": 57.14285714285714,
+            "avg_trade_pct": 0.9741690846514365
+          }
+        ],
+        "full": {
+          "multiple": 3.531110920184426,
+          "return_pct": 253.1110920184426,
+          "mdd_pct": -50.426775810446586,
+          "trades": 169,
+          "win_rate_pct": 52.662721893491124,
+          "avg_trade_pct": 1.1488354370502107
+        },
+        "transferable": true,
+        "score": 0.6212636778895163
+      },
+      "tested": 1130
+    }
+  ],
+  "transferable_count": 21,
+  "passing_1000000_count": 0,
+  "passing": []
+}

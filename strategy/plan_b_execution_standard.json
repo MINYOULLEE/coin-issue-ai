@@ -1,6 +1,6 @@
 {
   "plan": "B",
-  "status": "prepared_not_live",
+  "status": "adopted_stage16_not_live",
   "isolation": {
     "reuse_plan_a_api": false,
     "reuse_plan_a_account": false,
@@ -11,7 +11,11 @@
     "target_dispatch_ms": 1000,
     "warning_after_ms": 10000,
     "hard_expiry_ms": 300000,
-    "retry_delays_ms": [250, 750, 1500],
+    "retry_delays_ms": [
+      250,
+      750,
+      1500
+    ],
     "max_submit_attempts": 3
   },
   "execution": {
@@ -21,7 +25,9 @@
     "one_order_per_signal": true,
     "max_adverse_price_move_pct": 0.35,
     "cancel_signal_when_stale": true,
-    "never_chase_after_expiry": true
+    "never_chase_after_expiry": true,
+    "sizing_mode": "reserved_margin_fixed_entry_quantity",
+    "atomic_b_reservation_required": true
   },
   "monitoring": {
     "ack_timeout_ms": 3000,
@@ -35,6 +41,7 @@
       "filled_at"
     ]
   },
-  "research_reference": "ETC-LINK-5M-EXECUTION-stage6",
-  "rule": "5분 성과를 의도적 대기 규칙으로 사용하지 않는다. 신호 확정 즉시 전송하고 5분을 넘긴 신호는 폐기한다."
+  "research_reference": "reserved_margin_stage16",
+  "rule": "5분 성과를 의도적 대기 규칙으로 사용하지 않는다. 신호 확정 즉시 전송하고 5분을 넘긴 신호는 폐기한다.",
+  "canonical_strategy": "strategy/plan_b_standard.json"
 }
