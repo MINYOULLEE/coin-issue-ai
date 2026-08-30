@@ -73,7 +73,14 @@ def trades(symbol: str, opens: dict[int, float], closes: dict[int, float], delay
            slip: float, fee: float, funding: float) -> list[dict]:
     threshold, hold, leverage = ((3.0, 6, 3.0) if symbol == "ETC" else (4.0, 12, 3.0))
     rows = core.read_candles(core.DATA_DIR / f"{symbol}USDT_1h.csv")
-    t, c, r1, body, lower, upper, vr = indicators(rows)
+    t, c, r1, body, lower, upper, _ = indicators(rows)
+    # 실행 시점에 알 수 있는 직전 24개 완료봉만 사용한다. indicators()의
+    # centered convolution은 미래 거래량을 포함하므로 이 검증에는 사용할 수 없다.
+    volumes = np.array([row["v"] for row in rows], dtype=float)
+    vr = np.zeros(len(volumes), dtype=float)
+    for j in range(24, len(volumes)):
+        prior_mean = float(np.mean(volumes[j - 24:j]))
+        vr[j] = volumes[j] / prior_mean if prior_mean > 0 else 0.0
     sig = pattern_signal("volume_shock_revert", r1, body, lower, upper, vr, threshold)
     out = []
     i = 24
