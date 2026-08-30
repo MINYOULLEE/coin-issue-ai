@@ -1,5 +1,5 @@
 {
-  "version": "ab_execution_safety_20260831_v4",
+  "version": "ab_execution_safety_20260831_v5",
   "algorithm": "SHA256 UTF8 normalized LF",
   "scope": "User-approved execution repair; B entry gate locked; see EXECUTION_REPAIR_20260831.md",
   "sha256": {
@@ -19,12 +19,13 @@
     "supabase/functions/_shared/plan_b_signals.mjs": "bb623b461218353b4fca9fcbb6f4ad29576be0bdc4952fb78e361a46c9448147",
     "supabase/functions/_shared/plan_b_order_lifecycle.mjs": "cd4e60a588a151b35efc4fae6e830cc3d291f7c5fbf3efa168f0e97d84f48a25",
     "supabase/functions/_shared/plan_b_execution_guard.ts": "061c06aa8aa1afa3679555416cd1aa389772dfb69596e628cdb4c899da30143c",
-    "supabase/functions/_shared/plan_b_exchange.mjs": "941e947bdb2663d5b399eec61ea7ee99eb6cb027b494a901216b1c528cf5e8dc",
-    "supabase/functions/plan-b-executor/index.ts": "9ccaed6c104a1337995bc5102cd496aeb018c7e404be95e3e96efd4af97983cf",
+    "supabase/functions/_shared/plan_b_exchange.mjs": "6bb63f8bc5c2d24d2528a1575fc2fbd52874c6f0e0df2792c82ff2f799207610",
+    "supabase/functions/plan-b-executor/index.ts": "e7b8da0baf5cbf4ae79bceab6a2d438d35a46d4312d766c7fdcc32703e47fcc9",
     "supabase/functions/_shared/plan_b_runtime.json": "3634ce912b803b4da2a21a2414f885ac733530b0e9348ad9e572f5aeee113bc1",
     "supabase/functions/_shared/plan_b_live_cycle.mjs": "1f01e9491d8c437ed9ea043acabd087ad0221acbdb9d9ee4cc464678f9523d9b",
     "supabase/repairs/plan_b_safety_20260831.sql": "0c4f1b2ecea4ae9888355f00fefe0367d8278cb88c5bf3afd4f75f20dda267da",
     "research/scripts/test_a_execution_safety.cjs": "627f83d432cab0a842278416e99261733dd1c3f4fa5b12cfc7bbc627cc00b6cd",
-    "research/scripts/test_plan_b_live_cycle.mjs": "93599bf32c9fef8d9ea2f8c4ae9b37dcc051191ccea1564442ee3e6102e208d6"
+    "research/scripts/test_plan_b_live_cycle.mjs": "93599bf32c9fef8d9ea2f8c4ae9b37dcc051191ccea1564442ee3e6102e208d6",
+    "research/scripts/test_plan_b_exchange.mjs": "2661994c5e2c5b74bb2d61417ca445d4bf3dcb75f0b7ff82edb5c3953992563f"
   }
 }

@@ -15,7 +15,23 @@ Deno.serve(async req=>{
   const state=()=>checked(sb.from("plan_b_trading_state").select("*").eq("id","singleton").single());
   const bx=createBExchange({apiKey:Deno.env.get("PLAN_B_BINGX_API_KEY"),secret:Deno.env.get("PLAN_B_BINGX_SECRET_KEY"),parse:JSONBig({storeAsString:true}).parse,
    liveAuthorized:async()=>{const s=await state();return s.strategy_id===runtime.strategy_id&&s.enabled===true&&s.test_mode===false;},
-   exitAuthorized:async()=>{const s=await state();return s.strategy_id===runtime.strategy_id;}});
+   exitAuthorized:async()=>{const s=await state();return s.strategy_id===runtime.strategy_id;},
+   configurationAuthorized:async()=>{
+    if(body.action!=="align_leverage"||body.confirm!=="align_only_no_orders"||runtime.live_ready)return false;
+    const s=await state();if(s.strategy_id!==runtime.strategy_id)return false;
+    const pending=await checked(sb.from("plan_b_execution_intents").select("id").not("status","in","(closed,failed,expired,rejected)"));
+    const trades=await checked(sb.from("plan_b_real_trades").select("id").eq("status","open"));
+    return pending.length===0&&trades.length===0;
+   }});
+  if(body.action==="align_leverage")return Response.json({ok:true,plan:"B",mode:"configuration_only",result:await bx.alignLeverage(body.symbol)});
+  if(body.action==="inspect_configuration"){
+   if(!["AVAX","ICP","BCH","DOGE","UNI"].includes(body.symbol))return Response.json({ok:false},{status:400});
+   const symbol=body.symbol+"-USDT";
+   const positions=await bx.read('/openApi/swap/v2/user/positions',{symbol});
+   const orders=await bx.read('/openApi/swap/v2/trade/openOrders',{symbol});
+   const leverage=await bx.read('/openApi/swap/v2/trade/leverage',{symbol});
+   return Response.json({ok:true,plan:"B",positions,orders,leverage,orders_submitted:0});
+  }
   if(body.action==="preflight"){
    const s=await state(),contracts=[];
    for(const symbol of ["AVAX","ICP","BCH","DOGE","UNI"]){
@@ -23,7 +39,7 @@ Deno.serve(async req=>{
     try{await bx.verifyConfiguration(symbol,expected);contracts.push({symbol,ok:true});}catch(e){contracts.push({symbol,ok:false,error:String(e.message)});}
     await new Promise(resolve=>setTimeout(resolve,1200));
    }
-   return Response.json({ok:true,plan:"B",mode:"read_only_preflight",runtime,enabled:s.enabled,test_mode:s.test_mode,contracts,orders_submitted:0});
+   return Response.json({ok:contracts.every(c=>c.ok),plan:"B",mode:"read_only_preflight",runtime,enabled:s.enabled,test_mode:s.test_mode,contracts,orders_submitted:0});
   }
   if(!["execute","close"].includes(body.action))return Response.json({ok:false,error:"unknown action"},{status:400});
   if(body.action==="execute"&&!runtime.live_ready)return Response.json({ok:true,plan:"B",mode:"entry_locked",processed:0});

@@ -3,7 +3,21 @@
 User authorized correction of all findings from the deployed-source audit.
 No strategy thresholds, research returns, A trees, A 10x/1.6 exposure, or B Stage16 sizing constants changed.
 
-## Deployed
+## Follow-up: account configuration correction (2026-08-31)
+
+The user asked to make the remaining configuration normal. Executor v10 adds scheduler-authenticated, configuration-only leverage alignment while the entry gate is locked. It refuses unknown/A symbols, pending B intents, tracked open trades, exchange positions or open orders; it cannot change margin/position mode or place orders through this action.
+
+- Actual exchange LONG/SHORT leverage changed from 20/20 to AVAX 3/3, ICP 5/5, BCH 3/3, DOGE 5/5, UNI 2/2; each write was followed by a successful exchange readback. Request IDs: 18164, 18169, 18170, 18175, 18176.
+- Exchange `openOrders` returned `{orders:[]}`, not the bare array described by the reference; both explicit shapes are supported and unknown shapes still block writes.
+- GET rate-limit responses (100410) retry at most twice with backoff; writes never blindly retry. Per-endpoint read pacing reduces bursts but is not a distributed account-wide limiter.
+- Preflight now reports `ok=false` if any configuration check fails, rather than falsely returning top-level success.
+- Final read-only preflight request 18177: HTTP 200, ok=true, all five configuration checks passed, orders_submitted=0. Previously observed leverage mismatches and rate-limit responses were absent in this check.
+- 37 Node regression tests, two Python reserved-margin tests, separation audit and UI controls tests passed. Deployed v10 source/dependencies were read back and matched the local bundle.
+- No entry or exit orders were submitted during this repair. B entry runtime gate remains false and entry cron remains paused; configuration correction is not a claim of completed live fills or an automatic trading restart.
+- API reference: https://github.com/BingX-API/api-ai-skills/blob/main/skills/swap-trade/api-reference.md
+- Rate-limit reference: https://github.com/BingX-API/api-ai-skills/blob/main/skills/references/rate-limits.md
+
+## Initial deployment (historical; follow-up above supersedes B executor/configuration status)
 
 - A collector v74: daily decision commits only after all assets succeed/hold/cash; failed assets can retry within the decision window.
 - A executor v62: close uses actual remaining quantity and verifies zero remainder; no symbol-wide income sum assigned to a single trade. Existing position-history synchronization supplies final settlement.
@@ -12,7 +26,7 @@ No strategy thresholds, research returns, A trees, A 10x/1.6 exposure, or B Stag
 - B account API v9: shared runtime entry gate exposed to dashboard status; finalized, verified records only in performance statistics.
 - Database repair: `supabase/repairs/plan_b_safety_20260831.sql` (close-attempt columns and settled-only history statistics).
 
-## Current operational limitations — do not describe as fully live-verified
+## Initial operational limitations (historical; configuration issues resolved above)
 
 - B entry scheduler job 5 (`plan-b-executor-execute`) paused for maintenance. B close scheduler and A operation remain enabled.
 - B database enabled=true/test_mode=false was not treated as proof of readiness.
