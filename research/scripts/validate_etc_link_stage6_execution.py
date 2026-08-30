@@ -99,7 +99,7 @@ def trades(symbol: str, opens: dict[int, float], closes: dict[int, float], delay
             continue
         raw = direction * (exit_price / entry - 1) * leverage
         cost = 2 * (fee + slip) * leverage + (hold / 8) * funding * leverage
-        out.append({"ts": exit_ts, "symbol": symbol, "ret": raw - cost})
+        out.append({"ts": exit_ts, "symbol": symbol, "side": "long" if direction > 0 else "short", "ret": raw - cost})
         i += hold
     return out
 
