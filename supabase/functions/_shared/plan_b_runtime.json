@@ -1,0 +1,6 @@
+{
+  "execution_version": "stage16_safety_repair_20260831_v1",
+  "live_ready": false,
+  "strategy_id": "b_reserved_margin_stage16",
+  "note": "Shared entry gate locked; enabling B via authenticated control requires explicit approval after safety repair. Exit management remains independent."
+}

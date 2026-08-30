@@ -21,6 +21,9 @@ def main():
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
     assert b['strategy_id'] == 'b_reserved_margin_stage16'
     assert not b['live_ready'] and not b['enabled'] and b['test_mode']
+    runtime = read('supabase/functions/_shared/plan_b_runtime.json')
+    assert runtime['strategy_id'] == b['strategy_id']
+    assert runtime['live_ready'] is False, 'B entry activation needs explicit approval'
     assert b['acceptance']['return_floor_exception']
     assert b['live_account']['starting_capital_usd'] == 150
     assert b['live_account']['public_trade_history'] is True
@@ -43,7 +46,7 @@ def main():
     migration = (ROOT / 'supabase/migrations/20260830122300_adopt_plan_b_aggressive.sql').read_text(encoding='utf-8')
     assert 'cron.schedule(' not in migration
     print(f'PASS: {len(manifest["sha256"])} frozen files; A/B IDs, settings, references and local activation guard')
-    print('Local static audit only; no deployed-state or exchange verification.')
+    print('Research snapshot and shared runtime entry lock checked; remote source parity must also be verified.')
 
 if __name__ == '__main__':
     main()

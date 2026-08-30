@@ -468,7 +468,7 @@ async function manageSignals(market,old){
   const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
   const newAnswerDecision=forceAnswerRebalance||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
   if(newAnswerDecision){
-    if(!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
+    // Commit the boundary only after every asset has completed or is held.
     candidates.force_mdd30_rebalance=false;candidates.force_mdd30_symbols=[];const audit=[];
     for(const symbol of ANSWER_ASSETS){
       if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
@@ -494,7 +494,9 @@ async function manageSignals(market,old){
       const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure),10,24,[`${symbol} 5년 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`원본 ${Number(answer.raw_exposure).toFixed(3)}배 × 방어비중 ${Number(answer.portfolio_weight).toFixed(3)}`],0,Number(answer.confidence)*100,forceAnswerRebalance):null;
       audit.push({symbol,status:entered?"entered":stillOpen?"held":answer?.side?"entry_failed":"cash",answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
-    candidates.hourly_audit={closed_at:closedDate.toISOString(),status:"completed",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
+    const completed=!audit.some(x=>["close_failed","entry_failed"].includes(x.status));
+    if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
+    candidates.hourly_audit={closed_at:closedDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
     if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));

@@ -278,22 +278,9 @@ async function reconcileOpenTrades(): Promise<void> {
       }
       continue;
     }
-    let netPnl: number | null = null, feeUsd: number | null = null;
-    try {
-      const startMs = Date.parse(row.created_at) - 60000;
-      const income = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/income", { symbol: row.bingx_symbol, startTime: startMs, limit: 200 });
-      const list = Array.isArray(income) ? income : [];
-      const relevant = list.filter((x: any) => ["REALIZED_PNL", "TRADING_FEE", "FUNDING_FEE"].includes(x.incomeType));
-      if (relevant.length) {
-        const realizedPnl = relevant.filter((x: any) => x.incomeType === "REALIZED_PNL").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
-        const tradingFee = relevant.filter((x: any) => x.incomeType === "TRADING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
-        const fundingFee = relevant.filter((x: any) => x.incomeType === "FUNDING_FEE").reduce((s: number, x: any) => s + Number(x.income || 0), 0);
-        netPnl = realizedPnl + tradingFee + fundingFee;
-        feeUsd = -(tradingFee + fundingFee);
-      }
-    } catch (e) {
-      console.error("reconcile: income fetch failed for", row.bingx_symbol, e instanceof Error ? e.message : String(e));
-    }
+    // A missing position is not evidence of its realized PnL. Position-history
+    // reconciliation matches a single exchange lifecycle; never sum symbol income.
+    const netPnl: number | null = null, feeUsd: number | null = null;
     try {
       await db("real_trades?id=eq." + row.id, {
         method: "PATCH",
@@ -375,7 +362,14 @@ async function handleClose(payload: any): Promise<Response> {
     const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT";
     const closeSide = row.side === "long" ? "SELL" : "BUY";
     const contract = await getContract(bxSymbol), qtyPrecision = Number(contract.quantityPrecision ?? 3);
-    const quantity = roundDown(Number(row.quantity), qtyPrecision);
+    const beforeRaw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
+    const beforePositions = Array.isArray(beforeRaw) ? beforeRaw : beforeRaw?.positions;
+    if (!Array.isArray(beforePositions)) throw Error("invalid pre-close positions");
+    const matching = beforePositions.filter((p: any) => p.symbol === bxSymbol && p.positionSide === positionSide);
+    const remainder = matching.reduce((sum: number, p: any) => { const q=Number(p.positionAmt ?? p.positionAmount); if(!Number.isFinite(q))throw Error("invalid remaining quantity");return sum+Math.abs(q); },0);
+    if(remainder===0){await reconcileOpenTrades();return Response.json({ok:true,closed:true,reason:"exchange already closed"});}
+    const quantity = roundDown(Math.min(Number(row.quantity),remainder), qtyPrecision);
+    if(!(quantity>0))throw Error("invalid close quantity");
     const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
     const list = Array.isArray(openOrders) ? openOrders : (openOrders?.orders || []);
     for (const o of list.filter((x: any) => String(x.positionSide) === positionSide && ["STOP_MARKET", "TAKE_PROFIT_MARKET"].includes(String(x.type)))) {
@@ -383,6 +377,18 @@ async function handleClose(payload: any): Promise<Response> {
       catch (e) { console.error("close: protective cancel failed", e instanceof Error ? e.message : String(e)); }
     }
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000 });
+    // Acceptance is not a fill. Confirm the exchange position has no remainder.
+    let empty = false;
+    for (const wait of [250, 500, 1000]) {
+      await new Promise(resolve => setTimeout(resolve, wait));
+      const raw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
+      const positions = Array.isArray(raw) ? raw : raw?.positions;
+      if (!Array.isArray(positions)) throw Error("invalid position response");
+      const remaining = positions.filter((p: any) => p.symbol === bxSymbol && p.positionSide === positionSide);
+      if (remaining.some((p: any) => !Number.isFinite(Number(p.positionAmt ?? p.positionAmount)))) throw Error("invalid remaining quantity");
+      if (remaining.every((p: any) => Math.abs(Number(p.positionAmt ?? p.positionAmount)) === 0)) { empty = true; break; }
+    }
+    if (!empty) return Response.json({ok:false,error:"close pending: position remains"}, {status:409});
     await reconcileOpenTrades();
     return Response.json({ ok: true, closed: true, reason: payload.reason || "strategy exit" });
   } catch (e) {
