@@ -1,0 +1,10 @@
+// Local visual fixture only. No requests are forwarded to an exchange or Supabase.
+const http=require('node:http'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve('docs');
+http.createServer(async(req,res)=>{const url=new URL(req.url,'http://127.0.0.1:8765');
+ if(url.pathname==='/config.js'){res.setHeader('Content-Type','text/javascript');return res.end('window.COIN_ISSUE_CONFIG={supabaseUrl:"http://127.0.0.1:8765",supabaseAnonKey:"fixture",refreshSeconds:5};')}
+ if(url.pathname.startsWith('/rest/')){res.setHeader('Content-Type','application/json');return res.end(JSON.stringify([{payload:{market:{},stats:{},active_signals:[],heartbeat:new Date().toISOString()}}]))}
+ if(url.pathname.startsWith('/functions/')){let raw='';for await(const c of req)raw+=c;const b=JSON.parse(raw||'{}'),plan=url.pathname.includes('plan-b')?'B':'A';res.setHeader('Content-Type','application/json');if(b.action==='login')return res.end(JSON.stringify({ok:true,session:'fixture-'+plan}));if(req.headers['x-dashboard-session']!=='fixture-'+plan){res.statusCode=401;return res.end(JSON.stringify({ok:false,error:'인증 필요'}))}if(b.action==='trading_state')return res.end(JSON.stringify({ok:true,state:{enabled:plan==='A',test_mode:false}}));if(b.action==='account')return res.end(JSON.stringify({ok:true,account:{equity:plan==='A'?172.54:150,balance:150,available_margin:120,used_margin:30,unrealized_pnl:0},open_position_count:0,positions:[]}));res.statusCode=409;return res.end(JSON.stringify({ok:false,error:'로컬 검증: 실제 제어 없음'}))}
+ const target=path.resolve(root,'.'+decodeURIComponent(url.pathname==='/'?'/index.html':url.pathname));if(!target.startsWith(root+path.sep)){res.statusCode=403;return res.end()}
+ try{res.setHeader('Content-Type',target.endsWith('.js')?'text/javascript':target.endsWith('.css')?'text/css':'text/html');res.end(fs.readFileSync(target))}catch{res.statusCode=404;res.end()}
+}).listen(8765,'127.0.0.1',()=>console.log('Fixture http://127.0.0.1:8765 — no real trading'));
