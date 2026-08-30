@@ -220,8 +220,14 @@ Deno.serve(async(req:Request)=>{
    try{const result=await syncActualBingxHistory();if(Array.isArray(result?.errors)&&result.errors.length)console.error("internal_history_sync partial warnings",JSON.stringify(result.errors));return Response.json(result,{headers:CORS})}
    catch(e){console.error("internal_history_sync failed",e instanceof Error?(e.stack||e.message):String(e));return Response.json({ok:false,error:String(e instanceof Error?e.message:e)},{status:502,headers:CORS})}
  }
- let auth:DashboardAuth;try{auth=await dashboardAuth()}catch(e){console.error("dashboard auth unavailable",e instanceof Error?e.message:String(e));return Response.json({ok:false,error:"인증 설정을 불러오지 못했습니다."},{status:503,headers:CORS})}
- if(!await validSession(req.headers.get("x-dashboard-session")||"",auth))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
+ // 거래 기록은 읽기 전용 공개 화면에서 사용한다. 계좌 조회·포지션 제어·주문
+ // ON/OFF는 아래 세션 검증을 반드시 거치며, 공개 기록 요청은 BingX API를 직접
+ // 호출하지 않고 주기적으로 동기화된 DB 스냅샷만 반환한다.
+ const publicHistory=body.action==="trade_history";
+ if(!publicHistory){
+  let auth:DashboardAuth;try{auth=await dashboardAuth()}catch(e){console.error("dashboard auth unavailable",e instanceof Error?e.message:String(e));return Response.json({ok:false,error:"인증 설정을 불러오지 못했습니다."},{status:503,headers:CORS})}
+  if(!await validSession(req.headers.get("x-dashboard-session")||"",auth))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
+ }
 
  // 실거래 긴급 정지 스위치 상태 조회. test_mode 여부와 상관없이 지금 도는 실제 주문을 전부 보여준다.
  if(body.action==="trading_state"){
@@ -236,9 +242,9 @@ Deno.serve(async(req:Request)=>{
 
  if(body.action==="trade_history"){
    try{
-     // 페이지를 열 때 BingX의 현재 포지션 + 실제 Position History를 먼저 동기화한다.
-     // 봇 내부 주문(real_trades)은 절대 이 화면의 거래내역으로 사용하지 않는다.
-     const sync=await syncActualBingxHistory();
+     // 공개 화면에서는 BingX 비밀 API를 직접 호출하지 않는다. 별도 내부 스케줄러가
+     // 동기화한 실제 Position History만 읽어 API 키와 거래소 호출 한도를 보호한다.
+     const sync={ok:true,source:"scheduled_snapshot"};
      const page=Math.max(1,Math.floor(Number(body.page||1))),limit=Math.max(1,Math.min(50,Math.floor(Number(body.limit||20)))),offset=(page-1)*limit;
      const all=await db("bingx_trade_history?status=in.(open,closed)&select=*&order=opened_at.desc&limit=2000");
      const mapped=(all||[]).map((x:any)=>{
@@ -248,14 +254,13 @@ Deno.serve(async(req:Request)=>{
        const pnl=closed?(x.realized_pnl_usd==null?null:n(x.realized_pnl_usd)):(x.unrealized_pnl_usd==null?null:n(x.unrealized_pnl_usd));
        const roi=margin>0&&pnl!=null?pnl/margin*100:null;
        const base=notional>0&&pnl!=null?pnl/notional*100:null;
-       return {id:x.external_id,position_id:x.position_id,signal_id:null,
-         symbol:String(x.symbol||"").replace("-USDT",""),bingx_symbol:x.symbol,side:x.side,
+       return {symbol:String(x.symbol||"").replace("-USDT",""),side:x.side,
          signal_type:"BingX API",status:x.status,test_mode:false,margin_usd:margin||null,leverage:lev||null,
          notional_usd:notional||null,quantity:qty||null,entry_price:entry||null,stop_price:null,target_price:null,
          fill_price:entry||null,fee_usd:fee||null,close_price:close||null,close_reason:closed?"BingX 포지션 종료":null,
          net_pnl_usd:pnl,reject_reason:null,created_at:x.opened_at,updated_at:x.synced_at,closed_at:x.closed_at,
          unrealized_pnl_usd:closed?null:pnl,base_return_pct:base,margin_return_pct:roi,r_multiple:null,
-         evaluation:!closed?"진행 중":pnl!=null&&pnl>0?"성공":pnl!=null&&pnl<0?"실패":"중립",raw};
+         evaluation:!closed?"진행 중":pnl!=null&&pnl>0?"성공":pnl!=null&&pnl<0?"실패":"중립"};
      });
      const rows=mapped.slice(offset,offset+limit),closed=mapped.filter((x:any)=>x.status==="closed"&&x.net_pnl_usd!=null);
      const pnls=closed.map((x:any)=>n(x.net_pnl_usd)),rois=closed.filter((x:any)=>n(x.margin_usd)>0).map((x:any)=>n(x.net_pnl_usd)/n(x.margin_usd)*100);
