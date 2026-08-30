@@ -1,23 +1,25 @@
 {
-  "version": "ab_stage16_preparation_v2",
+  "version": "ab_stage16_public150_v3",
   "algorithm": "SHA256 UTF8 normalized LF",
-  "scope": "Local baseline; account-read deployment blocked; see B_PRELIVE_STATUS.md",
+  "scope": "Public B history approved; live capital150; live execution incomplete; see B_PRELIVE_STATUS.md",
   "sha256": {
     "strategy/mdd30_standard.json": "f9442aef537ddd2314b83d7a26dbb10e7783dcb14efaf1bbac66bc37c69007e2",
     "supabase/functions/coin-collector/index.ts": "6d25a12b89993b1a9d68e50d516061fbd83a0e444f1325477728940ac4858c43",
     "supabase/functions/coin-collector/answer_trees.ts": "9a483fd33c540f6601b01901143313b81c89e8c3a9ccd257141f86694f34e31b",
     "supabase/functions/bingx-order-execute/index.ts": "5f1e20c4dda80ccc0d4cdf22a6341f19a859964de6adbae622b5f600cbc839b2",
     "supabase/functions/bingx-order-submit/index.ts": "34e3eeee98ba82d859b9941a7be05b73b20d34785ba19e25fa7180552fac2eb1",
-    "strategy/plan_b_standard.json": "533eac3a72ae664e4b5adb99bfc92f904e737dd8362bca486b5cc31fb348681d",
-    "supabase/functions/_shared/plan_b_standard.json": "533eac3a72ae664e4b5adb99bfc92f904e737dd8362bca486b5cc31fb348681d",
+    "strategy/plan_b_standard.json": "6d4bf03380fe13b2e807693bde88967171398e6deb7625f107825c589bf37f32",
+    "supabase/functions/_shared/plan_b_standard.json": "6d4bf03380fe13b2e807693bde88967171398e6deb7625f107825c589bf37f32",
     "supabase/functions/_shared/plan_b_sizing.mjs": "6e548f4be1c895a05bb25c73360a4545050d9483d3bcc6d7e7b5b93af75f3fc2",
     "supabase/functions/plan-b-strategy/index.ts": "2c453769aa9abc09be9c1db6d10f3fb1317f3ab1d36ff4a41dd66ad8cc9bde61",
-    "supabase/functions/plan-b-account-read/index.ts": "876004f4dcc518b9e37c791a1889f4d398de3f0246fbd4374b664ede16591e01",
+    "supabase/functions/plan-b-account-read/index.ts": "24b341375c12976789715e72c7b2e49ff2c6709bdd7319483d94e76638c8690d",
     "strategy/plan_b_execution_standard.json": "11ad18453eda2367c26fe21a651476ad71846a039fb008f90d9177b80bf2797b",
     "research/scripts/replay_reserved_margin_stage16.py": "ac2341e2e87bfab3af1c1f1f50d4028d0a1b8fb69a63be7f257b50cd15f7061a",
     "research/results/reserved_margin_stage16.json": "b665540c1deb319738a5370be1589761afd07e52e8cf0d8558111667096ac019",
     "supabase/functions/_shared/plan_b_signals.mjs": "bb623b461218353b4fca9fcbb6f4ad29576be0bdc4952fb78e361a46c9448147",
     "supabase/functions/_shared/plan_b_order_lifecycle.mjs": "cd4e60a588a151b35efc4fae6e830cc3d291f7c5fbf3efa168f0e97d84f48a25",
-    "supabase/functions/_shared/plan_b_execution_guard.ts": "061c06aa8aa1afa3679555416cd1aa389772dfb69596e628cdb4c899da30143c"
+    "supabase/functions/_shared/plan_b_execution_guard.ts": "061c06aa8aa1afa3679555416cd1aa389772dfb69596e628cdb4c899da30143c",
+    "supabase/functions/_shared/plan_b_exchange.mjs": "c38122517238a4bfc088a71017eeb0277ba493ed6d369694875dbd86e37b15fe",
+    "supabase/functions/plan-b-executor/index.ts": "baf3b9ee7e3526fe2a4ccc89e39cb422463196c5db0bcda65a009448802f510a"
   }
 }

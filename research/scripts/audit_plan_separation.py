@@ -22,6 +22,9 @@ def main():
     assert b['strategy_id'] == 'b_reserved_margin_stage16'
     assert not b['live_ready'] and not b['enabled'] and b['test_mode']
     assert b['acceptance']['return_floor_exception']
+    assert b['live_account']['starting_capital_usd'] == 150
+    assert b['live_account']['public_trade_history'] is True
+    assert b['reference']['start_usd'] == 100
     assert set(a['assets']).isdisjoint(b['symbols'])
     assert {s: (v['actual_hold_hours'], v['leverage']) for s,v in b['symbols'].items()} == {
         'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2)}
@@ -30,7 +33,7 @@ def main():
                   if r['target_margin_fraction'] == 1.15)
     for key in ('start_usd','end_usd','return_pct','closed_trade_mdd_pct','hourly_mark_mdd_pct','trades','win_rate_pct'):
         assert abs(result[key] - b['reference'][key]) < 1e-8, key
-    for name in ('plan-b-strategy', 'plan-b-account-read'):
+    for name in ('plan-b-strategy', 'plan-b-account-read', 'plan-b-executor'):
         source = (ROOT / f'supabase/functions/{name}/index.ts').read_text(encoding='utf-8')
         for forbidden in ('BINGX_API_KEY', 'BINGX_SECRET_KEY', 'trade_signals',
                           'real_trading_state', 'real_trades', 'novel_multi_pattern_aggressive_stage14', '5.75', '20.7'):

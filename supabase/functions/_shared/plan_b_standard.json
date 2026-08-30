@@ -7,6 +7,13 @@
   "enabled": false,
   "test_mode": true,
   "live_ready": false,
+  "live_account": {
+    "starting_capital_usd": 150,
+    "basis": "user_declared_performance_baseline_not_verified_deposit",
+    "public_trade_history": true,
+    "public_history_approved_on": "2026-08-30",
+    "order_sizing_basis": "actual_exchange_equity_and_available_margin"
+  },
   "acceptance": {
     "return_floor_exception": true,
     "reason": "User explicitly adopted corrected Stage16 despite return below prior 1000000% research threshold",
