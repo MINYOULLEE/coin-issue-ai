@@ -1,0 +1,40 @@
+{
+  "plan": "B",
+  "status": "prepared_not_live",
+  "isolation": {
+    "reuse_plan_a_api": false,
+    "reuse_plan_a_account": false,
+    "reuse_plan_a_positions": false,
+    "reuse_plan_a_trade_history": false
+  },
+  "entry_sla": {
+    "target_dispatch_ms": 1000,
+    "warning_after_ms": 10000,
+    "hard_expiry_ms": 300000,
+    "retry_delays_ms": [250, 750, 1500],
+    "max_submit_attempts": 3
+  },
+  "execution": {
+    "order_type": "MARKET",
+    "deterministic_client_order_id": true,
+    "lookup_before_every_retry": true,
+    "one_order_per_signal": true,
+    "max_adverse_price_move_pct": 0.35,
+    "cancel_signal_when_stale": true,
+    "never_chase_after_expiry": true
+  },
+  "monitoring": {
+    "ack_timeout_ms": 3000,
+    "fill_reconcile_interval_ms": 500,
+    "fill_reconcile_timeout_ms": 10000,
+    "alert_after_ms": 15000,
+    "required_timestamps": [
+      "signal_confirmed_at",
+      "dispatch_started_at",
+      "exchange_accepted_at",
+      "filled_at"
+    ]
+  },
+  "research_reference": "ETC-LINK-5M-EXECUTION-stage6",
+  "rule": "5분 성과를 의도적 대기 규칙으로 사용하지 않는다. 신호 확정 즉시 전송하고 5분을 넘긴 신호는 폐기한다."
+}
