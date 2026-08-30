@@ -13,7 +13,7 @@ async function run(code){return vm.runInContext(code,context)}
  await run("pcRefresh('A')");await run("pcRefresh('B')");
  assert(calls.filter(c=>c.url.endsWith('bingx-account-read')).every(c=>c.token==='token-A'));
  assert(calls.filter(c=>c.url.endsWith('plan-b-account-read')).every(c=>c.token==='token-B'));
- assert.equal(el('pc-status-B').textContent,'실거래 · 신규 주문 허용');
+ assert.equal(el('pc-status-B').textContent,'실거래 · 신규 주문 허용 · 신호·체결 상태 미확인');
  await run("pcToggle('B')");const toggle=calls.find(c=>c.body.action==='trading_toggle');assert.equal(toggle.body.enabled,false);assert(toggle.url.endsWith('plan-b-account-read'));assert.equal(toggle.token,'token-B');
  fail=503;await run("pcRefresh('B')");assert.match(el('pc-status-B').textContent,/미확인/);assert.equal(storage.get('plan_b_dashboard_session'),'token-B');assert.equal(await run('pcRuntime.B.state'),null);
  fail=401;await run("pcRefresh('B')");assert.equal(storage.has('plan_b_dashboard_session'),false);assert.equal(storage.get('bingx_dashboard_session'),'token-A');

@@ -4,7 +4,7 @@
 
 - 정본: `strategy/mdd30_standard.json`
 - ID: `answer_mdd30`, 버전 `mdd30_final_2026_08_29`
-- BTC/ETH/XRP/TRX/SOL, 5개 독립 트리, 매일 UTC 00:00(태국 07:00) 리밸런싱.
+- BTC/ETH/XRP/TRX/SOL, 5개 독립 트리, UTC 00시 시작 시간봉(00:59:59.999 마감)을 사용하고, 마감 후 UTC 01:00(태국 08:00)에 리밸런싱. 기존 실행 시각은 변경하지 않고 표시만 교정.
 - 거래소 레버리지 10배, 총 명목노출 최대 1.6배, 고정 손절/익절 없음.
 - `BINGX_API_KEY` / `BINGX_SECRET_KEY`; `trade_signals`, `real_trading_state`, `real_trades`, `bingx_trade_history` 사용.
 - A 문구의 '종목별 A+B'는 A 모델 내부 구성이다. 플랫폼 B플랜과 혼동 금지.

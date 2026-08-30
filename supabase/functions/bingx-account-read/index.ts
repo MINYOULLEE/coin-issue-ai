@@ -236,7 +236,11 @@ Deno.serve(async(req:Request)=>{
      const state=rows?.[0]||null;
      const openTrades=await db("real_trades?status=eq.open&select=symbol,side,signal_type,margin_usd,leverage,notional_usd,entry_price,stop_price,target_price,test_mode,bingx_order_id,created_at&order=created_at.desc");
      const recentTrades=await db("real_trades?status=neq.open&select=symbol,side,signal_type,status,margin_usd,leverage,net_pnl_usd,test_mode,bingx_order_id,reject_reason,close_reason,created_at,closed_at&order=created_at.desc&limit=30");
-     return Response.json({ok:true,state,open_trades:openTrades||[],recent_trades:recentTrades||[]},{headers:CORS});
+     const pending=await db("trade_execution_reservations?select=execution_status,last_error");
+     const snapshots=await db("coin_snapshots?id=eq.live&select=payload,updated_at");
+     const snap=snapshots?.[0],c=snap?.payload?.signal_candidates;
+     const diagnostics={pending_entries:pending?.length||0,recovery_errors:(pending||[]).filter((x:any)=>x.last_error).length,signal_status:!snap||Date.now()-Date.parse(snap.updated_at)>180000?"stale":c?.entry_recovery?.ok===false?"error":(snap.payload.active_signals||[]).some((x:any)=>x.signal_type==="answer_mdd30"&&x.status==="active")?"active":"no_signal",decision_status:c?.hourly_audit?.status||"unknown"};
+     return Response.json({ok:true,state,diagnostics,open_trades:openTrades||[],recent_trades:recentTrades||[]},{headers:CORS});
    }catch(e){return Response.json({ok:false,error:"실거래 상태 조회 실패"},{status:502,headers:CORS})}
  }
 

@@ -44,8 +44,16 @@ Deno.serve(async req=>{
   if(!["execute","close"].includes(body.action))return Response.json({ok:false,error:"unknown action"},{status:400});
   if(body.action==="execute"&&!runtime.live_ready)return Response.json({ok:true,plan:"B",mode:"entry_locked",processed:0});
   // Recovery performs only lookups; no blind resubmission after a timeout.
-  await reconcileEntries({sb,bx});
-  const result=body.action==="execute"?await executeBatch({sb,bx}):await closeDue({sb,bx});
-  return Response.json({ok:true,plan:"B",execution_version:runtime.execution_version,...result});
+  const recoveryErrors=await reconcileEntries({sb,bx});
+  // Keep exit management running; incomplete recovery must not be reported as success.
+  const result=body.action==="execute"?(recoveryErrors.length?{mode:"reconciliation_required",processed:0}:await executeBatch({sb,bx})):await closeDue({sb,bx});
+  if(recoveryErrors.length){
+   console.error("B entry recovery errors",JSON.stringify(recoveryErrors));
+   const logged=await sb.from("system_errors").insert({source:"plan-b-entry-recovery",status_code:503,message:JSON.stringify(recoveryErrors).slice(0,1500),fingerprint:"plan-b-entry-recovery-"+new Date().toISOString().slice(0,16)});
+   if(logged.error)console.error("B recovery error log failed",logged.error.message);
+  }
+  const outcome={plan:"B",execution_version:runtime.execution_version,...result,ok:!recoveryErrors.length&&result.ok!==false,recovery_errors:recoveryErrors};
+  await checked(sb.from("plan_b_runtime_health").upsert({id:body.action,payload:outcome,updated_at:new Date().toISOString()}));
+  return Response.json(outcome,{status:recoveryErrors.length?503:200});
  }catch(e){console.error("B cycle failed",String(e.message));return Response.json({ok:false,plan:"B",error:String(e.message)},{status:503});}
 });

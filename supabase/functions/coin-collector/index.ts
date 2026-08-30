@@ -402,6 +402,13 @@ async function manageSignals(market,old){
     candidates.run_order_transport_test=false;
     candidates.last_order_transport_test={...(await triggerOrderTransportTest()),checked_at:nowIso};
   }
+  // Reconcile durable A entry intents by exchange lookup only, even outside the decision hour.
+  try {
+  const recoveryResponse=await fetch(PROJECT_URL+"/functions/v1/bingx-order-submit",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":Deno.env.get("INTERNAL_TRADE_SECRET")||""},body:JSON.stringify({action:"recover"}),signal:AbortSignal.timeout(20000)});
+  const recoveryResult=await recoveryResponse.json();
+  candidates.entry_recovery={...recoveryResult,checked_at:nowIso};
+  if(!recoveryResponse.ok||!recoveryResult.ok)console.error("A entry recovery pending",JSON.stringify(recoveryResult));
+  }catch(e){candidates.entry_recovery={ok:false,error:String(e.message),checked_at:nowIso};console.error("A entry recovery unavailable",String(e.message));}
   const liveOpenResponse=await fetch(PROJECT_URL+"/rest/v1/real_trades?status=eq.open&select=signal_id,executor_version",{headers:adminHeaders()});
   if(!liveOpenResponse.ok)throw Error("open real trade fetch "+liveOpenResponse.status+" "+await liveOpenResponse.text());
   const liveOpenRows=await liveOpenResponse.json();
@@ -455,6 +462,7 @@ async function manageSignals(market,old){
     // entry is a terminally invalid signal, so use the schema-supported status
     // and keep the execution reason for auditability.
     if(!execution?.ok||execution?.skipped){await patchSignal(s.id,{status:"invalidated",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
+    if(!execution.queued&&!execution.pending)liveOpenSignalIds.add(Number(s.id));
     byId[s.id]=s;return s;
   }
   // Five independent answer trees make one decision from the completed 00:00
@@ -483,6 +491,7 @@ async function manageSignals(market,old){
         }else{audit.push({symbol,status:"close_failed",reason:"승계 포지션 청산 실패 · 신규진입 차단"});continue}
       }
       const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
+      if(current&&(reservedSignalIds.has(Number(current.id))||!liveOpenSignalIds.has(Number(current.id)))){audit.push({symbol,status:"entry_pending",reason:"거래소 체결 확인/복구 대기"});continue;}
       if(current&&(!answer?.side||current.side!==answer.side||Math.abs(Number(current.entry_metrics?.strategy_config?.exposure_multiplier||0)-Number(answer.exposure||0))>.000001||legacyExecutorSignalIds.has(Number(current.id)))){
         const reason=!answer?.side?`${symbol} 현금 전환`:current.side!==answer.side?`${symbol} 방향 전환`:legacyExecutorSignalIds.has(Number(current.id))?`${symbol} 최종 v${REQUIRED_EXECUTOR_VERSION} 포지션 크기 교정`:`${symbol} 확신도 배수 변경`;
         if(await triggerClose(current,reason)){
@@ -492,9 +501,9 @@ async function manageSignals(market,old){
       }
       const stillOpen=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
       const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure),10,24,[`${symbol} 5년 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`원본 ${Number(answer.raw_exposure).toFixed(3)}배 × 방어비중 ${Number(answer.portfolio_weight).toFixed(3)}`],0,Number(answer.confidence)*100,forceAnswerRebalance):null;
-      audit.push({symbol,status:entered?"entered":stillOpen?"held":answer?.side?"entry_failed":"cash",answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
+      audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?"held":answer?.side?"entry_failed":"cash",answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
-    const completed=!audit.some(x=>["close_failed","entry_failed"].includes(x.status));
+    const completed=!audit.some(x=>["close_failed","entry_failed","entry_pending"].includes(x.status));
     if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
     candidates.hourly_audit={closed_at:closedDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
     if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});

@@ -53,7 +53,10 @@ Deno.serve(async (req) => {
           return { symbol, ok: true, stored: true, signal_key: row.signal_key, side: row.side };
         } catch (e) { return { symbol, ok: false, error: e instanceof Error ? e.message : "signal generation failed" }; }
       }));
-      return Response.json({ ok: results.every((x) => x.ok), plan: "B", strategy_id: STANDARD.strategy_id, mode: "run", results });
+      const outcome={ ok: results.every((x) => x.ok), plan: "B", strategy_id: STANDARD.strategy_id, mode: "run", results };
+      const {error:healthError}=await sb.from("plan_b_runtime_health").upsert({id:"signals",payload:outcome,updated_at:new Date().toISOString()});
+      if(healthError)throw healthError;
+      return Response.json(outcome);
     }
 
     return Response.json({ ok: false, error: "unknown action" }, { status: 400 });
