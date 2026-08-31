@@ -1,3 +1,6 @@
+import {createDashboardSessions,reserveLoginAttempt} from "../_shared/dashboard_sessions.mjs";
+import {allHistoryPages} from "../_shared/history_pages.mjs";
+const planSessions=createDashboardSessions("A");
 import { createHmac } from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
 
@@ -200,20 +203,20 @@ async function dashboardAuth():Promise<DashboardAuth>{
   dashboardAuthCache={password_salt:String(v.password_salt),password_hash:String(v.password_hash),session_secret:String(v.session_secret)};
   return dashboardAuthCache;
 }
-const attempts=new Map<string,{count:number;reset:number}>(),te=new TextEncoder();
+const te=new TextEncoder();
 function fromB64u(s:string){const p=s.replace(/-/g,"+").replace(/_/g,"/")+"===".slice((s.length+3)%4);return Uint8Array.from(atob(p),c=>c.charCodeAt(0))}
 function toB64u(a:Uint8Array){return btoa(String.fromCharCode(...a)).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"")}
 async function passwordHash(password:string,auth:DashboardAuth){const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]);const bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:fromB64u(auth.password_salt),iterations:210000,hash:"SHA-256"},k,256);return toB64u(new Uint8Array(bits))}
 function same(a:string,b:string){if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
 async function sign(v:string,auth:DashboardAuth){const k=await crypto.subtle.importKey("raw",te.encode(auth.session_secret),{name:"HMAC",hash:"SHA-256"},false,["sign"]);return toB64u(new Uint8Array(await crypto.subtle.sign("HMAC",k,te.encode(v))))}
-async function issueSession(auth:DashboardAuth){const p=toB64u(te.encode(JSON.stringify({exp:Date.now()+14400000,nonce:crypto.randomUUID()})));return p+"."+await sign(p,auth)}
-async function validSession(t:string,auth:DashboardAuth){const [p,s]=t.split(".");if(!p||!s||!same(await sign(p,auth),s))return false;try{return Number(JSON.parse(new TextDecoder().decode(fromB64u(p))).exp)>Date.now()}catch{return false}}
+async function issueSession(auth:DashboardAuth){return planSessions.issue(auth.session_secret)}
+async function validSession(t:string,auth:DashboardAuth){return planSessions.valid(t,auth.session_secret)}
 
 Deno.serve(async(req:Request)=>{
  if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405,headers:CORS});
  let body:Record<string,unknown>={};try{body=await req.json()}catch{}
- if(body.action==="login"){try{const auth=await dashboardAuth(),ip=req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()||"unknown",now=Date.now(),a=attempts.get(ip);if(a&&a.reset>now&&a.count>=5)return Response.json({ok:false,error:"15분 후 다시 시도하세요."},{status:429,headers:{...CORS,"Retry-After":"900"}});const ok=same(await passwordHash(String(body.password||""),auth),auth.password_hash);if(!ok){attempts.set(ip,{count:a&&a.reset>now?a.count+1:1,reset:now+900000});return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS})}attempts.delete(ip);return Response.json({ok:true,session:await issueSession(auth),expires_in:14400},{headers:CORS})}catch(e){console.error("dashboard login unavailable",e instanceof Error?e.message:String(e));return Response.json({ok:false,error:"인증 설정을 불러오지 못했습니다."},{status:503,headers:CORS})}}
+ if(body.action==="login"){try{const auth=await dashboardAuth(),budget=await reserveLoginAttempt(req,"A",auth.session_secret,params=>db("rpc/dashboard_login_attempt",{method:"POST",body:JSON.stringify(params)}));if(!budget.allowed)return Response.json({ok:false,error:"로그인 시도 한도 초과 · 잠시 후 다시 시도하세요."},{status:429,headers:{...CORS,"Retry-After":String(budget.retry_after)}});const password=String(body.password||"");if(password.length>1024)return Response.json({ok:false,error:"invalid password length"},{status:400,headers:CORS});if(!same(await passwordHash(password,auth),auth.password_hash))return Response.json({ok:false,error:"비밀번호가 맞지 않습니다."},{status:401,headers:CORS});return Response.json({ok:true,session:await issueSession(auth),expires_in:14400},{headers:CORS})}catch(e){console.error("dashboard login unavailable");return Response.json({ok:false,error:"로그인 보호 상태 확인 실패 · 잠시 후 다시 시도하세요."},{status:503,headers:CORS})}}
  if(body.action==="internal_history_sync"){
    const supplied=req.headers.get("x-internal-key")||"";
    if(!INTERNAL_TRADE_SECRET||!same(supplied,INTERNAL_TRADE_SECRET))return Response.json({ok:false,error:"forbidden"},{status:403,headers:CORS});
@@ -250,7 +253,7 @@ Deno.serve(async(req:Request)=>{
      // 동기화한 실제 Position History만 읽어 API 키와 거래소 호출 한도를 보호한다.
      const sync={ok:true,source:"scheduled_snapshot"};
      const page=Math.max(1,Math.floor(Number(body.page||1))),limit=Math.max(1,Math.min(50,Math.floor(Number(body.limit||20)))),offset=(page-1)*limit;
-     const all=await db("bingx_trade_history?status=in.(open,closed)&select=*&order=opened_at.desc&limit=2000");
+     const all=await allHistoryPages((offset,limit)=>db(`bingx_trade_history?status=in.(open,closed)&select=*&order=opened_at.desc,external_id.desc&limit=${limit}&offset=${offset}`));
      const mapped=(all||[]).map((x:any)=>{
        const raw=x.raw||{},entry=n(x.entry_price),close=n(x.close_price),qty=n(x.quantity),margin=n(x.margin_usd),lev=n(x.leverage)||1;
        const notional=n(raw.positionValue??raw.openAmt??raw.totalOpen??raw.openValue)||(entry&&qty?entry*qty:0);
@@ -272,7 +275,7 @@ Deno.serve(async(req:Request)=>{
       const totalFee=closed.reduce((a:number,x:any)=>a+Math.abs(n(x.fee_usd)),0);
       const winPnl=wins.reduce((a:number,v:number)=>a+v,0),lossPnl=losses.reduce((a:number,v:number)=>a+v,0);
       const openPnl=mapped.filter((x:any)=>x.status==="open"&&x.net_pnl_usd!=null).reduce((a:number,x:any)=>a+n(x.net_pnl_usd),0);
-      // 실거래 기록의 "현재 담보금"은 확정된 종료 손익만 반영한다.
+      // 실현 기준금은 시작 $100 + 확정 종료 손익이며 실제 계좌 담보금이 아니다.
       // 진행 중 포지션의 미실현 손익은 계속 변하므로 별도 equity 필드로 제공한다.
       const currentBalance=100+totalPnl;
       const equityIncludingOpen=currentBalance+openPnl;

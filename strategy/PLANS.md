@@ -53,6 +53,8 @@
 
 ## 검증 명령
 
+2026-08-31 인증·기록 보수 최신 상태: `SECURITY_HISTORY_REPAIR_20260831.md`. A/B 세션은 플랜별로 분리하며 구형 세션은 거절한다. 로그인 제한은 DB 기반이다. 뉴스 3곳의 403 차단은 미해결이며 정상으로 간주하지 않는다. 자동매매 ON 상태 및 전략은 변경하지 않았다.
+
 `python research/scripts/audit_plan_separation.py`
 
 `python research/scripts/test_reserved_margin_stage16.py`

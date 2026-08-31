@@ -1,5 +1,5 @@
 {
-  "version": "ab_stage26_approved_rollout_20260831_v9",
+  "version": "ab_security_history_repair_20260831_v10",
   "algorithm": "SHA256 UTF8 normalized LF",
   "scope": "User approved B Stage26 integration; A hashes preserved. Contract alignment and rollout evidence tracked separately.",
   "sha256": {
@@ -12,7 +12,7 @@
     "supabase/functions/_shared/plan_b_standard.json": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f",
     "supabase/functions/_shared/plan_b_sizing.mjs": "b52cc3aaa99742ab5b8422c0484a5f15be06e2295dfdc43b5809b36cd5c38d53",
     "supabase/functions/plan-b-strategy/index.ts": "31a6e516b3b870d05a4d8423d22f1e228feffbcfad79d13361e72a1e9f719caa",
-    "supabase/functions/plan-b-account-read/index.ts": "4b64a580358bdf37e0fdf37eeacfcf001602b2810c7fa1768c086aff348d7138",
+    "supabase/functions/plan-b-account-read/index.ts": "0d427e1513b3e142110e37672fc389e77ff1fe2b4b3cc48d85ea9f2f40bc59a6",
     "strategy/plan_b_execution_standard.json": "c69f319fa0b6a35436cefb752ee4ce78a57b1c7267c90f137d6a1e99f574b483",
     "research/scripts/replay_reserved_margin_stage16.py": "ac2341e2e87bfab3af1c1f1f50d4028d0a1b8fb69a63be7f257b50cd15f7061a",
     "research/results/reserved_margin_stage16.json": "b665540c1deb319738a5370be1589761afd07e52e8cf0d8558111667096ac019",
@@ -28,7 +28,7 @@
     "research/scripts/test_plan_b_live_cycle.mjs": "e91f4c8ac9505207b66dcc27c44221f16b937eb9e3857bd728ed3b2622d725f0",
     "research/scripts/test_plan_b_exchange.mjs": "d2c1f0c3f47592b36a7e17a1473225fb9147d0168ac0325c7cf8b502320d3771",
     "supabase/functions/_shared/a_entry_cycle.mjs": "f004c5b0a047975dd64b8e9fb8a6ae7d1b4afec6bb9f92d0ded1b6b5c385a533",
-    "supabase/functions/bingx-account-read/index.ts": "7dd100b79f7fc2db9903d5929fd496b675d0a742c47c0c5bf00e9b5db28a6049",
+    "supabase/functions/bingx-account-read/index.ts": "ef26f47c1ce74e65e31703fe801f2e629fd50d39be23f248d0d5c8a2779d288f",
     "supabase/functions/telegram-trade-notify/index.ts": "e5aae2cebb0ada9dc16a1a496191af0436a0b227493ca7c1538e167194297dc8",
     "supabase/repairs/execution_1_to_5_20260831.sql": "1dcfe08c4572c2485c43682f0862108baa67738aa156843211b1ad9de57cee2b",
     "research/scripts/test_a_entry_cycle.mjs": "25a119f8901de535a1d497b0edfecf066dbbb7f6c740c220c834ad88243f5814",
@@ -49,7 +49,11 @@
     "supabase/repairs/plan_b_stage26.sql": "51cb85016a8862b7b9bcb025fc6fe5e0beee74c9cb4131e056e23f745f7a223f",
     "supabase/repairs/plan_b_stage26_reservations.sql": "a31cc02d2e934bd5bfea5265542fbaab2fc480db5ddc746d1cb146cace95dee7",
     "research/scripts/test_plan_b_signal_cycle.mjs": "b63094175999ee4679bf6071ef5bae18e8bbf66b91253a1c6855cfbda557ed73",
-    "supabase/functions/telegram-bot-webhook/index.ts": "75ecbda465a2c859061629a7027e2ace0df6788c0448757f29afa02b83329684",
-    "docs/index.html": "a96ccf66c1317420918d5618e1fb8b7e94749255fe31376b0a8df5529afd1045"
+    "supabase/functions/telegram-bot-webhook/index.ts": "685fac2072594b26ce97a82151cd7773e966c845bff7a644739e0a60bc14a6a0",
+    "docs/index.html": "a96ccf66c1317420918d5618e1fb8b7e94749255fe31376b0a8df5529afd1045",
+    "supabase/functions/_shared/dashboard_sessions.mjs": "9b76325af0361e69bced619185a7d1abd221a6b2d72ac65bf7db5e12af3522e9",
+    "supabase/functions/_shared/history_pages.mjs": "bb88502d142bd970df2d16b0d46e9d1ef704ce9dbefa51fc44244ac64a7319c0",
+    "research/scripts/test_dashboard_security.mjs": "7f976f0150d026916284725fda6bd13a269951807f1b2403c3539077c9986c99",
+    "supabase/repairs/dashboard_login_rate_limit.sql": "34419be2651eee9bb956dee65f8bd7447ca5d3972b329927044b60d0860d5c1c"
   }
 }

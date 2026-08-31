@@ -1,15 +1,15 @@
 {
-  "created_at": "2026-08-31T10:21:26.065662+00:00",
+  "created_at": "2026-08-31T10:51:38.726991+00:00",
   "adopted_version": "b_core_sparse_stage26_v1",
-  "archive_path": "research/archives/b_stage26_20260831_c3522a615a0868f0.zip",
-  "archive_bytes": 56323748,
-  "archive_sha256": "a58bcf0aa4f12c513ba4303aacfd3bf3d93d11e66b01abf92e83b7f71a737043",
-  "source_set_sha256": "c3522a615a0868f0225a4aef11bc87d82c61307acfa2282a5e8db7b8683e72d0",
+  "archive_path": "research/archives/b_stage26_20260831_1c9b42f0c096d83c.zip",
+  "archive_bytes": 56339689,
+  "archive_sha256": "07a14ccd2072f5ae6338a2c28389d163b5c336ae1b9eb885b9f05712afd588bf",
+  "source_set_sha256": "1c9b42f0c096d83c71271a11f2be752977c69b79bfa377abb4a84ba4efb391c3",
   "files": [
     {
       "path": "AGENTS.md",
-      "bytes": 2437,
-      "sha256": "1300abab7c77cd9c80176f861f2dc08094d757023759bd68ba9cd280c6c00917"
+      "bytes": 2708,
+      "sha256": "eaf3231a164516443230b6fd9d43e8a3f07944ec90eb7c4bbd730ea817e90fd4"
     },
     {
       "path": "docs/index.html",
@@ -1223,8 +1223,8 @@
     },
     {
       "path": "research/scripts/archive_b_adoption.py",
-      "bytes": 3682,
-      "sha256": "be76a5c3ae0334ee837f49be0607d885c5e332d00e2017c3400c2a502084635d"
+      "bytes": 3821,
+      "sha256": "78e4641671006fcd1a01bbd5a26e30e3ec52f42e4ac2b4feaf7694a7a46f1b39"
     },
     {
       "path": "research/scripts/audit_aggressive_liquidation_stage15.py",
@@ -1380,6 +1380,11 @@
       "path": "research/scripts/test_b_complement_research.py",
       "bytes": 1301,
       "sha256": "0533ccc03466a3ea3f871c403a1a11a208f96c595957ebca10b4c93663fdb27b"
+    },
+    {
+      "path": "research/scripts/test_dashboard_security.mjs",
+      "bytes": 2991,
+      "sha256": "7f976f0150d026916284725fda6bd13a269951807f1b2403c3539077c9986c99"
     },
     {
       "path": "research/scripts/test_execution_reporting.cjs",
@@ -1613,18 +1618,33 @@
     },
     {
       "path": "strategy/plan_freeze_manifest.json",
-      "bytes": 5987,
-      "sha256": "531bfe14a2ffea81849b4f1eda786ff84f37c52eaae5ca037e362080c154fdfb"
+      "bytes": 6475,
+      "sha256": "ae75feb4749afa891c376693003e99f103deef7bb9138ff9c39f1894e880ed3b"
     },
     {
       "path": "strategy/PLANS.md",
-      "bytes": 6653,
-      "sha256": "a00ca4d6d7f12661d83ec3558bc8b5d8c530cca99f7933c9572e0cf1729a83f5"
+      "bytes": 6992,
+      "sha256": "ff43d8c435a36c30e6bed8cd0ddb8b4f109afb13ac6d9ffffdf9c0842a6892c3"
+    },
+    {
+      "path": "strategy/SECURITY_HISTORY_REPAIR_20260831.md",
+      "bytes": 2909,
+      "sha256": "52f1d4c573bf0454cdf6d9b1fd1749a40a052df579894417a12cac6c6cfec309"
     },
     {
       "path": "supabase/functions/_shared/a_entry_cycle.mjs",
       "bytes": 6089,
       "sha256": "f004c5b0a047975dd64b8e9fb8a6ae7d1b4afec6bb9f92d0ded1b6b5c385a533"
+    },
+    {
+      "path": "supabase/functions/_shared/dashboard_sessions.mjs",
+      "bytes": 1728,
+      "sha256": "9b76325af0361e69bced619185a7d1abd221a6b2d72ac65bf7db5e12af3522e9"
+    },
+    {
+      "path": "supabase/functions/_shared/history_pages.mjs",
+      "bytes": 587,
+      "sha256": "bb88502d142bd970df2d16b0d46e9d1ef704ce9dbefa51fc44244ac64a7319c0"
     },
     {
       "path": "supabase/functions/_shared/news_fetch.mjs",
@@ -1692,14 +1712,19 @@
       "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
+      "path": "supabase/functions/bingx-account-read/index.ts",
+      "bytes": 26843,
+      "sha256": "ef26f47c1ce74e65e31703fe801f2e629fd50d39be23f248d0d5c8a2779d288f"
+    },
+    {
       "path": "supabase/functions/coin-collector/answer_trees.ts",
       "bytes": 56986,
       "sha256": "9a483fd33c540f6601b01901143313b81c89e8c3a9ccd257141f86694f34e31b"
     },
     {
       "path": "supabase/functions/plan-b-account-read/index.ts",
-      "bytes": 8671,
-      "sha256": "4b64a580358bdf37e0fdf37eeacfcf001602b2810c7fa1768c086aff348d7138"
+      "bytes": 9148,
+      "sha256": "0d427e1513b3e142110e37672fc389e77ff1fe2b4b3cc48d85ea9f2f40bc59a6"
     },
     {
       "path": "supabase/functions/plan-b-executor/index.ts",
@@ -1718,13 +1743,18 @@
     },
     {
       "path": "supabase/functions/telegram-bot-webhook/index.ts",
-      "bytes": 11932,
-      "sha256": "75ecbda465a2c859061629a7027e2ace0df6788c0448757f29afa02b83329684"
+      "bytes": 12166,
+      "sha256": "685fac2072594b26ce97a82151cd7773e966c845bff7a644739e0a60bc14a6a0"
     },
     {
       "path": "supabase/functions/telegram-trade-notify/index.ts",
       "bytes": 10463,
       "sha256": "e5aae2cebb0ada9dc16a1a496191af0436a0b227493ca7c1538e167194297dc8"
+    },
+    {
+      "path": "supabase/repairs/dashboard_login_rate_limit.sql",
+      "bytes": 1893,
+      "sha256": "34419be2651eee9bb956dee65f8bd7447ca5d3972b329927044b60d0860d5c1c"
     },
     {
       "path": "supabase/repairs/plan_b_stage26.sql",
