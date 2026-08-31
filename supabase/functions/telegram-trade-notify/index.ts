@@ -74,7 +74,11 @@ Deno.serve(async req=>{
   const [{data:bHealth,error:bHealthError},{data:bState,error:bStateError}]=await Promise.all([sb.from("plan_b_runtime_health").select("*"),sb.from("plan_b_trading_state").select("enabled,test_mode").eq("id","singleton").single()]);
   if(bHealthError||bStateError)throw bHealthError||bStateError;
   const problems=healthProblems({snapshot:snap?.[0],bHealth:bHealth||[],bState});
-  const stable=stableHealthAlerts(st.health_alerts||{},problems);
+  // Retired news incidents are not recoveries; preserve all trading alerts and delivery markers.
+  const priorHealth=snap?.[0]?.payload?.news_enabled===false
+    ? Object.fromEntries(Object.entries(st.health_alerts||{}).filter(([key])=>key!=='__news_state'&&!key.startsWith('news:')))
+    : st.health_alerts||{};
+  const stable=stableHealthAlerts(priorHealth,problems);
   const transitions=healthTransitions(stable.previous,stable.active);
   if(transitions.opened.length)await send("⚠️ 보조 기능 오류 감지\n"+transitions.opened.map(([,v])=>v).join("\n").slice(0,3000)+"\n실거래 ON/OFF는 변경하지 않았습니다.");
   if(transitions.resolved.length)await send("✅ 보조 기능 복구\n"+transitions.resolved.join("\n"));

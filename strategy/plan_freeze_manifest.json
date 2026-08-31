@@ -1,10 +1,10 @@
 {
-  "version": "ab_news_alert_stability_20260901_v12",
+  "version": "ab_news_retirement_20260901_v13",
   "algorithm": "SHA256 UTF8 normalized LF",
-  "scope": "User approved B Stage26 integration; A hashes preserved. Contract alignment and rollout evidence tracked separately.",
+  "scope": "Owner approved news retirement deployment to existing Supabase project and GitHub repository. A/B trading rules unchanged.",
   "sha256": {
     "strategy/mdd30_standard.json": "d0a0c7a9eb122ec5ae3b3869e7257af96401daffaf9dd1d41363cd756905bb6b",
-    "supabase/functions/coin-collector/index.ts": "c7e2f5487adad674abe2c8986ead3b430b14a2c153d987a7368f78a84c2135a5",
+    "supabase/functions/coin-collector/index.ts": "b62e69a7c21064e54767a2dd8961d0ec7711d1135e861990a99214130830c6a5",
     "supabase/functions/coin-collector/answer_trees.ts": "9a483fd33c540f6601b01901143313b81c89e8c3a9ccd257141f86694f34e31b",
     "supabase/functions/bingx-order-execute/index.ts": "cdcc667630268ff44eab04a1494b3b8615136225a4739b616d1a19218c1dc8c3",
     "supabase/functions/bingx-order-submit/index.ts": "b1f6afa9fafd2dadcc4b5e7f4b6c564e161726b1160ac14d5f827d0e9d3b4c59",
@@ -29,7 +29,7 @@
     "research/scripts/test_plan_b_exchange.mjs": "d2c1f0c3f47592b36a7e17a1473225fb9147d0168ac0325c7cf8b502320d3771",
     "supabase/functions/_shared/a_entry_cycle.mjs": "f004c5b0a047975dd64b8e9fb8a6ae7d1b4afec6bb9f92d0ded1b6b5c385a533",
     "supabase/functions/bingx-account-read/index.ts": "ef26f47c1ce74e65e31703fe801f2e629fd50d39be23f248d0d5c8a2779d288f",
-    "supabase/functions/telegram-trade-notify/index.ts": "76cbe7faaa2b6a63cbbe604938d32baab54a2ce58b37261522f68fec2435ce81",
+    "supabase/functions/telegram-trade-notify/index.ts": "cdc3f9851bc82870874149491ea590f2dd74aa0d4fc81162dcd7c59bbe0ec5fc",
     "supabase/repairs/execution_1_to_5_20260831.sql": "1dcfe08c4572c2485c43682f0862108baa67738aa156843211b1ad9de57cee2b",
     "research/scripts/test_a_entry_cycle.mjs": "25a119f8901de535a1d497b0edfecf066dbbb7f6c740c220c834ad88243f5814",
     "research/scripts/test_execution_reporting.cjs": "3e1a5cad12282fd0c05f84b32f60b2625e5ea7e4d8441fdb389303b08669f89b",
@@ -50,7 +50,7 @@
     "supabase/repairs/plan_b_stage26_reservations.sql": "a31cc02d2e934bd5bfea5265542fbaab2fc480db5ddc746d1cb146cace95dee7",
     "research/scripts/test_plan_b_signal_cycle.mjs": "b63094175999ee4679bf6071ef5bae18e8bbf66b91253a1c6855cfbda557ed73",
     "supabase/functions/telegram-bot-webhook/index.ts": "8199c339bb6a25262e1054da6ada3b5857f83cb56cf5e1fa12cfa6ff5eeac6cf",
-    "docs/index.html": "a96ccf66c1317420918d5618e1fb8b7e94749255fe31376b0a8df5529afd1045",
+    "docs/index.html": "6915e9adee836105ac2d2d5755e183315dca1e2e75eef5f1f7d56cb5f703a376",
     "supabase/functions/_shared/dashboard_sessions.mjs": "9b76325af0361e69bced619185a7d1abd221a6b2d72ac65bf7db5e12af3522e9",
     "supabase/functions/_shared/history_pages.mjs": "bb88502d142bd970df2d16b0d46e9d1ef704ce9dbefa51fc44244ac64a7319c0",
     "research/scripts/test_dashboard_security.mjs": "7f976f0150d026916284725fda6bd13a269951807f1b2403c3539077c9986c99",
@@ -60,6 +60,7 @@
     "supabase/repairs/telegram_trade_delivery.sql": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d",
     "supabase/functions/_shared/news_alert_stability.mjs": "16a0d11b8c1e29fbae443d2c6fb44a4ac8bdf77d0c66fe7656061d213b840e2c",
     "research/scripts/test_news_alert_stability.mjs": "bbcd47e8b7f742ac3033e752f5160b8585508fad2ba780ed8adaa72a9292bcc2",
-    "supabase/repairs/telegram_notify_timeout_20260901.sql": "a1fd5f1167061916a4fbda7f5bdaa36b31aef9a092d390c6843fbcab743ad466"
+    "supabase/repairs/telegram_notify_timeout_20260901.sql": "a1fd5f1167061916a4fbda7f5bdaa36b31aef9a092d390c6843fbcab743ad466",
+    "research/scripts/test_news_retirement.cjs": "bed32b104354429a5c500e991b3e0dbdb691017ffcf3cfe2f0dfafba867a9955"
   }
 }
