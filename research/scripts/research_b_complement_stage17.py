@@ -61,7 +61,7 @@ def main():
  print('Loading and reproducing frozen B baseline...',flush=True)
  series,entries,times=b.prepare();cuts=[times[0]+int((times[-1]+3600000-times[0])*k/3) for k in range(4)]
  baseline=b.replay(series,entries,times,1.15)
- expected=json.loads((core.ROOT/'strategy/plan_b_standard.json').read_text())['reference']
+ expected=json.loads((core.ROOT/'strategy/archive/plan_b_stage16_v1.json').read_text())['reference']
  assert abs(baseline['return_pct']-expected['return_pct'])<1e-6
  # Reuse exact frozen simulator with a per-proposal demand scale. Default 1 preserves B.
  source=inspect.getsource(b.replay)

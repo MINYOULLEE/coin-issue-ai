@@ -1,4 +1,4 @@
-// Stage26 adopted implementation candidate. NOT imported by the live executor yet.
+// Stage26 adopted signals and coordination. Imported by the atomic signal cycle.
 // Persistence/atomic reservation is mandatory: these pure functions do not reserve funds.
 import standard from './plan_b_combination_standard.json' with {type:'json'};
 import {decidePlanB} from './plan_b_signals.mjs';

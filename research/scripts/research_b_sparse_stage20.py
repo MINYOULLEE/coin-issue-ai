@@ -34,7 +34,7 @@ def main():
     src=inspect.getsource(s.b.replay).replace('target*(1+x','target*x.get("weight_scale",1.)*(1+x').replace('margin = target*shrink','margin = target*shrink*x.get("weight_scale",1.)')
     env=dict(s.b.__dict__);exec(src,env);run=env['replay']
     base=run(series,entries,times,1.15)
-    reference=json.loads((s.core.ROOT/'strategy/plan_b_standard.json').read_text())['reference']['return_pct']
+    reference=json.loads((s.core.ROOT/'strategy/archive/plan_b_stage16_v1.json').read_text())['reference']['return_pct']
     assert abs(base['return_pct']-reference)<1e-6
     baseline_stress=run(series,entries,times,1.15,cost_mult=2)
     all_candidates=[];rowsets={}

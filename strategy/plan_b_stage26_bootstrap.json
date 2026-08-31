@@ -1,0 +1,22 @@
+{
+  "state": {
+    "version": "b_core_sparse_stage26_v1",
+    "lastConfirmedAt": 1787814000000,
+    "coreBusyUntil": 1787472000000,
+    "nextEligibleAt": {
+      "AVAX": 1787382000000,
+      "ICP": 1787472000000,
+      "BCH": 1782349200000,
+      "DOGE": 1786964400000,
+      "UNI": 1787328000000,
+      "ALGO": 1780117200000,
+      "ETH": 1780686000000,
+      "VET": 1780549200000
+    }
+  },
+  "source": "archived Stage16 opportunities + Stage20 selected rules; cutoff before truncated tail",
+  "source_hashes": {
+    "strategy\\archive\\plan_b_stage16_v1.json": "6d4bf03380fe13b2e807693bde88967171398e6deb7625f107825c589bf37f32",
+    "research\\results\\b_sparse_stage20\\combinations.json": "3e7a9e318fe4dad6780817b1a14017ec6078340bf7b43e1edd119b2f80241d76"
+  }
+}

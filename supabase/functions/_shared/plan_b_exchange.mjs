@@ -83,7 +83,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
    return {symbol,expected,before:{long:Number(before.longLeverage),short:Number(before.shortLeverage)},after:{long:Number(after.longLeverage),short:Number(after.shortLeverage)},orders_submitted:0};
   },
   async lookup(order){try{return normalizeBOrder(await request('GET','/openApi/swap/v2/trade/order',{symbol:order.symbol+'-USDT',clientOrderId:order.clientOrderId}));}catch(e){if(e.code===109421)return {status:'not_found'};throw e;}},
-  async submit(order){if(order.plan!=='B'||!standard.symbols[order.symbol]||!order.clientOrderId.startsWith('pb16-')||!['long','short'].includes(order.side))throw Error('invalid B order');
+  async submit(order){if(order.plan!=='B'||!standard.symbols[order.symbol]||!(order.clientOrderId.startsWith(standard.isolation.client_order_prefix+'-')||(order.close&&order.clientOrderId.startsWith('pb16-')))||!['long','short'].includes(order.side))throw Error('invalid B order');
    const side=order.close?(order.side==='long'?'SELL':'BUY'):(order.side==='long'?'BUY':'SELL');
    return normalizeBOrder(await request('POST','/openApi/swap/v2/trade/order',{symbol:order.symbol+'-USDT',side,positionSide:order.side.toUpperCase(),type:'MARKET',quantity:order.quantity,clientOrderId:order.clientOrderId},order.close===true));
   }

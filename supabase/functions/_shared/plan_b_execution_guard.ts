@@ -26,7 +26,7 @@ export type EntryDecision =
 
 export function planBClientOrderId(signalId: number): string {
   if (!Number.isSafeInteger(signalId) || signalId <= 0) throw new Error("invalid Plan B signal id");
-  return `pb16-${signalId}`;
+  return `${standard.isolation.client_order_prefix}-${signalId}`;
 }
 
 export function validatePlanBEntry(signal: PlanBSignal, nowMs = Date.now()): EntryDecision {

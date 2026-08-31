@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {processReservedOrder} from '../../supabase/functions/_shared/plan_b_order_lifecycle.mjs';
-const order={plan:'B',clientOrderId:'pb16-1',quantity:2,entryDeadline:1000};
+const order={plan:'B',clientOrderId:'pb26-1',quantity:2,entryDeadline:1000};
 function context(lookup,submit){let claimed=false;return {events:[],store:{async claim(){if(claimed)return false;claimed=true;return true;},async finish(id,event){this.event=event;}},exchange:{lookup,submit},now:()=>0};}
 test('duplicate invocations submit once',async()=>{let n=0;const c=context(async()=>({status:'not_found'}),async()=>{n++;return {status:'filled',quantity:2,price:10};});await Promise.all([processReservedOrder(order,c),processReservedOrder(order,c)]);assert.equal(n,1);assert.equal(c.store.event.release,false);});
 test('ambiguous acceptance does not resubmit or release funds',async()=>{let n=0;const c=context(async()=>({status:'not_found'}),async()=>{n++;throw Error('timeout');});assert.equal((await processReservedOrder(order,c)).status,'unknown');assert.equal(n,1);assert.equal(c.store.event.release,false);});

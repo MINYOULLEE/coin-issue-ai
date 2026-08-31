@@ -3,7 +3,7 @@
   "profile": "aggressive",
   "standard_version": "b_core_sparse_stage26_v1",
   "strategy_id": "b_core_sparse_stage26",
-  "adoption_status": "user_adopted_20260831_implementation_pending",
+  "adoption_status": "user_adopted_20260831",
   "live_ready": false,
   "live_account": {
     "starting_capital_usd": 150,
@@ -182,12 +182,8 @@
     "client_order_prefix": "pb26"
   },
   "remaining_work": [
-    "Persist and bootstrap opportunity cooldown state with source parity",
-    "Atomic database core/supplement mutual exclusion and all-symbol signal batch publication",
-    "Executor, exchange adapter, UI and Telegram version-coherent rollout",
-    "ALGO/ETH/VET B-account contract, isolated margin and 3x both-side configuration checks",
-    "Concurrent worker, partial-fill and timeout integration tests",
-    "Forward/untouched-data and actual futures validation"
+    "B ALGO/ETH/VET both-side isolated leverage 3x confirmation; order preflight blocks mismatches",
+    "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
   "display_name": "B 공격형 · Stage16 + ALGO/ETH/VET 희소 반전",
@@ -211,5 +207,6 @@
     "research/results/b_sparse_stage20/COST_STAGE23.md",
     "research/results/b_sparse_stage20/DELAY_COLLISION_STAGE24.md",
     "research/results/b_sparse_stage20/HANDOFF_STAGE25.md"
-  ]
+  ],
+  "implementation_status": "integrated_contract_alignment_pending"
 }

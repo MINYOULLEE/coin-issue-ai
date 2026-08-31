@@ -12,20 +12,20 @@ export function allocatePlanB({ plan, strategyId, balance, equity, reservedMargi
   }
   if (reservedMargin < 0 || feeRate < 0 || fundingHourly < 0) throw Error('negative reserve/cost');
   const seen = new Set();
-  const target = Math.max(equity, 0) * standard.sizing.target_margin_fraction;
+  const targetFor = rule => Math.max(equity, 0) * (rule.target_margin_fraction ?? standard.sizing.target_margin_fraction);
   const available = Math.max(0, Math.min(balance - reservedMargin, equity - reservedMargin)
     - Math.max(equity, 0) * standard.sizing.cash_buffer_fraction);
   const demands = proposals.map(p => {
     const rule = standard.symbols[p.symbol];
     if (!rule || seen.has(p.symbol) || !Number.isFinite(p.entryPrice) || p.entryPrice <= 0) throw Error('invalid/duplicate B proposal');
     seen.add(p.symbol);
-    return target * (1 + rule.leverage * (2 * feeRate + fundingHourly * rule.actual_hold_hours));
+    return targetFor(rule) * (1 + rule.leverage * (2 * feeRate + fundingHourly * rule.actual_hold_hours));
   });
   const total = demands.reduce((a, b) => a + b, 0);
   const shrink = total > 0 ? Math.min(1, available / total) : 0;
   const orders = proposals.map((p, i) => {
     const rule = standard.symbols[p.symbol];
-    const margin = target * shrink;
+    const margin = targetFor(rule) * shrink;
     return { plan: 'B', strategyId, symbol: p.symbol, margin,
       requiredReservation: demands[i] * shrink, leverage: rule.leverage,
       notional: margin * rule.leverage, quantity: margin * rule.leverage / p.entryPrice,

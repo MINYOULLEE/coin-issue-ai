@@ -2,6 +2,11 @@ import {allocatePlanB,PLAN_B_STANDARD as STANDARD} from './plan_b_sizing.mjs';
 import {constrainBQuantity} from './plan_b_exchange.mjs';
 
 export async function checked(query) { const {data,error}=await query;if(error)throw error;return data; }
+export function selectExecutionGroup(signals,intents){
+ const group=signals.some(s=>STANDARD.symbols[s.symbol]?.group==='core')?'core':'supplement';
+ if(intents.some(i=>!STANDARD.symbols[i.symbol]||STANDARD.symbols[i.symbol].group!==group))return [];
+ return signals.filter(s=>STANDARD.symbols[s.symbol]?.group===group);
+}
 export function eligible(signal,now=Date.now()) {
  const rule=STANDARD.symbols[signal.symbol];
  return !!rule && signal.strategy_id===STANDARD.strategy_id && ['long','short'].includes(signal.side) &&
@@ -34,7 +39,7 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  if(intents.some(i=>['submitted','unknown','partial','closing'].includes(i.status)))return {mode:'reconciliation_required',processed:0};
  const pending=await checked(sb.from('plan_b_signals').select('*').eq('status','active').is('dispatched_at',null).gt('entry_deadline',new Date(now()).toISOString()).order('id'))||[];
  const occupied=new Set(intents.map(i=>i.symbol)),seen=new Set();
- const signals=pending.filter(s=>{if(!eligible(s,now())||occupied.has(s.symbol)||seen.has(s.symbol))return false;seen.add(s.symbol);return true;});
+ const signals=selectExecutionGroup(pending.filter(s=>{if(!eligible(s,now())||occupied.has(s.symbol)||seen.has(s.symbol))return false;seen.add(s.symbol);return true;}),intents);
  if(!signals.length)return {mode:'live',processed:0};
  const livePositions=await bx.read('/openApi/swap/v2/user/positions',{});
  const liveRows=Array.isArray(livePositions)?livePositions:livePositions?.positions;
@@ -59,10 +64,11 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  const held=intents.reduce((s,i)=>s+Number(i.reserved_usd),0);
  const allocation=allocatePlanB({plan:'B',strategyId:STANDARD.strategy_id,balance,equity,reservedMargin:held,proposals});
  const required=allocation.orders.reduce((s,o)=>s+o.requiredReservation,0),ratio=required>0?Math.min(1,Math.max(0,free-equity*.05)/required):0;
+ if(ratio<=0)return {mode:'insufficient_free_margin',processed:0};
  const orders=allocation.orders.map((order,i)=>{
   const proposal=proposals[i],contract={...contracts.find(c=>c.symbol===order.symbol+'-USDT'),...proposal.capabilities};
   const sized=constrainBQuantity({...order,side:proposal.signal.side,quantity:order.quantity*ratio},contract,proposal.entryPrice);
-  return {...sized,signal:proposal.signal,reservation:order.requiredReservation*ratio,clientOrderId:'pb16-'+proposal.signal.id};
+  return {...sized,signal:proposal.signal,reservation:order.requiredReservation*ratio,clientOrderId:STANDARD.isolation.client_order_prefix+'-'+proposal.signal.id};
  });
  // One database transaction reserves the complete batch and serializes competing invocations.
  await checked(sb.rpc('plan_b_reserve_intents',{p_items:orders.map(o=>({signal_id:o.signal.id,quantity:o.quantity,reserved_usd:o.reservation})),p_balance:balance,p_equity:equity,p_available:free,p_snapshot:snapshot}));
@@ -72,7 +78,7 @@ export async function executeBatch({sb,bx,now=Date.now}) {
   let submissionPossible=false;
   try{
    const stateNow=await checked(sb.from('plan_b_trading_state').select('*').eq('id','singleton').single());
-   if(!stateNow.enabled||stateNow.test_mode||!eligible(order.signal,now()))throw Error('entry disabled or expired before submit');
+   if(stateNow.strategy_id!==STANDARD.strategy_id||!stateNow.enabled||stateNow.test_mode||!eligible(order.signal,now()))throw Error('entry disabled or expired before submit');
    const observed=await bx.lookup(order);
    let fill=observed;submissionPossible=observed.status!=='not_found';
    if(observed.status==='not_found'){
@@ -123,6 +129,12 @@ export async function closeDue({sb,bx,now=Date.now}){
   if(Date.parse(trade.plan_b_signals.expires_at)>now())continue;
   if(!trade.bingx_order_id){results.push({id:trade.id,error:'unverified trade; no synthetic close'});continue;}
   const intent=await checked(sb.from('plan_b_execution_intents').select('*').eq('signal_id',trade.signal_id).single());
+  if(!['open','closing'].includes(intent.status)){results.push({id:trade.id,error:'entry reconciliation pending'});continue;}
+  if(intent.status==='closing'){
+   if(!intent.close_client_order_id)throw Error('legacy close requires reconciliation');
+   const confirmation=await bx.lookup({symbol:trade.symbol,clientOrderId:intent.close_client_order_id});
+   if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
+  }
   let quantity=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
   if(quantity>0){
    if(quantity>Number(trade.quantity)+1e-10)throw Error('untracked position quantity; close blocked');
@@ -139,7 +151,8 @@ export async function closeDue({sb,bx,now=Date.now}){
    const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));
    if(!claimed?.length)continue;
    const order={plan:'B',symbol:trade.symbol,side:trade.side,quantity,clientOrderId,close:true};
-   const known=await bx.lookup(order);if(known.status==='not_found')await bx.submit(order);
+   const known=await bx.lookup(order),confirmation=known.status==='not_found'?await bx.submit(order):known;
+   if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
    const remaining=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
    if(remaining>0){results.push({id:trade.id,status:'close_pending',remaining});continue;}
   }

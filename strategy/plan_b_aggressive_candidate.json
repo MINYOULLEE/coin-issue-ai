@@ -2,8 +2,8 @@
   "plan": "B",
   "status": "superseded_use_canonical",
   "canonical": "strategy/plan_b_standard.json",
-  "strategy_id": "b_reserved_margin_stage16",
+  "strategy_id": "b_core_sparse_stage26",
   "enabled": false,
   "test_mode": true,
-  "note": "Stage16 user adoption supersedes former Stage14 candidate; no separate parameters here"
+  "note": "Superseded pointer only. Stage26 canonical includes Stage16 core plus ALGO/ETH/VET supplement; runtime switches are not these historical candidate flags."
 }

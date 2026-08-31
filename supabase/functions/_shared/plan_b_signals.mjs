@@ -36,11 +36,10 @@ export function signalRow(symbol, decision, nowMs=Date.now()) {
   const q=standard.symbols[symbol];
   if(!decision.side || nowMs<decision.confirmedAt || nowMs-decision.confirmedAt>=300000) throw Error('ineligible signal');
   const confirmed=new Date(decision.confirmedAt).toISOString();
-  return {signal_key:`pb16:${symbol}:${confirmed}:${decision.side}`,symbol,side:decision.side,status:'active',
+  return {signal_key:`${standard.isolation.client_order_prefix}:${symbol}:${confirmed}:${decision.side}`,symbol,side:decision.side,status:'active',
     signal_price:decision.last.c,volume_ratio:decision.meta.volume_ratio||0,return_1h:decision.ret,realized_vol_24h:0,
     hold_hours:q.actual_hold_hours,leverage:q.leverage,portfolio_weight:1,portfolio_scale:1,
     confirmed_at:confirmed,entry_deadline:new Date(decision.confirmedAt+300000).toISOString(),
     expires_at:new Date(decision.confirmedAt+q.actual_hold_hours*HOUR).toISOString(),strategy_id:standard.strategy_id,
     strategy_params:{...q,...decision.meta,sizing:standard.sizing},updated_at:new Date(nowMs).toISOString()};
 }
-

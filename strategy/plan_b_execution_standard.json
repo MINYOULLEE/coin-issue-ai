@@ -1,6 +1,6 @@
 {
   "plan": "B",
-  "status": "adopted_stage16_not_live",
+  "status": "stage26_integrated_contract_alignment_pending",
   "isolation": {
     "reuse_plan_a_api": false,
     "reuse_plan_a_account": false,
@@ -16,7 +16,7 @@
       750,
       1500
     ],
-    "max_submit_attempts": 3
+    "max_submit_attempts": 1
   },
   "execution": {
     "order_type": "MARKET",
@@ -27,11 +27,16 @@
     "cancel_signal_when_stale": true,
     "never_chase_after_expiry": true,
     "sizing_mode": "reserved_margin_fixed_entry_quantity",
-    "atomic_b_reservation_required": true
+    "atomic_b_reservation_required": true,
+    "core_supplement_mutual_exclusion": true,
+    "atomic_opportunity_publication": true,
+    "close_confirmation_before_next_group": true,
+    "original_expiry_not_extended": true,
+    "uncertain_submission_policy": "retain_reservation_reconcile_no_blind_resubmit"
   },
   "monitoring": {
     "ack_timeout_ms": 3000,
-    "fill_reconcile_interval_ms": 500,
+    "fill_reconcile_interval_ms": 60000,
     "fill_reconcile_timeout_ms": 10000,
     "alert_after_ms": 15000,
     "required_timestamps": [
@@ -39,9 +44,10 @@
       "dispatch_started_at",
       "exchange_accepted_at",
       "filled_at"
-    ]
+    ],
+    "note": "Current cron cadence; subsecond intervals are targets, not implemented guarantees"
   },
-  "research_reference": "reserved_margin_stage16",
+  "research_reference": "b_sparse_stage20/combinations.json",
   "rule": "5분 성과를 의도적 대기 규칙으로 사용하지 않는다. 신호 확정 즉시 전송하고 5분을 넘긴 신호는 폐기한다.",
   "canonical_strategy": "strategy/plan_b_standard.json"
 }

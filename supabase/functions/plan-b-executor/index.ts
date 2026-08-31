@@ -5,6 +5,7 @@ import JSONBig from "npm:json-bigint@1.0.0";
 import {createBExchange} from "../_shared/plan_b_exchange.mjs";
 import {checked,executeBatch,reconcileEntries,closeDue} from "../_shared/plan_b_live_cycle.mjs";
 import runtime from "../_shared/plan_b_runtime.json" with {type:"json"};
+import standard from "../_shared/plan_b_standard.json" with {type:"json"};
 const sb=createClient(Deno.env.get("SUPABASE_URL")!,Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,{auth:{persistSession:false}});
 Deno.serve(async req=>{
  if(req.method!=="POST")return Response.json({ok:false},{status:405});
@@ -26,7 +27,7 @@ Deno.serve(async req=>{
    }});
   if(body.action==="align_leverage")return Response.json({ok:true,plan:"B",mode:"configuration_only",result:await bx.alignLeverage(body.symbol)});
   if(body.action==="inspect_configuration"){
-   if(!["AVAX","ICP","BCH","DOGE","UNI"].includes(body.symbol))return Response.json({ok:false},{status:400});
+   if(!Object.hasOwn(standard.symbols,body.symbol))return Response.json({ok:false},{status:400});
    const symbol=body.symbol+"-USDT";
    const positions=await bx.read('/openApi/swap/v2/user/positions',{symbol});
    const orders=await bx.read('/openApi/swap/v2/trade/openOrders',{symbol});
@@ -35,8 +36,8 @@ Deno.serve(async req=>{
   }
   if(body.action==="preflight"){
    const s=await state(),contracts=[];
-   for(const symbol of ["AVAX","ICP","BCH","DOGE","UNI"]){
-    const expected=({AVAX:3,ICP:5,BCH:3,DOGE:5,UNI:2} as any)[symbol];
+   for(const symbol of Object.keys(standard.symbols)){
+    const expected=standard.symbols[symbol].leverage;
     try{await bx.verifyConfiguration(symbol,expected);contracts.push({symbol,ok:true});}catch(e){contracts.push({symbol,ok:false,error:String(e.message)});}
     await new Promise(resolve=>setTimeout(resolve,1200));
    }
@@ -46,8 +47,10 @@ Deno.serve(async req=>{
   if(body.action==="execute"&&!runtime.live_ready)return Response.json({ok:true,plan:"B",mode:"entry_locked",processed:0});
   // Recovery performs only lookups; no blind resubmission after a timeout.
   const recoveryErrors=await reconcileEntries({sb,bx});
+  // Finish scheduled exits before considering any new group. Never extend the signal TTL.
+  const exits=body.action==="execute"?await closeDue({sb,bx}):null;
   // Keep exit management running; incomplete recovery must not be reported as success.
-  const result=body.action==="execute"?(recoveryErrors.length?{mode:"reconciliation_required",processed:0}:await executeBatch({sb,bx})):await closeDue({sb,bx});
+  const result=body.action==="execute"?(recoveryErrors.length||exits?.ok===false?{mode:"reconciliation_required",processed:0,errors:outcomeErrors(exits)}:await executeBatch({sb,bx})):await closeDue({sb,bx});
   if(recoveryErrors.length){
    console.error("B entry recovery errors",JSON.stringify(recoveryErrors));
    const logged=await sb.from("system_errors").insert({source:"plan-b-entry-recovery",status_code:503,message:JSON.stringify(recoveryErrors).slice(0,1500),fingerprint:"plan-b-entry-recovery-"+new Date().toISOString().slice(0,16)});

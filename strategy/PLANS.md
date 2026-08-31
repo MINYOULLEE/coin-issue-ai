@@ -1,5 +1,7 @@
 # A/B 매매 기준 — 작업 전 반드시 읽기
 
+**최신 운영 상태: `B_STAGE26_ROLLOUT_20260831.md`. B 운영 ID는 `b_core_sparse_stage26`, 신호기 v7·실행기 v14·계좌조회 v14 배포 및 원격 소스 대조 완료. A/B ON·LIVE 유지. ALGO/ETH/VET의 B 계정 3배 설정 확인과 텔레그램 개인정보 전송 승인·배포가 남아 있다. 아래 Stage16 설명/이전 전환 대기 문단은 과거 기준이다.**
+
 ## A플랜: 기존 운영 기준 보존
 
 - 정본: `strategy/mdd30_standard.json`
@@ -13,16 +15,16 @@
 ## B플랜: 새 채택 조합과 현재 운영본을 구분
 
 - **2026-08-31 사용자 채택: `strategy/plan_b_combination_standard.json`, `b_core_sparse_stage26_v1`.** 기존 Stage16 5종목 + ALGO/ETH/VET 희소 반전 조합. 향후 B 전체 업데이트의 목표 정본이다.
-- 현재 운영 정본은 아래 Stage16이다. 조합 실행부의 DB 원자적 조정·배포 전까지 새 조합을 운영 중이라고 표시하지 않는다. 사용자 실거래 스위치는 유지한다.
+- 현재 운영 정본은 Stage26 조합이다. 신호기·실행기·DB 전환은 완료했고, 보조 3종목 거래소 레버리지 정합성과 텔레그램 배포 승인은 별도 미완료다. 사용자 실거래 스위치는 유지한다.
 - 새 조합 연구: $100 → $1,717,526.82, +1,717,426.82%, 736회, 승률 56.93%, 종료 기준 최대낙폭 -47.28%, 시간봉 미실현 포함 -55.36%. 연구 자료는 `research/results/b_sparse_stage20/`에 보존한다.
 - 보조 3종목은 각 3배/1시간 보유/희망 담보 90%. 기본 5종목의 희망 담보 1.15는 보존. 실제 가용 담보·5% 여유분·비용 예약·동시 비례 배분·수량 고정.
 - **보조 종목의 선택 간격은 최소 2시간**이다. 1시간 보유와 다르다. 연구의 `nxt=i+hold+1`을 유지한다. 기본 종목도 주문 거절 여부와 무관하게 이미 선택한 기회의 재진입 제한과 보유 예정 구간을 유지한다.
 - ETH가 A와 새 B 모두에 있어도 계정·신호·장부·주문은 공유하지 않는다. 종목 집합의 비중복을 계정 분리 조건으로 사용하면 안 된다.
 - 채택/개발/배포 상태: `strategy/B_COMBINATION_ADOPTION_20260831.md`. Stage16 원본: `strategy/archive/plan_b_stage16_v1.json`.
 
-## B 현재 운영 기준: Stage16 공격형
+## B 기본 구성의 과거 연구 기준: Stage16 공격형
 
-- 정본: `strategy/plan_b_standard.json`, 배포용 사본 `_shared/plan_b_standard.json` (자동 검사로 일치 강제).
+- Stage16 보관본: `strategy/archive/plan_b_stage16_v1.json`. 현재 정본 `strategy/plan_b_standard.json`과 배포용 사본은 Stage26 조합이다.
 - ID: `b_reserved_margin_stage16`, 버전 `b_reserved_margin_stage16_v1`.
 - AVAX RSI72/30(3배), ICP RSI24/20(5배), BCH UTC20~22시 2% 반전(3배), DOGE 수축0.35/거래량1.5 확장(5배), UNI UTC7~9시 2% 반전(2배).
 - RSI는 Wilder가 아닌 단순평균이며 신호봉의 현재 수익을 제외한 이전 완료봉 기준.

@@ -1,0 +1,101 @@
+{
+  "date": "2026-08-31",
+  "deployments": [
+    {
+      "name": "plan-b-executor",
+      "version": 14,
+      "status": "ACTIVE",
+      "files_verified": 7,
+      "ezbr_sha256": "08aa4c24c232b399f70f65bf964c883b10f66d06e71eceebde04611ab32de5a1"
+    },
+    {
+      "name": "plan-b-strategy",
+      "version": 7,
+      "status": "ACTIVE",
+      "files_verified": 7,
+      "ezbr_sha256": "d26928505d009ecc8a59976f075a7e244faa73dbba55ad6f018a0c51a77e498c"
+    },
+    {
+      "name": "plan-b-account-read",
+      "version": 14,
+      "status": "ACTIVE",
+      "files_verified": 5,
+      "ezbr_sha256": "b199d859a85d9cd8c8c2b8e2086ea8c6d27a4b18dc3abab858fc52876a5cecde"
+    }
+  ],
+  "remote_checks": {
+    "http": [
+      {
+        "id": 22059,
+        "error": null,
+        "status": 200,
+        "content": "{\"ok\":true,\"plan\":\"B\",\"strategy_id\":\"b_core_sparse_stage26\",\"confirmed_at\":\"2026-08-31T10:00:00.000Z\",\"mode\":\"up_to_date\",\"results\":[],\"orders_submitted\":0}"
+      },
+      {
+        "id": 22060,
+        "error": null,
+        "status": 200,
+        "content": "{\"ok\":false,\"plan\":\"B\",\"mode\":\"read_only_stage26_preflight\",\"hedge_mode\":\"true\",\"results\":[{\"symbol\":\"AVAX\",\"ok\":true,\"expected_leverage\":3,\"margin_type\":\"ISOLATED\",\"long_leverage\":3,\"short_leverage\":3,\"min_quantity\":1,\"min_notional\":2},{\"symbol\":\"ICP\",\"ok\":true,\"expected_leverage\":5,\"margin_type\":\"ISOLATED\",\"long_leverage\":5,\"short_leverage\":5,\"min_quantity\":0.84,\"min_notional\":2},{\"symbol\":\"BCH\",\"ok\":true,\"expected_leverage\":3,\"margin_type\":\"ISOLATED\",\"long_leverage\":3,\"short_leverage\":3,\"min_quantity\":0.01,\"min_notional\":2},{\"symbol\":\"DOGE\",\"ok\":true,\"expected_leverage\":5,\"margin_type\":\"ISOLATED\",\"long_leverage\":5,\"short_leverage\":5,\"min_quantity\":25,\"min_notional\":2},{\"symbol\":\"UNI\",\"ok\":true,\"expected_leverage\":2,\"margin_type\":\"ISOLATED\",\"long_leverage\":2,\"short_leverage\":2,\"min_quantity\":1,\"min_notional\":2},{\"symbol\":\"ALGO\",\"ok\":false,\"expected_leverage\":3,\"margin_type\":\"ISOLATED\",\"long_leverage\":20,\"short_leverage\":20,\"min_quantity\":23.6,\"min_notional\":2},{\"symbol\":\"ETH\",\"ok\":false,\"expected_leverage\":3,\"margin_type\":\"ISOLATED\",\"long_leverage\":20,\"short_leverage\":20,\"min_quantity\":0.01,\"min_notional\":2},{\"symbol\":\"VET\",\"ok\":false,\"expected_leverage\":3,\"margin_type\":\"ISOLATED\",\"long_leverage\":20,\"short_leverage\":20,\"min_quantity\":291,\"min_notional\":2}],\"orders_submitted\":0}"
+      }
+    ],
+    "health": [
+      {
+        "id": "execute",
+        "payload": {
+          "ok": true,
+          "mode": "live",
+          "plan": "B",
+          "errors": [],
+          "processed": 0,
+          "recovery_errors": [],
+          "execution_version": "stage26_core_sparse_20260831_v1"
+        },
+        "updated_at": "2026-08-31T10:02:02.439+00:00"
+      },
+      {
+        "id": "close",
+        "payload": {
+          "ok": true,
+          "plan": "B",
+          "errors": [],
+          "results": [],
+          "recovery_errors": [],
+          "execution_version": "stage26_core_sparse_20260831_v1"
+        },
+        "updated_at": "2026-08-31T10:02:02.371+00:00"
+      },
+      {
+        "id": "signals",
+        "payload": {
+          "ok": true,
+          "mode": "up_to_date",
+          "plan": "B",
+          "results": [],
+          "strategy_id": "b_core_sparse_stage26",
+          "confirmed_at": "2026-08-31T10:00:00.000Z",
+          "orders_submitted": 0
+        },
+        "updated_at": "2026-08-31T10:02:02.365+00:00"
+      }
+    ],
+    "switches": {
+      "A": {
+        "enabled": true,
+        "test_mode": false
+      },
+      "B": {
+        "enabled": true,
+        "test_mode": false,
+        "strategy_id": "b_core_sparse_stage26"
+      }
+    }
+  },
+  "telegram": {
+    "status": "deployment_blocked_requires_explicit_recipient_and_financial_data_approval",
+    "recipient_chat_id": "6818439075",
+    "deployed_this_turn": false
+  },
+  "github_status": "pending_push",
+  "strategy_id": "b_core_sparse_stage26",
+  "real_order_test_performed": false
+}

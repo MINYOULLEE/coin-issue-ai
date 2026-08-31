@@ -15,10 +15,11 @@ class AdoptionTests(unittest.TestCase):
         self.assertFalse(s['live_ready'])
     def test_stage16_preserved_and_switch_not_reset(self):
         old=read('strategy/archive/plan_b_stage16_v1.json')
-        self.assertEqual(old,read('strategy/plan_b_standard.json'))
+        self.assertEqual(old['strategy_id'],'b_reserved_margin_stage16')
+        self.assertEqual(read('strategy/plan_b_standard.json'),read('strategy/plan_b_combination_standard.json'))
         runtime=read('supabase/functions/_shared/plan_b_runtime.json')
         self.assertTrue(runtime['live_ready'])
-        self.assertEqual(runtime['strategy_id'],old['strategy_id'])
+        self.assertEqual(runtime['strategy_id'],'b_core_sparse_stage26')
         adopted=read('strategy/plan_b_combination_standard.json')
         for symbol,rule in old['symbols'].items():
             for key,value in rule.items():self.assertEqual(adopted['symbols'][symbol][key],value)

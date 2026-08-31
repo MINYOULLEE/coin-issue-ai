@@ -1,7 +1,8 @@
+import standard from './plan_b_standard.json' with {type:'json'};
 // Transport-independent lifecycle. Only mock adapters are exercised by this repo's
 // tests. No exchange keys, HTTP calls or background scheduling in this module.
 export async function processReservedOrder(order, {store,exchange,now=Date.now}) {
-  if(order.plan!=='B'||!order.clientOrderId.startsWith('pb16-'))throw Error('B identity required');
+  if(order.plan!=='B'||!order.clientOrderId.startsWith(standard.isolation.client_order_prefix+'-'))throw Error('B identity required');
   if(!Number.isFinite(order.quantity)||order.quantity<=0)throw Error('invalid fixed quantity');
   // claim() must be an atomic DB transition; a timeout never frees a reservation.
   if(!await store.claim(order.clientOrderId))return {status:'already_claimed'};

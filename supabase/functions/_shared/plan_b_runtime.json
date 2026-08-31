@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage16_safety_repair_20260831_v1",
+  "execution_version": "stage26_core_sparse_20260831_v1",
   "live_ready": true,
-  "strategy_id": "b_reserved_margin_stage16",
-  "note": "Shared entry gate reopened on 2026-08-30 by explicit account-owner approval after review of the stage16 safety repair (atomic margin reservations, leverage/margin verification, non-blind order retry policy). Exit management remains independent."
+  "strategy_id": "b_core_sparse_stage26",
+  "note": "Owner-enabled switch preserved. Stage26 deploy requires opportunity bootstrap, atomic group reservations and verified contract configuration. Exit reconciliation accepts legacy pb16 IDs."
 }

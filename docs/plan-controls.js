@@ -1,7 +1,7 @@
 /* Presentation only: A/B endpoints, sessions and order permissions remain independent. */
 const PLAN_CONTROLS = Object.freeze({
   A: Object.freeze({endpoint:'bingx-account-read',session:'bingx_dashboard_session',title:'기존 독립 판단형',start:100}),
-  B: Object.freeze({endpoint:'plan-b-account-read',session:'plan_b_dashboard_session',title:'공격형 · 5개 패턴',start:150})
+  B: Object.freeze({endpoint:'plan-b-account-read',session:'plan_b_dashboard_session',title:'공격형 · 기본 5 + 보조 3',start:150})
 });
 const pcRuntime = {A:{epoch:0,busy:false},B:{epoch:0,busy:false}};
 const pcMoney = value => value == null || value === '' || !Number.isFinite(Number(value)) ? '미확인' : '$'+Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
@@ -31,7 +31,7 @@ function renderTradingControls(){for(const p of ['A','B']){pcRuntime[p].epoch++;
 // that used to live here (string-replacing old A wording, stripping the dead history lock button)
 // are gone -- the base functions already produce the final text. Only B's own patch below remains.
 const pcOriginalB=renderPlanB;
-renderPlanB=function(kind){if(kind!=='recommend')return pcOriginalB(kind);pcOriginalB(kind);$('content').innerHTML=$('content').innerHTML.replace('Stage16 담보 예약 수정본 채택 · B 전용 계정 · 실거래 활성화 전 검증 대기','5개 독립 패턴 · B 전용 계정 · 실거래 시작 기준 $150').replace('희망 담보 115%를 가용 담보까지 감액','가용 담보 범위 내 배분 · 기존 예약 담보와 비용 차감').replace('공격형 허용 -70% 이내','종료 기준 · 평가 기준 -54.64%');$('content').insertAdjacentHTML('beforeend','<p class="pc-research-note">1.15는 감액 전 주문 규모 계산계수이며 “가용 담보 115%”가 아닙니다. 5% 여유분을 남기고 동시 신호를 비례 배분합니다. 연구 시작금 $100과 실거래 시작 기준 $150은 다릅니다. 최대낙폭 -70%는 연구 허용 기준이지 청산 방지 보장이 아닙니다.</p>');pbSide('MODEL');};
+renderPlanB=function(kind){pcOriginalB(kind);if(kind==='recommend')$('content').insertAdjacentHTML('beforeend','<p class="pc-research-note">기본 신호 희망 담보 계수 1.15 / 보조 0.90. 가용 담보 115%를 뜻하지 않습니다. 기존 예약 담보·비용과 equity 5% 여유분을 제외한 한도에서 동시 요청을 비례 배분하고 진입 수량을 고정합니다. A의 담보 방식은 변경하지 않습니다. 연구 $100 / 실거래 성과 기준 $150.</p>');};
 const pcOriginalRender=render;
 render=function(bg){if(FILTER==='plan-a-bingx'||FILTER==='plan-b-bingx')FILTER='trading';if(FILTER==='trading'){if(!bg)renderTradingControls();return}if(bg&&(FILTER==='plan-a-history'||FILTER==='plan-b-history'))return;if(!DATA&&(FILTER==='plan-a-history'||FILTER==='plan-b-history')){FILTER==='plan-a-history'?renderBingXHistory():loadPlanBHistory();return}pcOriginalRender(bg);};
 const pcNavA=document.querySelector('[data-filter="plan-a-bingx"]'),pcNavB=document.querySelector('[data-filter="plan-b-bingx"]');
