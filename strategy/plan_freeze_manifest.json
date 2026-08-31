@@ -1,7 +1,7 @@
 {
-  "version": "ab_news_retirement_20260901_v13",
+  "version": "ab_mobile_upbit_20260901_v14",
   "algorithm": "SHA256 UTF8 normalized LF",
-  "scope": "Owner approved news retirement deployment to existing Supabase project and GitHub repository. A/B trading rules unchanged.",
+  "scope": "Presentation-only Upbit ticker and responsive layout; all A/B trading and server files unchanged.",
   "sha256": {
     "strategy/mdd30_standard.json": "d0a0c7a9eb122ec5ae3b3869e7257af96401daffaf9dd1d41363cd756905bb6b",
     "supabase/functions/coin-collector/index.ts": "b62e69a7c21064e54767a2dd8961d0ec7711d1135e861990a99214130830c6a5",
@@ -50,7 +50,7 @@
     "supabase/repairs/plan_b_stage26_reservations.sql": "a31cc02d2e934bd5bfea5265542fbaab2fc480db5ddc746d1cb146cace95dee7",
     "research/scripts/test_plan_b_signal_cycle.mjs": "b63094175999ee4679bf6071ef5bae18e8bbf66b91253a1c6855cfbda557ed73",
     "supabase/functions/telegram-bot-webhook/index.ts": "8199c339bb6a25262e1054da6ada3b5857f83cb56cf5e1fa12cfa6ff5eeac6cf",
-    "docs/index.html": "6915e9adee836105ac2d2d5755e183315dca1e2e75eef5f1f7d56cb5f703a376",
+    "docs/index.html": "2b9e95e0a4f40bc3a46a3e3f0463df38dd7dbd27d7294af19c7fc8e7ad6cfcfc",
     "supabase/functions/_shared/dashboard_sessions.mjs": "9b76325af0361e69bced619185a7d1abd221a6b2d72ac65bf7db5e12af3522e9",
     "supabase/functions/_shared/history_pages.mjs": "bb88502d142bd970df2d16b0d46e9d1ef704ce9dbefa51fc44244ac64a7319c0",
     "research/scripts/test_dashboard_security.mjs": "7f976f0150d026916284725fda6bd13a269951807f1b2403c3539077c9986c99",
@@ -61,6 +61,8 @@
     "supabase/functions/_shared/news_alert_stability.mjs": "16a0d11b8c1e29fbae443d2c6fb44a4ac8bdf77d0c66fe7656061d213b840e2c",
     "research/scripts/test_news_alert_stability.mjs": "bbcd47e8b7f742ac3033e752f5160b8585508fad2ba780ed8adaa72a9292bcc2",
     "supabase/repairs/telegram_notify_timeout_20260901.sql": "a1fd5f1167061916a4fbda7f5bdaa36b31aef9a092d390c6843fbcab743ad466",
-    "research/scripts/test_news_retirement.cjs": "bed32b104354429a5c500e991b3e0dbdb691017ffcf3cfe2f0dfafba867a9955"
+    "research/scripts/test_news_retirement.cjs": "bed32b104354429a5c500e991b3e0dbdb691017ffcf3cfe2f0dfafba867a9955",
+    "research/scripts/test_market_ticker.cjs": "c0748241f85543e4f01fd93f6b09e7cb00b8b96f34ab9c19548e08ba756b2749",
+    "docs/mobile-layout.css": "11b289d2f987052370d1048129dcc156ffed7e7805e0f1f367a42d1b9872f747"
   }
 }

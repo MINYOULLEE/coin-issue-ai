@@ -57,7 +57,7 @@ button{font:inherit}header{position:sticky;top:0;z-index:5;background:rgba(20,29
 <div class="page">
   <section class="market-section"><div class="section-label"><span>Major Markets</span><span>실시간 주요 코인</span></div><div id="market" class="market"></div></section>
   <div class="workspace">
-    <aside class="sidebar"><div class="nav-title">Trading Plans</div><nav class="tabs"><button class="on" data-filter="plan-a">⭐ A플랜 추천</button><button data-filter="plan-b">✦ B플랜 추천</button><div class="nav-divider"></div><button class="bingx-nav" data-filter="plan-a-bingx">◈ A플랜 빙엑스 실거래</button><button class="bingx-nav" data-filter="plan-a-history">▣ A플랜 빙엑스 실거래 기록</button><button class="bingx-nav" data-filter="plan-b-bingx">◇ B플랜 빙엑스 실거래</button><button class="bingx-nav" data-filter="plan-b-history">▢ B플랜 빙엑스 실거래 기록</button></nav><div class="sidebar-foot">A · B 독립 계정<br><b id="collector">수집 연결 대기</b></div></aside>
+    <aside class="sidebar"><div class="nav-title">Trading Plans</div><nav class="tabs"><button class="on" data-filter="plan-a">⭐ A플랜 추천</button><button data-filter="plan-b">✦ B플랜 추천</button><div class="nav-divider"></div><button class="bingx-nav" data-filter="plan-a-bingx">◈ A플랜 빙엑스 실거래</button><button class="bingx-nav" data-filter="plan-a-history">▣ A플랜 거래 기록</button><button class="bingx-nav" data-filter="plan-b-bingx">◇ B플랜 빙엑스 실거래</button><button class="bingx-nav" data-filter="plan-b-history">▢ B플랜 거래 기록</button></nav><div class="sidebar-foot">A · B 독립 계정<br><b id="collector">수집 연결 대기</b></div></aside>
     <main id="content" class="mainpanel"><div class="empty">데이터를 불러오는 중입니다.</div></main>
     <aside id="sidepanel" class="sidepanel"><div class="side-head"><h3>A/B 매매 기준</h3><span>TRADING</span></div><div class="focus"><p>매매 데이터를 불러오는 중입니다.</p></div></aside>
   </div>
@@ -68,7 +68,16 @@ const C=window.COIN_ISSUE_CONFIG||{};let DATA=null,FILTER='plan-a',SELECTED='BTC
 const $=id=>document.getElementById(id),esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])),money=(n,p=100)=>'$'+Number(n||0).toLocaleString(undefined,{maximumFractionDigits:p<10?4:2}),marketMoney=v=>v?.currency==='KRW'?'₩'+Number(v.price||0).toLocaleString('ko-KR',{maximumFractionDigits:2}):money(v?.price,v?.price);
 function signalClass(v){const r=String(v?.recommendation||'');return r.includes('상승')?'up':r.includes('하락')?'down':'wait'}
 function scenario(label,o,p,type){return `<div class="scenario ${type}"><div class="scenario-top"><b>${label}</b><strong>${o?.prob??'-'}%</strong></div><div class="center">${money(o?.center,p)} <span class="${Number(o?.change||0)>=0?'good':'bad'}">${Number(o?.change||0)>=0?'+':''}${Number(o?.change||0).toFixed(2)}%</span></div><small>범위 ${money(o?.low,p)} ~ ${money(o?.high,p)}</small><small>${esc(o?.trigger||'')}</small></div>`}
-function renderMarket(){const m=DATA?.market||{},keys=['BTC','ETH','XRP','TRX','SOL'].filter(k=>m[k]?.price);$('market').innerHTML=keys.map(k=>{const v=m[k];return `<div class="ticker"><b>${k}</b><div class="price">${marketMoney(v)}</div><span class="${v.change>=0?'good':'bad'}">${v.change>=0?'+':''}${Number(v.change).toFixed(2)}%</span></div>`}).join('')}
+function renderMarket(){
+ const m=DATA?.market||{},keys=['BTC','ETH','XRP','TRX','SOL','USDT'];
+ $('market').innerHTML=keys.map(k=>{
+  const v=m[k],upbit=k==='USDT',age=Date.now()-Date.parse(v?.updated||'');
+  const valid=Number.isFinite(Number(v?.price))&&Number(v?.price)>0&&(!upbit||(v.source==='Upbit'&&v.currency==='KRW'));
+  const stale=upbit&&valid&&(!Number.isFinite(age)||age>180000);
+  const change=valid&&v.change!=null&&Number.isFinite(Number(v.change))?Number(v.change):null;
+  return `<div class="ticker${upbit?' ticker-upbit':''}" data-market="${k}"><div class="ticker-label"><b>${k}</b>${upbit?'<small>업비트 · 원화</small>':''}</div><div class="price">${valid?marketMoney(v):'—'}</div><span class="${!valid||stale?'muted':change==null?'muted':change>=0?'good':'bad'}">${!valid?'조회 대기':stale?'갱신 지연':change==null?'변동률 미확인':`${change>=0?'+':''}${change.toFixed(2)}%`}</span></div>`;
+ }).join('');
+}
 function kst(t){return t?new Intl.DateTimeFormat('ko-KR',{timeZone:'Asia/Bangkok',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}).format(new Date(t))+' 태국시간':'-'}
 function outcomeLabel(s){return s==='active'||s==='weakening'?'진행 중':s==='success'?'성공':s==='failure'?'실패':s==='neutral'?'중립':s}
 function fmtDuration(sec){sec=Math.max(0,Number(sec||0));const h=Math.floor(sec/3600),m=Math.floor(sec%3600/60);return h+'시간 '+m+'분'}
@@ -156,6 +165,7 @@ async function load(bg){try{if(!C.supabaseUrl||String(C.supabaseUrl).startsWith(
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');FILTER=b.dataset.filter;render()});load();setInterval(()=>load(true),Math.max(3,Number(C.refreshSeconds||5))*1000);
 </script>
 <link rel="stylesheet" href="plan-controls.css">
+<link rel="stylesheet" href="mobile-layout.css?v=20260901">
 <script src="plan-controls.js"></script>
 </body>
 </html>
