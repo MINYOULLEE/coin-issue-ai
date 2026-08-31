@@ -23,7 +23,7 @@ def main():
     assert not b['live_ready'] and not b['enabled'] and b['test_mode']
     runtime = read('supabase/functions/_shared/plan_b_runtime.json')
     assert runtime['strategy_id'] == b['strategy_id']
-    assert runtime['live_ready'] is False, 'B entry activation needs explicit approval'
+    assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
     assert b['acceptance']['return_floor_exception']
     assert b['live_account']['starting_capital_usd'] == 150
     assert b['live_account']['public_trade_history'] is True

@@ -1,0 +1,15 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {healthProblems,healthTransitions,outcomeErrors} from '../../supabase/functions/_shared/operational_health.mjs';
+import {fetchNews,cftcRss} from '../../supabase/functions/_shared/news_fetch.mjs';
+const now=Date.parse('2026-08-31T05:00:00Z');
+const health=['signals','execute','close'].map(id=>({id,payload:{ok:true},updated_at:new Date(now).toISOString()}));
+test('fresh enabled B has no alerts; missing execution heartbeat is reported',()=>{assert.deepEqual(healthProblems({bHealth:health,bState:{enabled:true},now}),{});assert(healthProblems({bHealth:health.slice(0,1),bState:{enabled:true},now})['B:execute']);});
+test('OFF does not require execution heartbeat but does require close management',()=>{const p=healthProblems({bState:{enabled:false},now});assert(!p['B:execute']);assert(p['B:close']);});
+test('partial news failure and A recovery failure are not hidden by fresh heartbeat',()=>{const p=healthProblems({snapshot:{payload:{status:{Coinbase:{ok:false,error:'HTTP 403'}},signal_candidates:{entry_recovery:{ok:false}}}},bHealth:health,bState:{enabled:true},now});assert(p['news:Coinbase']);assert(p.a_recovery);});
+test('alerts fire on change and once on recovery, not on every cycle',()=>{assert.equal(healthTransitions({a:'bad'},{a:'bad'}).opened.length,0);assert.deepEqual(healthTransitions({a:'bad'},{}).resolved,['a']);assert.equal(healthTransitions({}, {a:'bad'}).opened.length,1);});
+test('nested order/exit failures count even when HTTP handler succeeded',()=>assert.equal(outcomeErrors({results:[{id:1,error:'close failed'},{id:2,ok:false},{id:3,ok:true}]}).length,2));
+const html='<table><tr><td><time datetime="2026-08-30T12:00:00Z"></time></td><td><a href="/PressRoom/PressReleases/123">Official news</a></td></tr></table>';
+test('CFTC fallback preserves official URL and publication date',async()=>{const seen=[];const r=await fetchNews('CFTC Press','https://fixture.invalid/rss',{fetcher:async u=>{seen.push(u);return seen.length===1?new Response('',{status:403}):new Response(html);}});assert.equal(r.fallback,true);assert(r.xml.includes('https://www.cftc.gov/PressRoom/PressReleases/123'));assert(r.xml.includes('Sun, 30 Aug 2026'));});
+test('blocked fallback never pretends success',async()=>{await assert.rejects(fetchNews('CFTC Press','https://fixture.invalid',{fetcher:async()=>new Response('',{status:403})}),/RSS HTTP 403.*공식 목록 HTTP 403/);});
+test('HTML challenge is not treated as RSS success',async()=>{await assert.rejects(fetchNews('Coinbase','https://fixture.invalid',{fetcher:async()=>new Response('<html>Just a moment</html>')}),/RSS 대신 HTML/);assert.throws(()=>cftcRss('<html/>'));});

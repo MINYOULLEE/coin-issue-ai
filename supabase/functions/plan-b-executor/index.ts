@@ -1,3 +1,4 @@
+import {outcomeErrors} from "../_shared/operational_health.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.49.8";
 import JSONBig from "npm:json-bigint@1.0.0";
@@ -52,8 +53,9 @@ Deno.serve(async req=>{
    const logged=await sb.from("system_errors").insert({source:"plan-b-entry-recovery",status_code:503,message:JSON.stringify(recoveryErrors).slice(0,1500),fingerprint:"plan-b-entry-recovery-"+new Date().toISOString().slice(0,16)});
    if(logged.error)console.error("B recovery error log failed",logged.error.message);
   }
-  const outcome={plan:"B",execution_version:runtime.execution_version,...result,ok:!recoveryErrors.length&&result.ok!==false,recovery_errors:recoveryErrors};
+  const errors=[...recoveryErrors,...outcomeErrors(result)];
+  const outcome={plan:"B",execution_version:runtime.execution_version,...result,ok:!errors.length&&result.ok!==false,recovery_errors:recoveryErrors,errors};
   await checked(sb.from("plan_b_runtime_health").upsert({id:body.action,payload:outcome,updated_at:new Date().toISOString()}));
-  return Response.json(outcome,{status:recoveryErrors.length?503:200});
+  return Response.json(outcome,{status:outcome.ok?200:503});
  }catch(e){console.error("B cycle failed",String(e.message));return Response.json({ok:false,plan:"B",error:String(e.message)},{status:503});}
 });

@@ -1,3 +1,4 @@
+import {healthProblems} from "../_shared/operational_health.mjs";
 import { PLAN_B_STANDARD as RESEARCH_STANDARD } from "../_shared/plan_b_sizing.mjs";
 import runtime from "../_shared/plan_b_runtime.json" with {type:"json"};
 const STANDARD={...RESEARCH_STANDARD,live_ready:runtime.live_ready};
@@ -26,7 +27,8 @@ Deno.serve(async req=>{if(req.method==="OPTIONS")return new Response("ok",{heade
   if(results.some(x=>x.error))return Response.json({ok:false,error:"B 상태 조회 실패"},{status:502,headers:CORS});
   const [state,trades,pending,health,signals]=results.map(x=>x.data) as any;
   const signalHealth=health.find((x:any)=>x.id==="signals"),errors=health.filter((x:any)=>x.payload?.ok===false&&Date.now()-Date.parse(x.updated_at)<180000);
-  const diagnostics={pending_entries:pending.length,recovery_errors:errors.length,signal_status:!signalHealth||Date.now()-Date.parse(signalHealth.updated_at)>180000?"stale":!signalHealth.payload.ok?"error":signals.length?"active":"no_signal"};
+  const monitoringProblems=healthProblems({bHealth:health,bState:state});
+  const diagnostics={monitoring_problems:monitoringProblems,pending_entries:pending.length,recovery_errors:Math.max(errors.length,Object.keys(monitoringProblems).length),signal_status:!signalHealth||Date.now()-Date.parse(signalHealth.updated_at)>180000?"stale":!signalHealth.payload.ok?"error":signals.length?"active":"no_signal"};
   return Response.json({ok:true,live_ready:STANDARD.live_ready,execution_version:runtime.execution_version,state,diagnostics,open_trades:trades.filter((x:any)=>x.status==="open"),recent_trades:trades},{headers:CORS});
  }
  if(body.action==="trading_toggle"){if(typeof body.enabled!=="boolean")return Response.json({ok:false,error:"enabled must be boolean"},{status:400,headers:CORS});if(body.enabled&&!STANDARD.live_ready)return Response.json({ok:false,error:"B Stage16 채택 완료 · 주문 예약/체결 검증 전에는 활성화할 수 없습니다."},{status:409,headers:CORS});const{data,error}=await sb.from("plan_b_trading_state").update({enabled:!!body.enabled,updated_at:new Date().toISOString()}).eq("id","singleton").select().single();if(error)return Response.json({ok:false,error:error.message},{status:502,headers:CORS});return Response.json({ok:true,state:data},{headers:CORS})}

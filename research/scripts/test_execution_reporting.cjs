@@ -9,7 +9,7 @@ test('B late settlement delivery does not use a close-time watermark',async()=>{
  const ctx=vm.createContext({sb:{from:()=>q},Number,Date,send:async m=>sent.push(m),side:String,price:String,num:String});
  await vm.runInContext('(async()=>{'+code+'})()',ctx);assert.equal(sent.length,2);assert.equal(updates.length,2);
 });
-test('B recovery error stops new entries but not close management',()=>{const s=fs.readFileSync('supabase/functions/plan-b-executor/index.ts','utf8');assert(s.includes('recoveryErrors.length?{mode:"reconciliation_required"'));assert(s.includes(':await closeDue({sb,bx})'));assert(s.includes('recovery_errors:recoveryErrors'));assert(s.includes('status:recoveryErrors.length?503:200'));});
+test('B recovery error stops new entries but not close management',()=>{const s=fs.readFileSync('supabase/functions/plan-b-executor/index.ts','utf8');assert(s.includes('recoveryErrors.length?{mode:"reconciliation_required"'));assert(s.includes(':await closeDue({sb,bx})'));assert(s.includes('recovery_errors:recoveryErrors'));assert(s.includes('status:outcome.ok?200:503'));});
 test('updated Edge entrypoints and dashboard scripts parse',()=>{
  for(const name of ['bingx-order-submit','bingx-account-read','coin-collector','plan-b-executor','plan-b-strategy','plan-b-account-read','telegram-trade-notify']){
   const s=fs.readFileSync('supabase/functions/'+name+'/index.ts','utf8');const js=stripTypeScriptTypes(s);new vm.SourceTextModule(js);

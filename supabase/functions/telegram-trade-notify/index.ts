@@ -1,3 +1,4 @@
+import {healthProblems,healthTransitions} from "../_shared/operational_health.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
@@ -31,7 +32,7 @@ Deno.serve(async req=>{
  try{
   const body=await req.json().catch(()=>({}));
   if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n🔵 A플랜 · 기존 실거래 시스템\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 08:00 태국시간 재판정\n\n🟣 B플랜 · 별도 계정 · 주문 ON/OFF와 신호 상태는 시스템 메뉴에서 확인`);return Response.json({ok:true,test_sent:true})}
-  const {data:rows}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);const st=rows?.[0]||{};
+  const {data:rows,error:stateReadError}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);if(stateReadError)throw stateReadError;const st=rows?.[0]||{};
   if(st.test_action==="show_history_menu")await send("✅ 실거래 기록 메뉴가 추가됐습니다.\n아래의 🔵 A 기록 / 🟣 B 기록 버튼을 누르면 최신 성과를 확인할 수 있습니다.");
   let lastId=Number(st.last_trade_id||0),lastClosed=st.last_closed_at||"1970-01-01T00:00:00Z",lastError=Number(st.last_error_id||0);
   let lastPbId=Number(st.last_pb_trade_id||0),lastPbClosed=st.last_pb_closed_at||"1970-01-01T00:00:00Z";
@@ -53,8 +54,15 @@ Deno.serve(async req=>{
 
   const {data:errs,error:e3}=await sb.from("system_errors").select("id,source,status_code,message,created_at").gt("id",lastError).order("id",{ascending:true}).limit(20);if(e3)throw e3;
   for(const e of errs||[]){lastError=Math.max(lastError,Number(e.id));await send(`🚨 시스템 오류 감지\n구간: ${e.source}\nHTTP: ${e.status_code??"-"}\n내용: ${String(e.message||"").slice(0,500)}\n시각: ${e.created_at}`)}
-  const {data:snap}=await sb.from("coin_snapshots").select("updated_at").eq("id","live").limit(1);const hb=snap?.[0]?.updated_at?Date.parse(snap[0].updated_at):0,stale=!hb||Date.now()-hb>180000,was=!!st.collector_stale;if(stale&&!was)await send(`🚨 시스템 경고\nCoin Collector heartbeat가 3분 이상 멈챰습니다.\n마지막 heartbeat: ${snap?.[0]?.updated_at||"없음"}`);if(!stale&&was)await send("✅ 시스템 복구\nCoin Collector heartbeat가 정상으로 돌아왔습니다.");
-  await sb.from("telegram_notify_state").upsert({id:"singleton",last_trade_id:lastId,last_closed_at:lastClosed,last_pb_trade_id:lastPbId,last_pb_closed_at:lastPbClosed,collector_stale:stale,last_error_id:lastError,test_action:null,updated_at:new Date().toISOString()});
+  const {data:snap,error:snapshotError}=await sb.from("coin_snapshots").select("updated_at,payload").eq("id","live").limit(1);if(snapshotError)throw snapshotError;const hb=snap?.[0]?.updated_at?Date.parse(snap[0].updated_at):0,stale=!hb||Date.now()-hb>180000,was=!!st.collector_stale;if(stale&&!was)await send(`🚨 시스템 경고\nCoin Collector heartbeat가 3분 이상 멈챰습니다.\n마지막 heartbeat: ${snap?.[0]?.updated_at||"없음"}`);if(!stale&&was)await send("✅ 시스템 복구\nCoin Collector heartbeat가 정상으로 돌아왔습니다.");
+  const [{data:bHealth,error:bHealthError},{data:bState,error:bStateError}]=await Promise.all([sb.from("plan_b_runtime_health").select("*"),sb.from("plan_b_trading_state").select("enabled,test_mode").eq("id","singleton").single()]);
+  if(bHealthError||bStateError)throw bHealthError||bStateError;
+  const problems=healthProblems({snapshot:snap?.[0],bHealth:bHealth||[],bState});
+  const transitions=healthTransitions(st.health_alerts||{},problems);
+  if(transitions.opened.length)await send("⚠️ 보조 기능 오류 감지\n"+transitions.opened.map(([,v])=>v).join("\n").slice(0,3000)+"\n실거래 ON/OFF는 변경하지 않았습니다.");
+  if(transitions.resolved.length)await send("✅ 보조 기능 복구\n"+transitions.resolved.join("\n"));
+  const {error:stateWriteError}=await sb.from("telegram_notify_state").upsert({id:"singleton",health_alerts:problems,last_trade_id:lastId,last_closed_at:lastClosed,last_pb_trade_id:lastPbId,last_pb_closed_at:lastPbClosed,collector_stale:stale,last_error_id:lastError,test_action:null,updated_at:new Date().toISOString()});
+  if(stateWriteError)throw stateWriteError;
   return Response.json({ok:true,last_trade_id:lastId,last_pb_trade_id:lastPbId,last_error_id:lastError,collector_stale:stale});
  }catch(e){console.error(e);try{await send(`🚨 Telegram 자동 알림 엔진 오류\n${e instanceof Error?e.message:String(e)}`)}catch{}return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}
 });
