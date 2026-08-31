@@ -1,4 +1,5 @@
 import {healthProblems,healthTransitions} from "../_shared/operational_health.mjs";
+import {stableHealthAlerts} from "../_shared/news_alert_stability.mjs";
 import {webhookSecret} from "../_shared/telegram_webhook_auth.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
@@ -73,10 +74,11 @@ Deno.serve(async req=>{
   const [{data:bHealth,error:bHealthError},{data:bState,error:bStateError}]=await Promise.all([sb.from("plan_b_runtime_health").select("*"),sb.from("plan_b_trading_state").select("enabled,test_mode").eq("id","singleton").single()]);
   if(bHealthError||bStateError)throw bHealthError||bStateError;
   const problems=healthProblems({snapshot:snap?.[0],bHealth:bHealth||[],bState});
-  const transitions=healthTransitions(st.health_alerts||{},problems);
+  const stable=stableHealthAlerts(st.health_alerts||{},problems);
+  const transitions=healthTransitions(stable.previous,stable.active);
   if(transitions.opened.length)await send("⚠️ 보조 기능 오류 감지\n"+transitions.opened.map(([,v])=>v).join("\n").slice(0,3000)+"\n실거래 ON/OFF는 변경하지 않았습니다.");
   if(transitions.resolved.length)await send("✅ 보조 기능 복구\n"+transitions.resolved.join("\n"));
-  const {error:stateWriteError}=await sb.from("telegram_notify_state").upsert({id:"singleton",health_alerts:problems,last_trade_id:lastId,last_closed_at:lastClosed,last_pb_trade_id:lastPbId,last_pb_closed_at:lastPbClosed,collector_stale:stale,last_error_id:lastError,test_action:null,updated_at:new Date().toISOString()});
+  const {error:stateWriteError}=await sb.from("telegram_notify_state").upsert({id:"singleton",health_alerts:stable.stored,last_trade_id:lastId,last_closed_at:lastClosed,last_pb_trade_id:lastPbId,last_pb_closed_at:lastPbClosed,collector_stale:stale,last_error_id:lastError,test_action:null,updated_at:new Date().toISOString()});
   if(stateWriteError)throw stateWriteError;
   return Response.json({ok:true,last_trade_id:lastId,last_pb_trade_id:lastPbId,last_error_id:lastError,collector_stale:stale});
  }catch(e){console.error(e);try{await send(`🚨 Telegram 자동 알림 엔진 오류\n${e instanceof Error?e.message:String(e)}`)}catch{}return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}

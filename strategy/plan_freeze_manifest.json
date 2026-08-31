@@ -1,5 +1,5 @@
 {
-  "version": "ab_telegram_delivery_repair_20260831_v11",
+  "version": "ab_news_alert_stability_20260901_v12",
   "algorithm": "SHA256 UTF8 normalized LF",
   "scope": "User approved B Stage26 integration; A hashes preserved. Contract alignment and rollout evidence tracked separately.",
   "sha256": {
@@ -29,7 +29,7 @@
     "research/scripts/test_plan_b_exchange.mjs": "d2c1f0c3f47592b36a7e17a1473225fb9147d0168ac0325c7cf8b502320d3771",
     "supabase/functions/_shared/a_entry_cycle.mjs": "f004c5b0a047975dd64b8e9fb8a6ae7d1b4afec6bb9f92d0ded1b6b5c385a533",
     "supabase/functions/bingx-account-read/index.ts": "ef26f47c1ce74e65e31703fe801f2e629fd50d39be23f248d0d5c8a2779d288f",
-    "supabase/functions/telegram-trade-notify/index.ts": "0394afc9b9422d0dd0dfc2c9eb5cf6033590794e05de55373e3444c88054d2b9",
+    "supabase/functions/telegram-trade-notify/index.ts": "76cbe7faaa2b6a63cbbe604938d32baab54a2ce58b37261522f68fec2435ce81",
     "supabase/repairs/execution_1_to_5_20260831.sql": "1dcfe08c4572c2485c43682f0862108baa67738aa156843211b1ad9de57cee2b",
     "research/scripts/test_a_entry_cycle.mjs": "25a119f8901de535a1d497b0edfecf066dbbb7f6c740c220c834ad88243f5814",
     "research/scripts/test_execution_reporting.cjs": "3e1a5cad12282fd0c05f84b32f60b2625e5ea7e4d8441fdb389303b08669f89b",
@@ -57,6 +57,9 @@
     "supabase/repairs/dashboard_login_rate_limit.sql": "34419be2651eee9bb956dee65f8bd7447ca5d3972b329927044b60d0860d5c1c",
     "supabase/functions/_shared/telegram_webhook_auth.mjs": "5098282bebb5bc558989d62d8ed00e239adc7a3e04cde666d155ab5090edb012",
     "research/scripts/test_telegram_webhook_auth.mjs": "ed81857a6d319cd87d6fee391fc294f9200bc40df366c67342ce60310383b541",
-    "supabase/repairs/telegram_trade_delivery.sql": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d"
+    "supabase/repairs/telegram_trade_delivery.sql": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d",
+    "supabase/functions/_shared/news_alert_stability.mjs": "16a0d11b8c1e29fbae443d2c6fb44a4ac8bdf77d0c66fe7656061d213b840e2c",
+    "research/scripts/test_news_alert_stability.mjs": "bbcd47e8b7f742ac3033e752f5160b8585508fad2ba780ed8adaa72a9292bcc2",
+    "supabase/repairs/telegram_notify_timeout_20260901.sql": "a1fd5f1167061916a4fbda7f5bdaa36b31aef9a092d390c6843fbcab743ad466"
   }
 }
