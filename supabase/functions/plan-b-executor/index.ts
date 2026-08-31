@@ -16,16 +16,18 @@ Deno.serve(async req=>{
   const body=await req.json();
   const state=()=>checked(sb.from("plan_b_trading_state").select("*").eq("id","singleton").single());
   const bx=createBExchange({apiKey:Deno.env.get("PLAN_B_BINGX_API_KEY"),secret:Deno.env.get("PLAN_B_BINGX_SECRET_KEY"),parse:JSONBig({storeAsString:true}).parse,
+   liveConfigurationSymbols:body.action==="align_stage26_supplement"&&body.confirm==="approved_20260831_supplement_3x_no_orders"?[body.symbol]:[],
    liveAuthorized:async()=>{const s=await state();return s.strategy_id===runtime.strategy_id&&s.enabled===true&&s.test_mode===false;},
    exitAuthorized:async()=>{const s=await state();return s.strategy_id===runtime.strategy_id;},
    configurationAuthorized:async()=>{
-    if(body.action!=="align_leverage"||body.confirm!=="align_only_no_orders"||runtime.live_ready)return false;
+    const approvedSupplement=body.action==="align_stage26_supplement"&&body.confirm==="approved_20260831_supplement_3x_no_orders"&&['ALGO','ETH','VET'].includes(body.symbol);
+    if(!approvedSupplement&&(body.action!=="align_leverage"||body.confirm!=="align_only_no_orders"||runtime.live_ready))return false;
     const s=await state();if(s.strategy_id!==runtime.strategy_id)return false;
     const pending=await checked(sb.from("plan_b_execution_intents").select("id").not("status","in","(closed,failed,expired,rejected)"));
     const trades=await checked(sb.from("plan_b_real_trades").select("id").eq("status","open"));
     return pending.length===0&&trades.length===0;
    }});
-  if(body.action==="align_leverage")return Response.json({ok:true,plan:"B",mode:"configuration_only",result:await bx.alignLeverage(body.symbol)});
+  if(["align_leverage","align_stage26_supplement"].includes(body.action))return Response.json({ok:true,plan:"B",mode:"configuration_only",result:await bx.alignLeverage(body.symbol)});
   if(body.action==="inspect_configuration"){
    if(!Object.hasOwn(standard.symbols,body.symbol))return Response.json({ok:false},{status:400});
    const symbol=body.symbol+"-USDT";

@@ -1,0 +1,135 @@
+{
+  "approved_on": "2026-08-31",
+  "telegram_recipient": "6818439075",
+  "approval": "User explicitly approved all remaining updates and A/B financial notifications to the stated chat",
+  "deployments": [
+    {
+      "id": "69a279d4-586b-465c-b8a8-9c9a5f494630",
+      "slug": "plan-b-executor",
+      "version": 16,
+      "name": "plan-b-executor",
+      "status": "ACTIVE",
+      "entrypoint_path": "file:///tmp/user_fn_ljazcstmwtuhideaarti_69a279d4-586b-465c-b8a8-9c9a5f494630_16/source/plan-b-executor/index.ts",
+      "import_map_path": null,
+      "import_map": false,
+      "verify_jwt": false,
+      "created_at": 1788107663008,
+      "updated_at": 1788171453524,
+      "ezbr_sha256": "6ac2878148496b04ec966938605815fb903ab8632b9e89bed22f63d0f44d9b63"
+    },
+    {
+      "id": "0c739c18-6e61-494a-93b6-e6a2466f10f8",
+      "slug": "plan-b-strategy",
+      "version": 8,
+      "name": "plan-b-strategy",
+      "status": "ACTIVE",
+      "entrypoint_path": "file:///tmp/user_fn_ljazcstmwtuhideaarti_0c739c18-6e61-494a-93b6-e6a2466f10f8_8/source/plan-b-strategy/index.ts",
+      "import_map_path": null,
+      "import_map": false,
+      "verify_jwt": false,
+      "created_at": 1788106079111,
+      "updated_at": 1788171459320,
+      "ezbr_sha256": "b45080a6eb372e0d16f5b86076c7364e31710a884cd7208accbdea0a54011191"
+    },
+    {
+      "id": "d8ae8f6a-98ee-44c5-b07a-37133bb22fd7",
+      "slug": "plan-b-account-read",
+      "version": 15,
+      "name": "plan-b-account-read",
+      "status": "ACTIVE",
+      "entrypoint_path": "file:///tmp/user_fn_ljazcstmwtuhideaarti_d8ae8f6a-98ee-44c5-b07a-37133bb22fd7_15/source/plan-b-account-read/index.ts",
+      "import_map_path": null,
+      "import_map": false,
+      "verify_jwt": false,
+      "created_at": 1788087255432,
+      "updated_at": 1788171470012,
+      "ezbr_sha256": "a7b585f4c1a5418d632e1e697fe1a1f5961ef7f962c1bba1bb2693b84bb588fd"
+    },
+    {
+      "id": "138d7ee0-40d0-48de-a631-4186b218ee79",
+      "slug": "plan-b-stage26-preflight",
+      "version": 3,
+      "name": "plan-b-stage26-preflight",
+      "status": "ACTIVE",
+      "entrypoint_path": "file:///tmp/user_fn_ljazcstmwtuhideaarti_138d7ee0-40d0-48de-a631-4186b218ee79_3/source/plan-b-stage26-preflight/index.ts",
+      "import_map_path": null,
+      "import_map": false,
+      "verify_jwt": false,
+      "created_at": 1788160909120,
+      "updated_at": 1788171476640,
+      "ezbr_sha256": "f37ccaca458be361abf7e1a0e95e61d014e87e3b95814c9851cedc862a7518ec"
+    }
+  ],
+  "telegram_versions": {
+    "webhook": 18,
+    "notify": 24
+  },
+  "remote_source_parity": [
+    {
+      "name": "plan-b-executor",
+      "count": 7,
+      "mismatches": []
+    },
+    {
+      "name": "plan-b-strategy",
+      "count": 7,
+      "mismatches": []
+    },
+    {
+      "name": "plan-b-account-read",
+      "count": 5,
+      "mismatches": []
+    },
+    {
+      "name": "telegram-bot-webhook",
+      "count": 1,
+      "mismatches": []
+    },
+    {
+      "name": "telegram-trade-notify",
+      "count": 2,
+      "mismatches": []
+    }
+  ],
+  "leverage": {
+    "ALGO": {
+      "long": 3,
+      "short": 3
+    },
+    "ETH": {
+      "long": 3,
+      "short": 3
+    },
+    "VET": {
+      "long": 3,
+      "short": 3
+    }
+  },
+  "all_eight_contracts_passed": true,
+  "configuration_request_ids": [
+    22126,
+    22127,
+    22128
+  ],
+  "preflight_request_id": 22134,
+  "telegram_test_request_id": 22140,
+  "telegram_test_sent": true,
+  "owner_switches": {
+    "A": {
+      "enabled": true,
+      "test_mode": false
+    },
+    "B": {
+      "enabled": true,
+      "test_mode": false
+    }
+  },
+  "health_checked_at": "2026-08-31T10:19:01Z",
+  "health": {
+    "signals": true,
+    "execute": true,
+    "close": true
+  },
+  "forced_orders": 0,
+  "pages_stage26_confirmed": true
+}

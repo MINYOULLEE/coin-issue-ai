@@ -1,15 +1,15 @@
 {
-  "created_at": "2026-08-31T10:08:59.176580+00:00",
+  "created_at": "2026-08-31T10:21:26.065662+00:00",
   "adopted_version": "b_core_sparse_stage26_v1",
-  "archive_path": "research/archives/b_stage26_20260831_ecdae7e218e00a36.zip",
-  "archive_bytes": 56308184,
-  "archive_sha256": "2e4f237fb2b3cacd656d4b6b6b37d51adb8eab537f99d423da3dc1d97ad132db",
-  "source_set_sha256": "ecdae7e218e00a364d3739be780d6b5e087afd90874bcbc059328776ca00cfc0",
+  "archive_path": "research/archives/b_stage26_20260831_c3522a615a0868f0.zip",
+  "archive_bytes": 56323748,
+  "archive_sha256": "a58bcf0aa4f12c513ba4303aacfd3bf3d93d11e66b01abf92e83b7f71a737043",
+  "source_set_sha256": "c3522a615a0868f0225a4aef11bc87d82c61307acfa2282a5e8db7b8683e72d0",
   "files": [
     {
       "path": "AGENTS.md",
-      "bytes": 2470,
-      "sha256": "843272377b06ad9de00319852b855ddc7abcaf4f25f758e32fb045e5cf01a8c6"
+      "bytes": 2437,
+      "sha256": "1300abab7c77cd9c80176f861f2dc08094d757023759bd68ba9cd280c6c00917"
     },
     {
       "path": "docs/index.html",
@@ -1223,8 +1223,8 @@
     },
     {
       "path": "research/scripts/archive_b_adoption.py",
-      "bytes": 3524,
-      "sha256": "02633fc400c51d8f53f4a9604ae570bbed5c241f35f3138684a1fda5a0cb3ea1"
+      "bytes": 3682,
+      "sha256": "be76a5c3ae0334ee837f49be0607d885c5e332d00e2017c3400c2a502084635d"
     },
     {
       "path": "research/scripts/audit_aggressive_liquidation_stage15.py",
@@ -1398,8 +1398,8 @@
     },
     {
       "path": "research/scripts/test_plan_b_exchange.mjs",
-      "bytes": 5150,
-      "sha256": "1a7071f6e73e83834dd3a9f6c3932276b36e0bc262c9274a508626153d2dc72d"
+      "bytes": 6083,
+      "sha256": "d2c1f0c3f47592b36a7e17a1473225fb9147d0168ac0325c7cf8b502320d3771"
     },
     {
       "path": "research/scripts/test_plan_b_live_cycle.mjs",
@@ -1445,6 +1445,11 @@
       "path": "research/scripts/test_sparse_handoff_stage25.py",
       "bytes": 1576,
       "sha256": "95ab6c3e25fa4bcf474609f81935e2a6793d944470029012e39714d9f7c1a637"
+    },
+    {
+      "path": "research/scripts/test_telegram_plan_menu.cjs",
+      "bytes": 1860,
+      "sha256": "66813e041add78d76553ebe2f16fc1a4164200214cc0fcec81a3176e02b006eb"
     },
     {
       "path": "research/scripts/train_coin_answer.py",
@@ -1532,14 +1537,24 @@
       "sha256": "5793b06e01ac1c5c74d023fe96977bf22d54a8959049ef62e7168e60119b627d"
     },
     {
+      "path": "strategy/B_STAGE26_APPROVED_20260831.json",
+      "bytes": 3773,
+      "sha256": "e0d85993111ae5e310f993b46f5c01415ae1cdcfb482236b72c4829fcff961bb"
+    },
+    {
+      "path": "strategy/B_STAGE26_APPROVED_20260831.md",
+      "bytes": 2608,
+      "sha256": "2a19647c8c4842d015d22fd839da3b0c18b67ea785c497f4fa0657b2136e3bab"
+    },
+    {
       "path": "strategy/B_STAGE26_ROLLOUT_20260831.json",
-      "bytes": 4162,
-      "sha256": "8445d99908124fc22a672b48a45241715328c56d63db9efb5f1eb7ae33ae25ba"
+      "bytes": 4194,
+      "sha256": "740279f10a86c4c2d05f13a058c2988254ce8e79e2ed1273ca7202165bcf82af"
     },
     {
       "path": "strategy/B_STAGE26_ROLLOUT_20260831.md",
-      "bytes": 3783,
-      "sha256": "4a47a94269df49c2d338e8405bbc1503c3d0f4b4ff5f8c20622c72e8f27c0bc0"
+      "bytes": 4593,
+      "sha256": "4472c43aa413a41f89154cf54830d657e268bed1be1f2742155b263d6bfca097"
     },
     {
       "path": "strategy/EXECUTION_REPAIR_1_TO_5_20260831.md",
@@ -1573,8 +1588,8 @@
     },
     {
       "path": "strategy/plan_b_combination_standard.json",
-      "bytes": 6828,
-      "sha256": "052af5611073726b7a4aa833f09801d2a02e8e5c39dca1328533a93543e8d29d"
+      "bytes": 6735,
+      "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
       "path": "strategy/plan_b_execution_design.md",
@@ -1593,18 +1608,18 @@
     },
     {
       "path": "strategy/plan_b_standard.json",
-      "bytes": 6828,
-      "sha256": "052af5611073726b7a4aa833f09801d2a02e8e5c39dca1328533a93543e8d29d"
+      "bytes": 6735,
+      "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
       "path": "strategy/plan_freeze_manifest.json",
-      "bytes": 5982,
-      "sha256": "e2d9f97104b53dc537d220e30417d60c595808a43f08fcf49725ce3f245008aa"
+      "bytes": 5987,
+      "sha256": "531bfe14a2ffea81849b4f1eda786ff84f37c52eaae5ca037e362080c154fdfb"
     },
     {
       "path": "strategy/PLANS.md",
-      "bytes": 6624,
-      "sha256": "1369de2a48903e7f40fd975bf7af2f3307b67a8a8e310047e8dc000301d75841"
+      "bytes": 6653,
+      "sha256": "a00ca4d6d7f12661d83ec3558bc8b5d8c530cca99f7933c9572e0cf1729a83f5"
     },
     {
       "path": "supabase/functions/_shared/a_entry_cycle.mjs",
@@ -1628,13 +1643,13 @@
     },
     {
       "path": "supabase/functions/_shared/plan_b_combination_standard.json",
-      "bytes": 6828,
-      "sha256": "052af5611073726b7a4aa833f09801d2a02e8e5c39dca1328533a93543e8d29d"
+      "bytes": 6735,
+      "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
       "path": "supabase/functions/_shared/plan_b_exchange.mjs",
-      "bytes": 8291,
-      "sha256": "603b0345bedf234388d49c700230ed012c1c8cca70c60e31e41b90447ed96ca3"
+      "bytes": 8787,
+      "sha256": "cd299f669a9b978ee9359317ee833e2445d5d9918b62e30e295fc9a28b934fc0"
     },
     {
       "path": "supabase/functions/_shared/plan_b_execution_guard.ts",
@@ -1673,8 +1688,8 @@
     },
     {
       "path": "supabase/functions/_shared/plan_b_standard.json",
-      "bytes": 6828,
-      "sha256": "052af5611073726b7a4aa833f09801d2a02e8e5c39dca1328533a93543e8d29d"
+      "bytes": 6735,
+      "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
       "path": "supabase/functions/coin-collector/answer_trees.ts",
@@ -1688,13 +1703,28 @@
     },
     {
       "path": "supabase/functions/plan-b-executor/index.ts",
-      "bytes": 5167,
-      "sha256": "8c3374454bfa3ec899f1d00974e7819b094c37fe4d97fabf1fb79f02af1ad0bd"
+      "bytes": 5549,
+      "sha256": "c7017b1cf83dd415a330e68ac1e22c22887ec251475162df88fb14dbc516eae2"
+    },
+    {
+      "path": "supabase/functions/plan-b-stage26-preflight/index.ts",
+      "bytes": 2968,
+      "sha256": "6a5aa3c7bfa31dd05b076f5cd1a17405b384a97f53d08d40753abe3530516804"
     },
     {
       "path": "supabase/functions/plan-b-strategy/index.ts",
       "bytes": 2422,
       "sha256": "31a6e516b3b870d05a4d8423d22f1e228feffbcfad79d13361e72a1e9f719caa"
+    },
+    {
+      "path": "supabase/functions/telegram-bot-webhook/index.ts",
+      "bytes": 11932,
+      "sha256": "75ecbda465a2c859061629a7027e2ace0df6788c0448757f29afa02b83329684"
+    },
+    {
+      "path": "supabase/functions/telegram-trade-notify/index.ts",
+      "bytes": 10463,
+      "sha256": "e5aae2cebb0ada9dc16a1a496191af0436a0b227493ca7c1538e167194297dc8"
     },
     {
       "path": "supabase/repairs/plan_b_stage26.sql",
@@ -1714,6 +1744,6 @@
   ],
   "verified": true,
   "storage": "Local workspace ZIP; raw datasets and ZIP are git-ignored, not a cloud backup",
-  "status": "Stage26 core runtime deployed; consult B_STAGE26_ROLLOUT_20260831.md for contract alignment and Telegram approval blockers; owner switches unchanged",
+  "status": "Stage26 runtime, contract alignment and Telegram approved deployment complete; consult B_STAGE26_APPROVED_20260831.md; owner switches unchanged; live performance not certified",
   "scope": "All available research data/results/scripts plus strategy and B code snapshot; unrelated historical workspace edits are preserved as-is"
 }

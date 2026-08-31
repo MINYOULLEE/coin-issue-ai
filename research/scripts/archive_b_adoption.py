@@ -28,7 +28,7 @@ def main():
     files.update((ROOT/'supabase/repairs').glob('plan_b_stage26*.sql'))
     files.add(ROOT/'supabase/repairs/test_plan_b_stage26_rollback.sql')
     files.add(ROOT/'supabase/functions/coin-collector/answer_trees.ts')
-    for folder in ('supabase/functions/_shared','supabase/functions/plan-b-executor','supabase/functions/plan-b-strategy','supabase/functions/plan-b-account-read'):
+    for folder in ('supabase/functions/_shared','supabase/functions/plan-b-executor','supabase/functions/plan-b-strategy','supabase/functions/plan-b-account-read','supabase/functions/plan-b-stage26-preflight','supabase/functions/telegram-bot-webhook','supabase/functions/telegram-trade-notify'):
         for path in (ROOT/folder).rglob('*'):
             if path.is_file() and path.suffix in ('.json','.ts','.mjs'):
                 files.add(path)
@@ -49,7 +49,7 @@ def main():
         archive_path=archive.relative_to(ROOT).as_posix(),archive_bytes=archive.stat().st_size,archive_sha256=digest(archive),
         source_set_sha256=content_id,files=records,verified=True,
         storage='Local workspace ZIP; raw datasets and ZIP are git-ignored, not a cloud backup',
-        status='Stage26 core runtime deployed; consult B_STAGE26_ROLLOUT_20260831.md for contract alignment and Telegram approval blockers; owner switches unchanged',
+        status='Stage26 runtime, contract alignment and Telegram approved deployment complete; consult B_STAGE26_APPROVED_20260831.md; owner switches unchanged; live performance not certified',
         scope='All available research data/results/scripts plus strategy and B code snapshot; unrelated historical workspace edits are preserved as-is')
     OUT.write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
     print(json.dumps({k:v for k,v in manifest.items() if k!='files'},ensure_ascii=False))

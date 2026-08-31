@@ -1,5 +1,7 @@
 # Stage26 운영 전환 상태 — 2026-08-31
 
+**아래는 초기 전환 이력이다. 사용자 추가 승인 이후 설정·텔레그램·웹 완료 상태는 `B_STAGE26_APPROVED_20260831.md`를 우선한다.**
+
 ## 완료
 
 - B 운영 전략 ID: `b_core_sparse_stage26`. 기존 Stage16 core + ALGO/ETH/VET 보조 조합.

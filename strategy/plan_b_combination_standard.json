@@ -182,7 +182,6 @@
     "client_order_prefix": "pb26"
   },
   "remaining_work": [
-    "B ALGO/ETH/VET both-side isolated leverage 3x confirmation; order preflight blocks mismatches",
     "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
@@ -208,5 +207,5 @@
     "research/results/b_sparse_stage20/DELAY_COLLISION_STAGE24.md",
     "research/results/b_sparse_stage20/HANDOFF_STAGE25.md"
   ],
-  "implementation_status": "integrated_contract_alignment_pending"
+  "implementation_status": "deployed_contract_alignment_verified_20260831"
 }

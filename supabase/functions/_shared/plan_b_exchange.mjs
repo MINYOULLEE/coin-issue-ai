@@ -22,7 +22,7 @@ export function constrainBQuantity(order,contract,price) {
  if(quantity<=0||quantity>order.quantity||quantity<minQty||quantity*price<minUSDT)throw Error('below minimum order');
  return {...order,quantity,quantityText:quantity.toFixed(precision),notional:quantity*price,margin:quantity*price/order.leverage};
 }
-export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,liveAuthorized=()=>false,exitAuthorized=()=>false,configurationAuthorized=()=>false,sleep=ms=>new Promise(r=>setTimeout(r,ms))}) {
+export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,liveAuthorized=()=>false,exitAuthorized=()=>false,configurationAuthorized=()=>false,liveConfigurationSymbols=[],sleep=ms=>new Promise(r=>setTimeout(r,ms))}) {
  if(!apiKey||!secret)throw Error('B credentials missing');
  const reads=new Set(['/openApi/swap/v3/user/balance','/openApi/swap/v2/user/positions','/openApi/swap/v2/quote/contracts','/openApi/swap/v2/quote/premiumIndex','/openApi/swap/v2/trade/order','/openApi/swap/v2/trade/openOrders','/openApi/swap/v2/trade/leverage','/openApi/swap/v2/trade/marginType','/openApi/swap/v1/positionSide/dual','/openApi/swap/v1/maintMarginRatio','/openApi/swap/v2/trade/fillHistory']);
  reads.add('/openApi/swap/v1/trade/positionHistory');
@@ -30,7 +30,9 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
  async function request(method,path,params={},closing=false,attempt=0) {
   if(method==='GET'&&!reads.has(path))throw Error('unsupported B read endpoint');
   if(method!=='GET'){
-   const config=path==='/openApi/swap/v2/trade/leverage' && method==='POST' && !runtime.live_ready && await configurationAuthorized();
+   const coin=String(params.symbol||'').replace(/-USDT$/,'');
+   const approvedLive=liveConfigurationSymbols.includes(coin)&&['ALGO','ETH','VET'].includes(coin)&&standard.symbols[coin]?.group==='supplement'&&params.leverage===3&&['LONG','SHORT'].includes(params.side);
+   const config=path==='/openApi/swap/v2/trade/leverage' && method==='POST' && (!runtime.live_ready||approvedLive) && await configurationAuthorized();
    const order=path==='/openApi/swap/v2/trade/order' && (closing?await exitAuthorized():runtime.live_ready&&await liveAuthorized());
    if(!config&&!order)throw Error('B live transport locked');
   }
@@ -62,7 +64,8 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
   },
   async alignLeverage(symbol){
    const expected=standard.symbols[symbol]?.leverage,pair=symbol+'-USDT';
-   if(!expected||runtime.live_ready||!await configurationAuthorized())throw Error('B configuration locked');
+   const approvedLive=liveConfigurationSymbols.includes(symbol)&&['ALGO','ETH','VET'].includes(symbol)&&standard.symbols[symbol]?.group==='supplement'&&expected===3;
+   if(!expected||(runtime.live_ready&&!approvedLive)||!await configurationAuthorized())throw Error('B configuration locked');
    const mode=await request('GET','/openApi/swap/v1/positionSide/dual');
    const margin=await request('GET','/openApi/swap/v2/trade/marginType',{symbol:pair});
    if(String(mode.dualSidePosition)!=='true'||margin.marginType!=='ISOLATED')throw Error('B mode requires manual review');
