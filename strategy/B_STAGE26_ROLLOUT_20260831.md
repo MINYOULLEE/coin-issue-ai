@@ -27,3 +27,9 @@
 - 배포 중 재개 시각이 달라 '기회 상태가 현재 시간이 아님' 검사가 전환을 한 번 거절했다. 3시간 추가 복구 후 재검사를 통과하여 전환했다. 스위치를 OFF로 바꾸지 않았다.
 
 기계 판독 배포/헬스 근거: `B_STAGE26_ROLLOUT_20260831.json`. 연구 원본/스트레스 실패 조건은 `research/results/b_sparse_stage20/`와 기존 내용 해시 ZIP에 계속 보존한다.
+
+## GitHub 및 백업 추가 기록
+
+- GitHub main에 `c1cfd7f` 푸시 완료. 배포 코드와 문서 49개 변경 파일 포함. 텔레그램 소스 저장은 운영 함수 배포가 아니다.
+- 푸시 직후 GitHub Pages HTTP 200이나 새 B 조합 문구는 아직 확인되지 않았다. 웹 반영 완료로 단정하지 않는다.
+- 최신 로컬 연구 백업: `research/archives/b_stage26_20260831_ecdae7e218e00a36.zip`, 341개 파일, SHA256 `2e4f237fb2b3cacd656d4b6b6b37d51adb8eab537f99d423da3dc1d97ad132db`. ZIP/원시 데이터는 GitHub 업로드 대상이 아니며, GitHub에는 코드·결과·보존 목록을 저장했다.
