@@ -1,0 +1,173 @@
+{
+  "generated_at": "2026-08-31T06:54:27.168715+00:00",
+  "results": [
+    {
+      "close_fill_delay_minutes": 0,
+      "confirmation_extra_minutes": 0,
+      "start_usd": 100,
+      "end_usd": 1717526.822640411,
+      "return_pct": 1717426.822640411,
+      "trades": 736,
+      "win_rate_pct": 56.92934782608695,
+      "hourly_mark_mdd_pct": -55.35524370329612,
+      "closed_trade_mdd_pct": -47.28058752885988,
+      "missed": [],
+      "waited": [],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    },
+    {
+      "close_fill_delay_minutes": 1,
+      "confirmation_extra_minutes": 0,
+      "start_usd": 100,
+      "end_usd": 1213595.6081791166,
+      "return_pct": 1213495.6081791166,
+      "trades": 735,
+      "win_rate_pct": 56.734693877551024,
+      "hourly_mark_mdd_pct": -54.95127728070071,
+      "closed_trade_mdd_pct": -47.553374401216274,
+      "missed": [
+        {
+          "symbol": "UNI",
+          "signal_ts": 1652259600000,
+          "reason": "adverse_price_over_0.35_pct"
+        }
+      ],
+      "waited": [
+        {
+          "symbol": "BCH",
+          "wait_minutes": 1.0
+        }
+      ],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    },
+    {
+      "close_fill_delay_minutes": 3,
+      "confirmation_extra_minutes": 0,
+      "start_usd": 100,
+      "end_usd": 1130936.3119233362,
+      "return_pct": 1130836.3119233362,
+      "trades": 735,
+      "win_rate_pct": 56.59863945578231,
+      "hourly_mark_mdd_pct": -54.638645344898784,
+      "closed_trade_mdd_pct": -48.114168066313376,
+      "missed": [
+        {
+          "symbol": "UNI",
+          "signal_ts": 1652259600000,
+          "reason": "adverse_price_over_0.35_pct"
+        }
+      ],
+      "waited": [
+        {
+          "symbol": "BCH",
+          "wait_minutes": 3.0
+        }
+      ],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    },
+    {
+      "close_fill_delay_minutes": 5,
+      "confirmation_extra_minutes": 0,
+      "start_usd": 100,
+      "end_usd": 1275025.4759456273,
+      "return_pct": 1274925.4759456273,
+      "trades": 734,
+      "win_rate_pct": 56.53950953678474,
+      "hourly_mark_mdd_pct": -54.63864534489878,
+      "closed_trade_mdd_pct": -48.53102974253672,
+      "missed": [
+        {
+          "symbol": "BCH",
+          "signal_ts": 1643230800000,
+          "reason": "expired_waiting_confirmation"
+        },
+        {
+          "symbol": "UNI",
+          "signal_ts": 1652259600000,
+          "reason": "expired_waiting_confirmation"
+        }
+      ],
+      "waited": [],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    },
+    {
+      "close_fill_delay_minutes": 10,
+      "confirmation_extra_minutes": 0,
+      "start_usd": 100,
+      "end_usd": 1284780.9442191888,
+      "return_pct": 1284680.9442191888,
+      "trades": 734,
+      "win_rate_pct": 56.94822888283379,
+      "hourly_mark_mdd_pct": -54.63864534489874,
+      "closed_trade_mdd_pct": -47.96411475064689,
+      "missed": [
+        {
+          "symbol": "BCH",
+          "signal_ts": 1643230800000,
+          "reason": "expired_waiting_confirmation"
+        },
+        {
+          "symbol": "UNI",
+          "signal_ts": 1652259600000,
+          "reason": "expired_waiting_confirmation"
+        }
+      ],
+      "waited": [],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    },
+    {
+      "close_fill_delay_minutes": 1,
+      "confirmation_extra_minutes": 4,
+      "start_usd": 100,
+      "end_usd": 1255218.5924448925,
+      "return_pct": 1255118.5924448925,
+      "trades": 734,
+      "win_rate_pct": 56.81198910081744,
+      "hourly_mark_mdd_pct": -54.95127728070077,
+      "closed_trade_mdd_pct": -47.55337440121624,
+      "missed": [
+        {
+          "symbol": "BCH",
+          "signal_ts": 1643230800000,
+          "reason": "expired_waiting_confirmation"
+        },
+        {
+          "symbol": "UNI",
+          "signal_ts": 1652259600000,
+          "reason": "expired_waiting_confirmation"
+        }
+      ],
+      "waited": [],
+      "rejected": 21,
+      "holding_overlap_count": 0
+    }
+  ],
+  "baseline": {
+    "start_usd": 100.0,
+    "end_usd": 1717526.822640411,
+    "return_pct": 1717426.822640411,
+    "closed_trade_mdd_pct": -47.28058752885988,
+    "hourly_mark_mdd_pct": -55.35524370329612,
+    "hourly_adverse_bound_pct": -61.909165451332385,
+    "trades": 736,
+    "win_rate_pct": 56.92934782608695,
+    "margin_clipped": 668,
+    "rejected": 21,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844491,
+    "max_gross_equity_ratio": 6.322542232335289
+  },
+  "notes": [
+    "Chronological simulated fill and confirmation gate, not deployed execution code",
+    "B waits strictly less than five minutes from its original signal; then expires",
+    "Supplement signals remain frozen; do not invent replacements when B is missed",
+    "All supplementary closes delayed in each scenario, not just collision days",
+    "Hourly mark MDD only; no full intraminute liquidation/maintenance simulation",
+    "Fixed fee .05%, slip .02%, hourly funding assumption; Binance spot prices, not BingX fills"
+  ]
+}

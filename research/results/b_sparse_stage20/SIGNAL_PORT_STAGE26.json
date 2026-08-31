@@ -1,0 +1,28 @@
+{
+  "pass": true,
+  "outcomes": [
+    {
+      "symbol": "ALGO",
+      "checked": 43321,
+      "gap_windows_rejected": 338,
+      "raw_signals": 34
+    },
+    {
+      "symbol": "ETH",
+      "checked": 43353,
+      "gap_windows_rejected": 338,
+      "raw_signals": 65
+    },
+    {
+      "symbol": "VET",
+      "checked": 43321,
+      "gap_windows_rejected": 338,
+      "raw_signals": 22
+    }
+  ],
+  "total_checked": 129995,
+  "generated_at": "2026-08-31T07:09:19.744354+00:00",
+  "independent_market_validation": false,
+  "live_deployed": false,
+  "note": "JS preparation module vs independent scalar signal rules; excludes noncontiguous windows as required by production validation, not full execution replay"
+}

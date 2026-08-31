@@ -1,0 +1,116 @@
+{
+  "best_patterns": [
+    "ALGO:capitulation_n3_move0.08_vol1.5_wick0.5",
+    "ETH:sweep_n24_excess0.015_vol1.5",
+    "VET:sweep_n24_excess0.03_vol3.0"
+  ],
+  "extra_trades": 80,
+  "supplement_win_rate": 58.75,
+  "per_symbol": {
+    "ETH": 44,
+    "ALGO": 21,
+    "VET": 15
+  },
+  "concentration_tests": [
+    {
+      "remove_best_supplemental_wins": 1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 1521600.1953543134,
+        "return_pct": 1521500.1953543134,
+        "closed_trade_mdd_pct": -47.28058752885993,
+        "hourly_mark_mdd_pct": -55.35524370329614,
+        "hourly_adverse_bound_pct": -61.909165451332406,
+        "trades": 735,
+        "win_rate_pct": 56.87074829931973,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 51973.75485916956,
+        "return_pct": 51873.75485916956,
+        "closed_trade_mdd_pct": -57.2100125060753,
+        "hourly_mark_mdd_pct": -58.273574602718384,
+        "hourly_adverse_bound_pct": -64.38011588649024,
+        "trades": 736,
+        "win_rate_pct": 53.80434782608695,
+        "margin_clipped": 669,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323108,
+        "max_gross_equity_ratio": 6.308352412692217
+      }
+    },
+    {
+      "remove_best_supplemental_wins": 3,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 1197918.7157206864,
+        "return_pct": 1197818.7157206864,
+        "closed_trade_mdd_pct": -47.2805875288599,
+        "hourly_mark_mdd_pct": -55.35524370329612,
+        "hourly_adverse_bound_pct": -61.909165451332385,
+        "trades": 733,
+        "win_rate_pct": 56.75306957708049,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 41187.533406840565,
+        "return_pct": 41087.533406840565,
+        "closed_trade_mdd_pct": -59.13723613568243,
+        "hourly_mark_mdd_pct": -60.213040233872995,
+        "hourly_adverse_bound_pct": -64.38011588649022,
+        "trades": 734,
+        "win_rate_pct": 53.678474114441414,
+        "margin_clipped": 669,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323097,
+        "max_gross_equity_ratio": 6.308352412692217
+      }
+    },
+    {
+      "remove_best_supplemental_wins": 5,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 978212.3265866231,
+        "return_pct": 978112.326586623,
+        "closed_trade_mdd_pct": -47.28058752885998,
+        "hourly_mark_mdd_pct": -55.35524370329613,
+        "hourly_adverse_bound_pct": -61.909165451332385,
+        "trades": 731,
+        "win_rate_pct": 56.634746922024625,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 33860.53159315962,
+        "return_pct": 33760.53159315962,
+        "closed_trade_mdd_pct": -59.13723613568245,
+        "hourly_mark_mdd_pct": -60.213040233873016,
+        "hourly_adverse_bound_pct": -64.38011588649024,
+        "trades": 732,
+        "win_rate_pct": 53.55191256830601,
+        "margin_clipped": 669,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323097,
+        "max_gross_equity_ratio": 6.308352412692217
+      }
+    }
+  ],
+  "notes": "Winning supplemental trades ranked by net PnL/entry margin. Deliberate hindsight stress exclusion, not tradable filtering. B opportunities unchanged."
+}

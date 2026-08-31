@@ -1,0 +1,191 @@
+{
+  "generated_at": "2026-08-31T06:45:39.319055+00:00",
+  "source": "Binance spot 1m matching original spot hourly research; NOT BingX executions",
+  "minute_windows": 80,
+  "ohlc_mismatches": [],
+  "baseline": {
+    "start_usd": 100.0,
+    "end_usd": 516614.0405182196,
+    "return_pct": 516514.0405182196,
+    "closed_trade_mdd_pct": -48.996664981642915,
+    "hourly_mark_mdd_pct": -54.63864534489876,
+    "hourly_adverse_bound_pct": -61.29776487998295,
+    "trades": 656,
+    "win_rate_pct": 56.707317073170735,
+    "margin_clipped": 656,
+    "rejected": 21,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844494,
+    "max_gross_equity_ratio": 6.32254223233529
+  },
+  "entry_scenarios": [
+    {
+      "delay_minutes": 0,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 1717526.822640411,
+        "return_pct": 1717426.822640411,
+        "closed_trade_mdd_pct": -47.28058752885988,
+        "hourly_mark_mdd_pct": -55.35524370329612,
+        "hourly_adverse_bound_pct": -61.909165451332385,
+        "trades": 736,
+        "win_rate_pct": 56.92934782608695,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844491,
+        "max_gross_equity_ratio": 6.322542232335289
+      }
+    },
+    {
+      "delay_minutes": 1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 2058060.0634175686,
+        "return_pct": 2057960.0634175688,
+        "closed_trade_mdd_pct": -46.98635438238211,
+        "hourly_mark_mdd_pct": -55.73667657204191,
+        "hourly_adverse_bound_pct": -62.234603363867066,
+        "trades": 736,
+        "win_rate_pct": 57.33695652173913,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335288
+      }
+    },
+    {
+      "delay_minutes": 5,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 1839613.4786045712,
+        "return_pct": 1839513.4786045714,
+        "closed_trade_mdd_pct": -47.45650012169171,
+        "hourly_mark_mdd_pct": -54.63864534489875,
+        "hourly_adverse_bound_pct": -61.29776487998293,
+        "trades": 736,
+        "win_rate_pct": 57.20108695652174,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335288
+      }
+    },
+    {
+      "delay_minutes": 10,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 1215723.5442650663,
+        "return_pct": 1215623.5442650663,
+        "closed_trade_mdd_pct": -47.831460414035355,
+        "hourly_mark_mdd_pct": -54.63864534489878,
+        "hourly_adverse_bound_pct": -63.820164810286926,
+        "trades": 736,
+        "win_rate_pct": 56.38586956521739,
+        "margin_clipped": 668,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335287
+      }
+    }
+  ],
+  "exit_diagnostics": [
+    {
+      "exit_delay_minutes": 0,
+      "mean_directional_exit_price_change_pct": -0.0006699354554345893,
+      "worst_directional_exit_price_change_pct": -0.07485029940121901,
+      "b_signal_collisions": 0,
+      "collisions": []
+    },
+    {
+      "exit_delay_minutes": 1,
+      "mean_directional_exit_price_change_pct": -0.11873926456174425,
+      "worst_directional_exit_price_change_pct": -1.1887875717663032,
+      "b_signal_collisions": 3,
+      "collisions": [
+        {
+          "supplement": "ALGO",
+          "supplement_entry": 1652256000000,
+          "b_symbol": "UNI",
+          "b_entry": 1652259600000
+        },
+        {
+          "supplement": "ETH",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        },
+        {
+          "supplement": "VET",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        }
+      ]
+    },
+    {
+      "exit_delay_minutes": 5,
+      "mean_directional_exit_price_change_pct": -0.10249900395482944,
+      "worst_directional_exit_price_change_pct": -6.659912191827089,
+      "b_signal_collisions": 3,
+      "collisions": [
+        {
+          "supplement": "ALGO",
+          "supplement_entry": 1652256000000,
+          "b_symbol": "UNI",
+          "b_entry": 1652259600000
+        },
+        {
+          "supplement": "ETH",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        },
+        {
+          "supplement": "VET",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        }
+      ]
+    },
+    {
+      "exit_delay_minutes": 10,
+      "mean_directional_exit_price_change_pct": -0.07804521966028405,
+      "worst_directional_exit_price_change_pct": -7.943262411347529,
+      "b_signal_collisions": 3,
+      "collisions": [
+        {
+          "supplement": "ALGO",
+          "supplement_entry": 1652256000000,
+          "b_symbol": "UNI",
+          "b_entry": 1652259600000
+        },
+        {
+          "supplement": "ETH",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        },
+        {
+          "supplement": "VET",
+          "supplement_entry": 1643227200000,
+          "b_symbol": "BCH",
+          "b_entry": 1643230800000
+        }
+      ]
+    }
+  ],
+  "notes": [
+    "Entry scenarios retain fixed scheduled exit; no time extension",
+    "Same full-hour funding charge and reservation retained conservatively despite delayed entry",
+    "MDD remains hybrid hourly evaluation; not full minute-by-minute account MDD",
+    "Hourly adverse-bound metric includes pre-entry bar extremes; do not interpret as measured minute MDD",
+    "Exit diagnostics are price/collision checks, NOT compounded exit-delay portfolio returns",
+    "5/10-minute entries are fault stress tests; not authorization to relax current entry TTL",
+    "Independent historical holdout and live execution validation not performed"
+  ]
+}

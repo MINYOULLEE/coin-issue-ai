@@ -1,0 +1,215 @@
+{
+  "plan": "B",
+  "profile": "aggressive",
+  "standard_version": "b_core_sparse_stage26_v1",
+  "strategy_id": "b_core_sparse_stage26",
+  "adoption_status": "user_adopted_20260831_implementation_pending",
+  "live_ready": false,
+  "live_account": {
+    "starting_capital_usd": 150,
+    "basis": "user_declared_performance_baseline_not_verified_deposit",
+    "public_trade_history": true,
+    "public_history_approved_on": "2026-08-30",
+    "order_sizing_basis": "actual_exchange_equity_and_available_margin"
+  },
+  "acceptance": {
+    "user_adopted_on": "2026-08-31",
+    "base_cost_return_floor_pct": 1000000,
+    "closed_trade_mdd_limit_pct": 70,
+    "independent_validation": false,
+    "live_validation": false
+  },
+  "symbols": {
+    "AVAX": {
+      "kind": "rsi",
+      "window": 72,
+      "edge": 30,
+      "research_hold_index": 12,
+      "actual_hold_hours": 13,
+      "leverage": 3,
+      "group": "core",
+      "target_margin_fraction": 1.15,
+      "opportunity_cooldown_hours": 13
+    },
+    "ICP": {
+      "kind": "rsi",
+      "window": 24,
+      "edge": 20,
+      "research_hold_index": 1,
+      "actual_hold_hours": 2,
+      "leverage": 5,
+      "group": "core",
+      "target_margin_fraction": 1.15,
+      "opportunity_cooldown_hours": 2
+    },
+    "BCH": {
+      "kind": "session",
+      "hours": [
+        20,
+        21,
+        22
+      ],
+      "shock": 0.02,
+      "research_hold_index": 3,
+      "actual_hold_hours": 4,
+      "leverage": 3,
+      "group": "core",
+      "target_margin_fraction": 1.15,
+      "opportunity_cooldown_hours": 4
+    },
+    "DOGE": {
+      "kind": "squeeze",
+      "compression": 0.35,
+      "volume": 1.5,
+      "research_hold_index": 12,
+      "actual_hold_hours": 13,
+      "leverage": 5,
+      "group": "core",
+      "target_margin_fraction": 1.15,
+      "opportunity_cooldown_hours": 13
+    },
+    "UNI": {
+      "kind": "session",
+      "hours": [
+        7,
+        8,
+        9
+      ],
+      "shock": 0.02,
+      "research_hold_index": 6,
+      "actual_hold_hours": 7,
+      "leverage": 2,
+      "group": "core",
+      "target_margin_fraction": 1.15,
+      "opportunity_cooldown_hours": 7
+    },
+    "ALGO": {
+      "group": "supplement",
+      "kind": "capitulation",
+      "window": 3,
+      "shock": 0.08,
+      "volume_window": 48,
+      "volume": 1.5,
+      "wick": 0.5,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.9
+    },
+    "ETH": {
+      "group": "supplement",
+      "kind": "sweep",
+      "window": 24,
+      "excess": 0.015,
+      "volume_window": 48,
+      "volume": 1.5,
+      "wick": 0.4,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.9
+    },
+    "VET": {
+      "group": "supplement",
+      "kind": "sweep",
+      "window": 24,
+      "excess": 0.03,
+      "volume_window": 48,
+      "volume": 3,
+      "wick": 0.4,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.9
+    }
+  },
+  "sizing": {
+    "mode": "reserved_margin_fixed_entry_quantity",
+    "target_margin_fraction": "per_symbol",
+    "cash_buffer_fraction": 0.05,
+    "available_formula": "max(0,min(balance-reserved_margin,equity-reserved_margin)-0.05*max(equity,0))",
+    "demand_formula": "target_margin*(1+leverage*(2*fee_rate+funding_hourly_rate*actual_hold_hours))",
+    "simultaneous_allocation": "proportional_to_demand",
+    "insufficient_margin": "clip_proportionally_or_reject",
+    "quantity_formula": "allocated_margin*exchange_leverage/actual_entry_price",
+    "quantity_fixed_until_exit": true,
+    "portfolio_return_multiplier": null
+  },
+  "research_costs": {
+    "fee_each_side": 0.0005,
+    "slippage_each_side": 0.0002,
+    "funding_hourly": 0.0000125
+  },
+  "signal_convention": {
+    "timeframe": "1h",
+    "rsi": "simple average gains/losses; exclude current signal bar return",
+    "session_hours": "UTC opening hour of signal bar",
+    "entry": "next bar open after completed signal",
+    "exit": "entry boundary + actual_hold_hours"
+  },
+  "reference": {
+    "file": "research/results/b_sparse_stage20/combinations.json",
+    "selector": {
+      "patterns": [
+        "ALGO:capitulation_n3_move0.08_vol1.5_wick0.5",
+        "ETH:sweep_n24_excess0.015_vol1.5",
+        "VET:sweep_n24_excess0.03_vol3.0"
+      ],
+      "target_fraction_per_signal": 0.9
+    },
+    "start_usd": 100,
+    "end_usd": 1717526.822640411,
+    "return_pct": 1717426.822640411,
+    "closed_trade_mdd_pct": -47.28058752885988,
+    "hourly_mark_mdd_pct": -55.35524370329612,
+    "hourly_adverse_bound_pct": -61.909165451332385,
+    "trades": 736,
+    "win_rate_pct": 56.92934782608695,
+    "margin_clipped": 668,
+    "rejected": 21,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844491,
+    "max_gross_equity_ratio": 6.322542232335289,
+    "extra_trades": 80,
+    "disclaimer": "Binance spot OHLC leveraged simulation, all thirds used for discovery; not BingX futures/live validation"
+  },
+  "isolation": {
+    "api_key_env": "PLAN_B_BINGX_API_KEY",
+    "secret_key_env": "PLAN_B_BINGX_SECRET_KEY",
+    "state_table": "plan_b_trading_state",
+    "signals_table": "plan_b_signals",
+    "trades_table": "plan_b_real_trades",
+    "client_order_prefix": "pb26"
+  },
+  "remaining_work": [
+    "Persist and bootstrap opportunity cooldown state with source parity",
+    "Atomic database core/supplement mutual exclusion and all-symbol signal batch publication",
+    "Executor, exchange adapter, UI and Telegram version-coherent rollout",
+    "ALGO/ETH/VET B-account contract, isolated margin and 3x both-side configuration checks",
+    "Concurrent worker, partial-fill and timeout integration tests",
+    "Forward/untouched-data and actual futures validation"
+  ],
+  "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
+  "display_name": "B 공격형 · Stage16 + ALGO/ETH/VET 희소 반전",
+  "coordination": {
+    "priority": "core",
+    "same_account_groups_mutually_exclusive": true,
+    "idle_gate": "all_already_selected_core_opportunities_until_scheduled_exit_even_if_order_rejected",
+    "core_data_failure": "do_not_infer_idle",
+    "entry_ttl_ms": 300000,
+    "entry_ttl_comparison": "strictly_less_than",
+    "max_adverse_move_fraction": 0.0035,
+    "exit_confirmation_before_margin_release": true,
+    "original_exit_time_not_extended": true,
+    "uncertain_order": "retain_reservation_and_reconcile_no_blind_retry",
+    "opportunity_state": "persist_causal_selection_and_cooldown_independent_of_fills",
+    "supplement_cooldown_note": "Research opportunities(): nxt=i+hold+1; 1h holding means accepted entry boundaries at least 2h apart"
+  },
+  "research_evidence": [
+    "research/results/b_sparse_stage20/REPORT.md",
+    "research/results/b_sparse_stage20/AUDIT_STAGE22.md",
+    "research/results/b_sparse_stage20/COST_STAGE23.md",
+    "research/results/b_sparse_stage20/DELAY_COLLISION_STAGE24.md",
+    "research/results/b_sparse_stage20/HANDOFF_STAGE25.md"
+  ]
+}

@@ -1,0 +1,2753 @@
+{
+  "id": "B-COMPLEMENT-STAGE18-1H",
+  "generated_at": "2026-08-31T05:23:47.965439+00:00",
+  "range": [
+    "2021-08-28T00:00:00+00:00",
+    "2026-08-28T08:00:00+00:00"
+  ],
+  "cuts": [
+    "2021-08-28T00:00:00+00:00",
+    "2023-04-28T18:40:00+00:00",
+    "2024-12-27T13:20:00+00:00",
+    "2026-08-28T08:00:00+00:00"
+  ],
+  "baseline": {
+    "start_usd": 100.0,
+    "end_usd": 516614.0405182196,
+    "return_pct": 516514.0405182196,
+    "closed_trade_mdd_pct": -48.996664981642915,
+    "hourly_mark_mdd_pct": -54.63864534489876,
+    "hourly_adverse_bound_pct": -61.29776487998295,
+    "trades": 656,
+    "win_rate_pct": 56.707317073170735,
+    "margin_clipped": 656,
+    "rejected": 21,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844494,
+    "max_gross_equity_ratio": 6.32254223233529
+  },
+  "baseline_stress": {
+    "start_usd": 100.0,
+    "end_usd": 23268.696907572878,
+    "return_pct": 23168.696907572878,
+    "closed_trade_mdd_pct": -61.14958737776413,
+    "hourly_mark_mdd_pct": -62.172411806727744,
+    "hourly_adverse_bound_pct": -62.99046245591331,
+    "trades": 657,
+    "win_rate_pct": 53.729071537290714,
+    "margin_clipped": 657,
+    "rejected": 20,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.61817429483231,
+    "max_gross_equity_ratio": 6.308352412692218
+  },
+  "baseline_segments": [
+    {
+      "start_usd": 100.0,
+      "end_usd": 4726.455879909844,
+      "return_pct": 4626.455879909844,
+      "closed_trade_mdd_pct": -40.03418314943414,
+      "hourly_mark_mdd_pct": -46.00249936779257,
+      "hourly_adverse_bound_pct": -58.70373048745664,
+      "trades": 232,
+      "win_rate_pct": 58.189655172413794,
+      "margin_clipped": 232,
+      "rejected": 5,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.3912984135623614,
+      "max_gross_equity_ratio": 6.32254223233529
+    },
+    {
+      "start_usd": 100.0,
+      "end_usd": 1053.8435246425126,
+      "return_pct": 953.8435246425128,
+      "closed_trade_mdd_pct": -48.99666498164289,
+      "hourly_mark_mdd_pct": -54.63864534489876,
+      "hourly_adverse_bound_pct": -61.29776487998295,
+      "trades": 198,
+      "win_rate_pct": 56.06060606060606,
+      "margin_clipped": 198,
+      "rejected": 7,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844494,
+      "max_gross_equity_ratio": 5.494155889753049
+    },
+    {
+      "start_usd": 100.0,
+      "end_usd": 1057.624081363485,
+      "return_pct": 957.6240813634848,
+      "closed_trade_mdd_pct": -46.71964268376412,
+      "hourly_mark_mdd_pct": -50.1287928561302,
+      "hourly_adverse_bound_pct": -61.29152847574812,
+      "trades": 224,
+      "win_rate_pct": 55.80357142857143,
+      "margin_clipped": 224,
+      "rejected": 9,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.210460045511445,
+      "max_gross_equity_ratio": 5.79015653692194
+    }
+  ],
+  "clustering": {
+    "opportunities": 677,
+    "entry_hours": 669,
+    "multi_signal_hours": 8,
+    "busy_hours": 3838,
+    "total_hours": 43829
+  },
+  "tested": 510,
+  "portfolio_tests": 24,
+  "third_winners": [
+    "ALGO:streak_exhaustion_n7_move0.03:h1:l3",
+    "XLM:streak_exhaustion_n5_move0.03:h1:l3",
+    "XRP:streak_exhaustion_n3_move0.03:h1:l3"
+  ],
+  "results": [
+    {
+      "candidate": {
+        "id": "XRP:streak_exhaustion_n3_move0.03:h1:l3",
+        "symbol": "XRP",
+        "pattern": "streak_exhaustion_n3_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 20.503261882572225,
+        "segments": [
+          {
+            "trades": 248,
+            "sum_log": -0.10088366929935672,
+            "mean_net": -0.001844170779810237
+          },
+          {
+            "trades": 186,
+            "sum_log": 0.10049666202501295,
+            "mean_net": 0.003043360618944461
+          },
+          {
+            "trades": 216,
+            "sum_log": 0.11701374180520953,
+            "mean_net": 0.0029245395776599514
+          }
+        ],
+        "score": -0.10088366929935672
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 591797.3582232023,
+        "return_pct": 591697.3582232023,
+        "closed_trade_mdd_pct": -46.71964268376414,
+        "hourly_mark_mdd_pct": -55.44671929850846,
+        "hourly_adverse_bound_pct": -61.98721228261795,
+        "trades": 1306,
+        "win_rate_pct": 56.27871362940276,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.3225422323352864
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4154.129608699287,
+          "return_pct": 4054.129608699287,
+          "closed_trade_mdd_pct": -41.50123132724243,
+          "hourly_mark_mdd_pct": -46.493244698891225,
+          "hourly_adverse_bound_pct": -59.52584045236726,
+          "trades": 480,
+          "win_rate_pct": 56.25,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623616,
+          "max_gross_equity_ratio": 6.3225422323352864
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1190.1662116016462,
+          "return_pct": 1090.1662116016462,
+          "closed_trade_mdd_pct": -45.94885145158114,
+          "hourly_mark_mdd_pct": -55.446719298508505,
+          "hourly_adverse_bound_pct": -61.98721228261799,
+          "trades": 384,
+          "win_rate_pct": 55.729166666666664,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844494,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1220.5686985693524,
+          "return_pct": 1120.5686985693524,
+          "closed_trade_mdd_pct": -46.719642683764164,
+          "hourly_mark_mdd_pct": -48.946813541585485,
+          "hourly_adverse_bound_pct": -60.5337351435999,
+          "trades": 440,
+          "win_rate_pct": 56.81818181818182,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114445,
+          "max_gross_equity_ratio": 5.790156536921936
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 13377.889310402461,
+        "return_pct": 13277.889310402461,
+        "closed_trade_mdd_pct": -62.75545683446874,
+        "hourly_mark_mdd_pct": -63.73600314077726,
+        "hourly_adverse_bound_pct": -65.42433709347321,
+        "trades": 1307,
+        "win_rate_pct": 52.41009946442234,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.3083524126922175
+      },
+      "extra_trades": 650,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "ALGO:streak_exhaustion_n7_move0.03:h1:l3",
+        "symbol": "ALGO",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 17.573221757322173,
+        "segments": [
+          {
+            "trades": 48,
+            "sum_log": 0.09766837583363919,
+            "mean_net": 0.010409094346448338
+          },
+          {
+            "trades": 42,
+            "sum_log": 0.041588705950782935,
+            "mean_net": 0.0050379141727430925
+          },
+          {
+            "trades": 46,
+            "sum_log": -0.06303221749438105,
+            "mean_net": -0.006781614133770554
+          }
+        ],
+        "score": -0.06303221749438105
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 567620.3028981242,
+        "return_pct": 567520.3028981242,
+        "closed_trade_mdd_pct": -49.3437198211683,
+        "hourly_mark_mdd_pct": -53.50774651673993,
+        "hourly_adverse_bound_pct": -61.2608229860756,
+        "trades": 792,
+        "win_rate_pct": 55.55555555555556,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844491,
+        "max_gross_equity_ratio": 6.322542232335291
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 5336.47218404037,
+          "return_pct": 5236.47218404037,
+          "closed_trade_mdd_pct": -40.026443245291674,
+          "hourly_mark_mdd_pct": -47.075169360984304,
+          "hourly_adverse_bound_pct": -58.69840029795446,
+          "trades": 280,
+          "win_rate_pct": 57.857142857142854,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335291
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1109.8259160363002,
+          "return_pct": 1009.8259160363002,
+          "closed_trade_mdd_pct": -49.34371982116828,
+          "hourly_mark_mdd_pct": -53.50774651673991,
+          "hourly_adverse_bound_pct": -60.30064732891851,
+          "trades": 240,
+          "win_rate_pct": 55.833333333333336,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844498,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 977.2949941171837,
+          "return_pct": 877.2949941171838,
+          "closed_trade_mdd_pct": -46.719642683764185,
+          "hourly_mark_mdd_pct": -49.81278988045204,
+          "hourly_adverse_bound_pct": -61.26082298607562,
+          "trades": 270,
+          "win_rate_pct": 52.96296296296296,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114451,
+          "max_gross_equity_ratio": 5.790156536921938
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22134.199349402334,
+        "return_pct": 22034.199349402334,
+        "closed_trade_mdd_pct": -60.64292934340325,
+        "hourly_mark_mdd_pct": -61.9528215696483,
+        "hourly_adverse_bound_pct": -62.74995154072557,
+        "trades": 793,
+        "win_rate_pct": 52.33291298865069,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 136,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "XRP:streak_exhaustion_n3_move0.03:h1:l3",
+        "symbol": "XRP",
+        "pattern": "streak_exhaustion_n3_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 20.503261882572225,
+        "segments": [
+          {
+            "trades": 248,
+            "sum_log": -0.10088366929935672,
+            "mean_net": -0.001844170779810237
+          },
+          {
+            "trades": 186,
+            "sum_log": 0.10049666202501295,
+            "mean_net": 0.003043360618944461
+          },
+          {
+            "trades": 216,
+            "sum_log": 0.11701374180520953,
+            "mean_net": 0.0029245395776599514
+          }
+        ],
+        "score": -0.10088366929935672
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 551972.7593993791,
+        "return_pct": 551872.7593993791,
+        "closed_trade_mdd_pct": -47.78030686464233,
+        "hourly_mark_mdd_pct": -54.67452940690396,
+        "hourly_adverse_bound_pct": -61.32838110419727,
+        "trades": 1306,
+        "win_rate_pct": 56.27871362940276,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844485,
+        "max_gross_equity_ratio": 6.322542232335287
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4504.582733597951,
+          "return_pct": 4404.582733597951,
+          "closed_trade_mdd_pct": -40.607912891851186,
+          "hourly_mark_mdd_pct": -45.989615818173746,
+          "hourly_adverse_bound_pct": -59.022410658138384,
+          "trades": 480,
+          "win_rate_pct": 56.25,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.391298413562362,
+          "max_gross_equity_ratio": 6.322542232335287
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1111.6773972165324,
+          "return_pct": 1011.6773972165324,
+          "closed_trade_mdd_pct": -47.78030686464246,
+          "hourly_mark_mdd_pct": -54.67452940690396,
+          "hourly_adverse_bound_pct": -61.328381104197284,
+          "trades": 384,
+          "win_rate_pct": 55.729166666666664,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844491,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1123.9866862302406,
+          "return_pct": 1023.9866862302406,
+          "closed_trade_mdd_pct": -46.71964268376417,
+          "hourly_mark_mdd_pct": -49.569587335669056,
+          "hourly_adverse_bound_pct": -60.98731069834478,
+          "trades": 440,
+          "win_rate_pct": 56.81818181818182,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114445,
+          "max_gross_equity_ratio": 5.790156536921937
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 18871.259457085627,
+        "return_pct": 18771.259457085627,
+        "closed_trade_mdd_pct": -61.6759320237455,
+        "hourly_mark_mdd_pct": -62.684899246938905,
+        "hourly_adverse_bound_pct": -63.44435004571503,
+        "trades": 1307,
+        "win_rate_pct": 52.41009946442234,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323108,
+        "max_gross_equity_ratio": 6.308352412692217
+      },
+      "extra_trades": 650,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "XLM:streak_exhaustion_n5_move0.03:h1:l3",
+        "symbol": "XLM",
+        "pattern": "streak_exhaustion_n5_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 18.780889621087315,
+        "segments": [
+          {
+            "trades": 120,
+            "sum_log": 0.02152361234615902,
+            "mean_net": 0.0010391141428042724
+          },
+          {
+            "trades": 88,
+            "sum_log": 0.1638692046298098,
+            "mean_net": 0.00960736393480953
+          },
+          {
+            "trades": 142,
+            "sum_log": -0.14597050011450816,
+            "mean_net": -0.004979575740131948
+          }
+        ],
+        "score": -0.14597050011450816
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 540477.3840879009,
+        "return_pct": 540377.3840879009,
+        "closed_trade_mdd_pct": -50.477899494708566,
+        "hourly_mark_mdd_pct": -55.0835627612842,
+        "hourly_adverse_bound_pct": -61.49755343820404,
+        "trades": 1006,
+        "win_rate_pct": 53.77733598409543,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844496,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4850.171129416872,
+          "return_pct": 4750.171129416872,
+          "closed_trade_mdd_pct": -36.58421732997401,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -54.886793867747045,
+          "trades": 352,
+          "win_rate_pct": 54.26136363636363,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623616,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1291.3127952693008,
+          "return_pct": 1191.3127952693008,
+          "closed_trade_mdd_pct": -50.47789949470855,
+          "hourly_mark_mdd_pct": -55.083562761284185,
+          "hourly_adverse_bound_pct": -60.95619609023989,
+          "trades": 286,
+          "win_rate_pct": 55.24475524475525,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844494,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 879.9659641508367,
+          "return_pct": 779.9659641508366,
+          "closed_trade_mdd_pct": -46.719642683764164,
+          "hourly_mark_mdd_pct": -52.56921207301293,
+          "hourly_adverse_bound_pct": -61.497553438204044,
+          "trades": 366,
+          "win_rate_pct": 52.185792349726775,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.7901565369219385
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 16798.85278315803,
+        "return_pct": 16698.85278315803,
+        "closed_trade_mdd_pct": -59.45487059519061,
+        "hourly_mark_mdd_pct": -67.88995881676139,
+        "hourly_adverse_bound_pct": -69.05877711114981,
+        "trades": 1007,
+        "win_rate_pct": 50.248262164846075,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323108,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 350,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "ALGO:streak_exhaustion_n7_move0.03:h1:l3",
+        "symbol": "ALGO",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 17.573221757322173,
+        "segments": [
+          {
+            "trades": 48,
+            "sum_log": 0.09766837583363919,
+            "mean_net": 0.010409094346448338
+          },
+          {
+            "trades": 42,
+            "sum_log": 0.041588705950782935,
+            "mean_net": 0.0050379141727430925
+          },
+          {
+            "trades": 46,
+            "sum_log": -0.06303221749438105,
+            "mean_net": -0.006781614133770554
+          }
+        ],
+        "score": -0.06303221749438105
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 537168.9980901951,
+        "return_pct": 537068.9980901951,
+        "closed_trade_mdd_pct": -49.13508657550485,
+        "hourly_mark_mdd_pct": -54.17286993133834,
+        "hourly_adverse_bound_pct": -61.27916891163658,
+        "trades": 792,
+        "win_rate_pct": 55.55555555555556,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844496,
+        "max_gross_equity_ratio": 6.322542232335291
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4965.785111064553,
+          "return_pct": 4865.785111064553,
+          "closed_trade_mdd_pct": -40.02572093722362,
+          "hourly_mark_mdd_pct": -46.344131614235515,
+          "hourly_adverse_bound_pct": -58.69790287074981,
+          "trades": 280,
+          "win_rate_pct": 57.857142857142854,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.391298413562362,
+          "max_gross_equity_ratio": 6.322542232335291
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1076.1827932837577,
+          "return_pct": 976.1827932837579,
+          "closed_trade_mdd_pct": -49.13508657550483,
+          "hourly_mark_mdd_pct": -54.17286993133834,
+          "hourly_adverse_bound_pct": -60.90036604333442,
+          "trades": 240,
+          "win_rate_pct": 55.833333333333336,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844496,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1024.9763370799105,
+          "return_pct": 924.9763370799105,
+          "closed_trade_mdd_pct": -46.71964268376414,
+          "hourly_mark_mdd_pct": -50.001739324008284,
+          "hourly_adverse_bound_pct": -61.27916891163658,
+          "trades": 270,
+          "win_rate_pct": 52.96296296296296,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114445,
+          "max_gross_equity_ratio": 5.790156536921939
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22838.90566772457,
+        "return_pct": 22738.90566772457,
+        "closed_trade_mdd_pct": -60.942698171157986,
+        "hourly_mark_mdd_pct": -62.00490778652803,
+        "hourly_adverse_bound_pct": -62.744950387348155,
+        "trades": 793,
+        "win_rate_pct": 52.33291298865069,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.61817429483231,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 136,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.03:h1:l3",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 9.130434782608695,
+        "segments": [
+          {
+            "trades": 42,
+            "sum_log": -0.024345720357243417,
+            "mean_net": -0.002813291347282085
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.06620493951711393,
+            "mean_net": 0.007688846653370304
+          },
+          {
+            "trades": 63,
+            "sum_log": -0.013490826116746915,
+            "mean_net": -0.000979143836343778
+          }
+        ],
+        "score": -0.024345720357243417
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 534709.101731672,
+        "return_pct": 534609.101731672,
+        "closed_trade_mdd_pct": -49.415805758404495,
+        "hourly_mark_mdd_pct": -53.302963051017,
+        "hourly_adverse_bound_pct": -61.40129796381964,
+        "trades": 805,
+        "win_rate_pct": 56.024844720496894,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.32254223233529
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4583.760189919759,
+          "return_pct": 4483.760189919759,
+          "closed_trade_mdd_pct": -39.29234653716021,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -58.1928546871473,
+          "trades": 274,
+          "win_rate_pct": 56.56934306569343,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623612,
+          "max_gross_equity_ratio": 6.32254223233529
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1144.252167369194,
+          "return_pct": 1044.252167369194,
+          "closed_trade_mdd_pct": -49.41580575840443,
+          "hourly_mark_mdd_pct": -53.30296305101698,
+          "hourly_adverse_bound_pct": -59.72262634207801,
+          "trades": 242,
+          "win_rate_pct": 57.02479338842975,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844496,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1039.562990288887,
+          "return_pct": 939.562990288887,
+          "closed_trade_mdd_pct": -47.85516892785753,
+          "hourly_mark_mdd_pct": -51.0378992851432,
+          "hourly_adverse_bound_pct": -61.401297963819616,
+          "trades": 287,
+          "win_rate_pct": 54.70383275261324,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921937
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 20565.00201005546,
+        "return_pct": 20465.00201005546,
+        "closed_trade_mdd_pct": -62.30290053495353,
+        "hourly_mark_mdd_pct": -63.295361402971515,
+        "hourly_adverse_bound_pct": -64.04238784906828,
+        "trades": 806,
+        "win_rate_pct": 52.35732009925558,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323106,
+        "max_gross_equity_ratio": 6.308352412692217
+      },
+      "extra_trades": 149,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 9.130434782608695,
+        "segments": [
+          {
+            "trades": 42,
+            "sum_log": -0.016071547862015503,
+            "mean_net": -0.0018755275648547234
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.04445790584596081,
+            "mean_net": 0.005125897768913538
+          },
+          {
+            "trades": 63,
+            "sum_log": -0.008737350486819614,
+            "mean_net": -0.0006527625575625187
+          }
+        ],
+        "score": -0.016071547862015503
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 529215.9249986452,
+        "return_pct": 529115.9249986452,
+        "closed_trade_mdd_pct": -49.27512752618601,
+        "hourly_mark_mdd_pct": -53.40557486938613,
+        "hourly_adverse_bound_pct": -61.364566379854814,
+        "trades": 805,
+        "win_rate_pct": 56.024844720496894,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844491,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4631.991504974393,
+          "return_pct": 4531.991504974393,
+          "closed_trade_mdd_pct": -39.539994284602585,
+          "hourly_mark_mdd_pct": -46.00249936779254,
+          "hourly_adverse_bound_pct": -58.363400652493546,
+          "trades": 274,
+          "win_rate_pct": 56.56934306569343,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1113.8418689329633,
+          "return_pct": 1013.8418689329633,
+          "closed_trade_mdd_pct": -49.275127526185905,
+          "hourly_mark_mdd_pct": -53.40557486938609,
+          "hourly_adverse_bound_pct": -60.24571112573125,
+          "trades": 242,
+          "win_rate_pct": 57.02479338842975,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844485,
+          "max_gross_equity_ratio": 5.494155889753047
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1045.9681888216364,
+          "return_pct": 945.9681888216364,
+          "closed_trade_mdd_pct": -47.47779849297895,
+          "hourly_mark_mdd_pct": -50.73520698712088,
+          "hourly_adverse_bound_pct": -61.364566379854814,
+          "trades": 287,
+          "win_rate_pct": 54.70383275261324,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921938
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21454.316289543658,
+        "return_pct": 21354.316289543658,
+        "closed_trade_mdd_pct": -61.91757293001805,
+        "hourly_mark_mdd_pct": -62.92017841326354,
+        "hourly_adverse_bound_pct": -63.674840723004536,
+        "trades": 806,
+        "win_rate_pct": 52.35732009925558,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323108,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 149,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "XLM:streak_exhaustion_n5_move0.03:h1:l3",
+        "symbol": "XLM",
+        "pattern": "streak_exhaustion_n5_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 18.780889621087315,
+        "segments": [
+          {
+            "trades": 120,
+            "sum_log": 0.02152361234615902,
+            "mean_net": 0.0010391141428042724
+          },
+          {
+            "trades": 88,
+            "sum_log": 0.1638692046298098,
+            "mean_net": 0.00960736393480953
+          },
+          {
+            "trades": 142,
+            "sum_log": -0.14597050011450816,
+            "mean_net": -0.004979575740131948
+          }
+        ],
+        "score": -0.14597050011450816
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 528637.8176121198,
+        "return_pct": 528537.8176121198,
+        "closed_trade_mdd_pct": -49.587088613712595,
+        "hourly_mark_mdd_pct": -54.47850567468138,
+        "hourly_adverse_bound_pct": -61.37344259526749,
+        "trades": 1006,
+        "win_rate_pct": 53.77733598409543,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4781.67486427983,
+          "return_pct": 4681.67486427983,
+          "closed_trade_mdd_pct": -38.48252351380936,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -57.21138165740236,
+          "trades": 352,
+          "win_rate_pct": 54.26136363636363,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623612,
+          "max_gross_equity_ratio": 6.322542232335289
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1145.3154891618763,
+          "return_pct": 1045.3154891618763,
+          "closed_trade_mdd_pct": -49.587088613712574,
+          "hourly_mark_mdd_pct": -54.478505674681344,
+          "hourly_adverse_bound_pct": -61.16113396990719,
+          "trades": 286,
+          "win_rate_pct": 55.24475524475525,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884449,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 984.3055118418182,
+          "return_pct": 884.3055118418182,
+          "closed_trade_mdd_pct": -46.71964268376415,
+          "hourly_mark_mdd_pct": -49.8099172889511,
+          "hourly_adverse_bound_pct": -61.37344259526749,
+          "trades": 366,
+          "win_rate_pct": 52.185792349726775,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114451,
+          "max_gross_equity_ratio": 5.790156536921941
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 20527.828368254286,
+        "return_pct": 20427.828368254286,
+        "closed_trade_mdd_pct": -59.29175408964328,
+        "hourly_mark_mdd_pct": -62.41820652825352,
+        "hourly_adverse_bound_pct": -63.78619878634609,
+        "trades": 1007,
+        "win_rate_pct": 50.248262164846075,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.61817429483231,
+        "max_gross_equity_ratio": 6.308352412692217
+      },
+      "extra_trades": 350,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "LTC:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "LTC",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 14.130434782608695,
+        "segments": [
+          {
+            "trades": 44,
+            "sum_log": 0.028327430384307017,
+            "mean_net": 0.003285389824049967
+          },
+          {
+            "trades": 30,
+            "sum_log": 0.010191939540903056,
+            "mean_net": 0.0017409325887832708
+          },
+          {
+            "trades": 37,
+            "sum_log": -0.02518931521150625,
+            "mean_net": -0.0033772494018034695
+          }
+        ],
+        "score": -0.02518931521150625
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 525125.0325937964,
+        "return_pct": 525025.0325937964,
+        "closed_trade_mdd_pct": -49.34598377364702,
+        "hourly_mark_mdd_pct": -54.37187643139283,
+        "hourly_adverse_bound_pct": -61.2190128846106,
+        "trades": 767,
+        "win_rate_pct": 55.67144719687093,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335291
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4895.928155665904,
+          "return_pct": 4795.928155665904,
+          "closed_trade_mdd_pct": -39.11158396494561,
+          "hourly_mark_mdd_pct": -46.0024993677926,
+          "hourly_adverse_bound_pct": -57.95475137346531,
+          "trades": 276,
+          "win_rate_pct": 56.52173913043478,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623614,
+          "max_gross_equity_ratio": 6.322542232335291
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1067.2704660680013,
+          "return_pct": 967.2704660680014,
+          "closed_trade_mdd_pct": -49.34598377364695,
+          "hourly_mark_mdd_pct": -54.37187643139286,
+          "hourly_adverse_bound_pct": -61.07015807036012,
+          "trades": 228,
+          "win_rate_pct": 56.578947368421055,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844498,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1024.7786264038677,
+          "return_pct": 924.7786264038676,
+          "closed_trade_mdd_pct": -46.926131710510454,
+          "hourly_mark_mdd_pct": -50.45710720087574,
+          "hourly_adverse_bound_pct": -61.21901288461067,
+          "trades": 261,
+          "win_rate_pct": 54.02298850574713,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114447,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21866.790923806166,
+        "return_pct": 21766.790923806166,
+        "closed_trade_mdd_pct": -62.1005502316945,
+        "hourly_mark_mdd_pct": -63.09833842623007,
+        "hourly_adverse_bound_pct": -63.84937475717355,
+        "trades": 768,
+        "win_rate_pct": 52.083333333333336,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 111,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.03:h1:l3",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 3,
+        "raw_overlap_pct": 9.130434782608695,
+        "segments": [
+          {
+            "trades": 42,
+            "sum_log": -0.024345720357243417,
+            "mean_net": -0.002813291347282085
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.06620493951711393,
+            "mean_net": 0.007688846653370304
+          },
+          {
+            "trades": 63,
+            "sum_log": -0.013490826116746915,
+            "mean_net": -0.000979143836343778
+          }
+        ],
+        "score": -0.024345720357243417
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 524428.7882346704,
+        "return_pct": 524328.7882346704,
+        "closed_trade_mdd_pct": -49.16327922129976,
+        "hourly_mark_mdd_pct": -53.897699600051766,
+        "hourly_adverse_bound_pct": -61.335283176000466,
+        "trades": 805,
+        "win_rate_pct": 56.024844720496894,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844496,
+        "max_gross_equity_ratio": 6.32254223233529
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4670.104751337761,
+          "return_pct": 4570.104751337761,
+          "closed_trade_mdd_pct": -39.737847197255846,
+          "hourly_mark_mdd_pct": -46.00249936779257,
+          "hourly_adverse_bound_pct": -58.49965473246599,
+          "trades": 274,
+          "win_rate_pct": 56.56934306569343,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.391298413562361,
+          "max_gross_equity_ratio": 6.32254223233529
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1089.706697662967,
+          "return_pct": 989.7066976629668,
+          "closed_trade_mdd_pct": -49.163279221299874,
+          "hourly_mark_mdd_pct": -53.89769960005177,
+          "hourly_adverse_bound_pct": -60.66559115752072,
+          "trades": 242,
+          "win_rate_pct": 57.02479338842975,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884448,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1050.8171376261048,
+          "return_pct": 950.8171376261048,
+          "closed_trade_mdd_pct": -47.175082559606274,
+          "hourly_mark_mdd_pct": -50.492805217821534,
+          "hourly_adverse_bound_pct": -61.33528317600045,
+          "trades": 287,
+          "win_rate_pct": 54.70383275261324,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921938
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22174.833271457184,
+        "return_pct": 22074.833271457184,
+        "closed_trade_mdd_pct": -61.60992127388489,
+        "hourly_mark_mdd_pct": -62.6206263784282,
+        "hourly_adverse_bound_pct": -63.3813852825114,
+        "trades": 806,
+        "win_rate_pct": 52.35732009925558,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323097,
+        "max_gross_equity_ratio": 6.3083524126922175
+      },
+      "extra_trades": 149,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.015:h1:l2",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.015",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 8.361204013377927,
+        "segments": [
+          {
+            "trades": 48,
+            "sum_log": -0.02144647742101604,
+            "mean_net": -0.0021977048809355103
+          },
+          {
+            "trades": 71,
+            "sum_log": 0.049898315613074215,
+            "mean_net": 0.0035624691952087844
+          },
+          {
+            "trades": 76,
+            "sum_log": -0.018248938711081165,
+            "mean_net": -0.001164530832116515
+          }
+        ],
+        "score": -0.02144647742101604
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 522986.5951044257,
+        "return_pct": 522886.5951044257,
+        "closed_trade_mdd_pct": -48.86294458443536,
+        "hourly_mark_mdd_pct": -53.40557486938615,
+        "hourly_adverse_bound_pct": -61.36456637985486,
+        "trades": 851,
+        "win_rate_pct": 55.69917743830787,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4600.929794871818,
+          "return_pct": 4500.929794871818,
+          "closed_trade_mdd_pct": -39.539994284602585,
+          "hourly_mark_mdd_pct": -46.0024993677926,
+          "hourly_adverse_bound_pct": -58.363400652493546,
+          "trades": 280,
+          "win_rate_pct": 56.07142857142857,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623614,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1121.4288152455495,
+          "return_pct": 1021.4288152455495,
+          "closed_trade_mdd_pct": -48.86294458443536,
+          "hourly_mark_mdd_pct": -53.40557486938617,
+          "hourly_adverse_bound_pct": -60.24571112573132,
+          "trades": 269,
+          "win_rate_pct": 57.24907063197026,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844496,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1033.5942984447518,
+          "return_pct": 933.5942984447519,
+          "closed_trade_mdd_pct": -47.49789859972441,
+          "hourly_mark_mdd_pct": -50.754060492304156,
+          "hourly_adverse_bound_pct": -61.364566379854814,
+          "trades": 300,
+          "win_rate_pct": 54.0,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921938
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 20524.073427481646,
+        "return_pct": 20424.073427481646,
+        "closed_trade_mdd_pct": -61.83058680816419,
+        "hourly_mark_mdd_pct": -62.83548239656963,
+        "hourly_adverse_bound_pct": -63.59186847111986,
+        "trades": 852,
+        "win_rate_pct": 51.76056338028169,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 195,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 9.130434782608695,
+        "segments": [
+          {
+            "trades": 42,
+            "sum_log": -0.016071547862015503,
+            "mean_net": -0.0018755275648547234
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.04445790584596081,
+            "mean_net": 0.005125897768913538
+          },
+          {
+            "trades": 63,
+            "sum_log": -0.008737350486819614,
+            "mean_net": -0.0006527625575625187
+          }
+        ],
+        "score": -0.016071547862015503
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 521907.27596303227,
+        "return_pct": 521807.2759630322,
+        "closed_trade_mdd_pct": -49.107586655415346,
+        "hourly_mark_mdd_pct": -54.14431369515429,
+        "hourly_adverse_bound_pct": -61.320675595179154,
+        "trades": 805,
+        "win_rate_pct": 56.024844720496894,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335287
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4688.999349292337,
+          "return_pct": 4588.999349292337,
+          "closed_trade_mdd_pct": -39.83668503805411,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -58.567720746172,
+          "trades": 274,
+          "win_rate_pct": 56.56934306569343,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335287
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1077.7060986607648,
+          "return_pct": 977.7060986607647,
+          "closed_trade_mdd_pct": -49.10758665541529,
+          "hourly_mark_mdd_pct": -54.14431369515427,
+          "hourly_adverse_bound_pct": -60.87600190837104,
+          "trades": 242,
+          "win_rate_pct": 57.02479338842975,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884449,
+          "max_gross_equity_ratio": 5.494155889753047
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1053.1487185344067,
+          "return_pct": 953.1487185344067,
+          "closed_trade_mdd_pct": -47.023451397763274,
+          "hourly_mark_mdd_pct": -50.37152220450064,
+          "hourly_adverse_bound_pct": -61.32067559517913,
+          "trades": 287,
+          "win_rate_pct": 54.70383275261324,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.7901565369219385
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22537.821704795242,
+        "return_pct": 22437.821704795242,
+        "closed_trade_mdd_pct": -61.45631737481529,
+        "hourly_mark_mdd_pct": -62.47106644722786,
+        "hourly_adverse_bound_pct": -63.23486925061519,
+        "trades": 806,
+        "win_rate_pct": 52.35732009925558,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323092,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 149,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "LTC:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "LTC",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 14.130434782608695,
+        "segments": [
+          {
+            "trades": 44,
+            "sum_log": 0.028327430384307017,
+            "mean_net": 0.003285389824049967
+          },
+          {
+            "trades": 30,
+            "sum_log": 0.010191939540903056,
+            "mean_net": 0.0017409325887832708
+          },
+          {
+            "trades": 37,
+            "sum_log": -0.02518931521150625,
+            "mean_net": -0.0033772494018034695
+          }
+        ],
+        "score": -0.02518931521150625
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 520203.196514259,
+        "return_pct": 520103.196514259,
+        "closed_trade_mdd_pct": -49.13598449070117,
+        "hourly_mark_mdd_pct": -54.53193777949639,
+        "hourly_adverse_bound_pct": -61.26238420961967,
+        "trades": 767,
+        "win_rate_pct": 55.67144719687093,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844483,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4794.574090615964,
+          "return_pct": 4694.574090615964,
+          "closed_trade_mdd_pct": -39.66609454320036,
+          "hourly_mark_mdd_pct": -46.00249936779256,
+          "hourly_adverse_bound_pct": -58.40520769751018,
+          "trades": 276,
+          "win_rate_pct": 56.52173913043478,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623612,
+          "max_gross_equity_ratio": 6.322542232335289
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1059.2948355600506,
+          "return_pct": 959.2948355600505,
+          "closed_trade_mdd_pct": -49.135984490701226,
+          "hourly_mark_mdd_pct": -54.53193777949639,
+          "hourly_adverse_bound_pct": -61.20672215613381,
+          "trades": 228,
+          "win_rate_pct": 56.578947368421055,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844483,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1044.4387890229436,
+          "return_pct": 944.4387890229436,
+          "closed_trade_mdd_pct": -46.802176099031755,
+          "hourly_mark_mdd_pct": -50.260186531873295,
+          "hourly_adverse_bound_pct": -61.26238420961971,
+          "trades": 261,
+          "win_rate_pct": 54.02298850574713,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114451,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22706.34966278178,
+        "return_pct": 22606.34966278178,
+        "closed_trade_mdd_pct": -61.53195295479523,
+        "hourly_mark_mdd_pct": -62.54471075057314,
+        "hourly_adverse_bound_pct": -63.30701471772869,
+        "trades": 768,
+        "win_rate_pct": 52.083333333333336,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.3083524126922175
+      },
+      "extra_trades": 111,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "DOT:streak_exhaustion_n7_move0.015:h1:l2",
+        "symbol": "DOT",
+        "pattern": "streak_exhaustion_n7_move0.015",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 8.361204013377927,
+        "segments": [
+          {
+            "trades": 48,
+            "sum_log": -0.02144647742101604,
+            "mean_net": -0.0021977048809355103
+          },
+          {
+            "trades": 71,
+            "sum_log": 0.049898315613074215,
+            "mean_net": 0.0035624691952087844
+          },
+          {
+            "trades": 76,
+            "sum_log": -0.018248938711081165,
+            "mean_net": -0.001164530832116515
+          }
+        ],
+        "score": -0.02144647742101604
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 519461.8195450426,
+        "return_pct": 519361.8195450425,
+        "closed_trade_mdd_pct": -48.94248507972733,
+        "hourly_mark_mdd_pct": -54.14431369515429,
+        "hourly_adverse_bound_pct": -61.32067559517911,
+        "trades": 851,
+        "win_rate_pct": 55.69917743830787,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.322542232335287
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4676.45147310978,
+          "return_pct": 4576.45147310978,
+          "closed_trade_mdd_pct": -39.83668503805411,
+          "hourly_mark_mdd_pct": -46.00249936779257,
+          "hourly_adverse_bound_pct": -58.567720746172,
+          "trades": 280,
+          "win_rate_pct": 56.07142857142857,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335287
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1080.652134016709,
+          "return_pct": 980.6521340167089,
+          "closed_trade_mdd_pct": -48.94248507972729,
+          "hourly_mark_mdd_pct": -54.14431369515429,
+          "hourly_adverse_bound_pct": -60.87600190837106,
+          "trades": 269,
+          "win_rate_pct": 57.24907063197026,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844491,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1048.161370824778,
+          "return_pct": 948.161370824778,
+          "closed_trade_mdd_pct": -47.03149415092466,
+          "hourly_mark_mdd_pct": -50.3790566628075,
+          "hourly_adverse_bound_pct": -61.32067559517913,
+          "trades": 300,
+          "win_rate_pct": 54.0,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114447,
+          "max_gross_equity_ratio": 5.7901565369219385
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22142.710595332454,
+        "return_pct": 22042.710595332454,
+        "closed_trade_mdd_pct": -61.42109168616348,
+        "hourly_mark_mdd_pct": -62.436768153999886,
+        "hourly_adverse_bound_pct": -63.201269008998025,
+        "trades": 852,
+        "win_rate_pct": 51.76056338028169,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323108,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 195,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "ATOM:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "ATOM",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 11.403508771929824,
+        "segments": [
+          {
+            "trades": 56,
+            "sum_log": -0.004018129556385794,
+            "mean_net": -0.000308076762043981
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.029442533527392362,
+            "mean_net": 0.0033887379987679253
+          },
+          {
+            "trades": 44,
+            "sum_log": -0.02231795299196205,
+            "mean_net": -0.0025155727892156405
+          }
+        ],
+        "score": -0.02231795299196205
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 518441.2378907204,
+        "return_pct": 518341.2378907205,
+        "closed_trade_mdd_pct": -48.97049036903249,
+        "hourly_mark_mdd_pct": -54.60873089610778,
+        "hourly_adverse_bound_pct": -61.29152847574812,
+        "trades": 800,
+        "win_rate_pct": 55.75,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844491,
+        "max_gross_equity_ratio": 6.32254223233529
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4701.939489250148,
+          "return_pct": 4601.939489250148,
+          "closed_trade_mdd_pct": -40.44259115600324,
+          "hourly_mark_mdd_pct": -46.198151346199424,
+          "hourly_adverse_bound_pct": -59.085861600740586,
+          "trades": 288,
+          "win_rate_pct": 56.94444444444444,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.32254223233529
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1093.2220630873285,
+          "return_pct": 993.2220630873285,
+          "closed_trade_mdd_pct": -48.97049036903256,
+          "hourly_mark_mdd_pct": -54.60873089610778,
+          "hourly_adverse_bound_pct": -61.2722419201993,
+          "trades": 242,
+          "win_rate_pct": 55.37190082644628,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844487,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1028.4684663670118,
+          "return_pct": 928.4684663670118,
+          "closed_trade_mdd_pct": -46.719642683764164,
+          "hourly_mark_mdd_pct": -50.12883621736479,
+          "hourly_adverse_bound_pct": -61.29152847574812,
+          "trades": 268,
+          "win_rate_pct": 54.850746268656714,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114454,
+          "max_gross_equity_ratio": 5.790156536921939
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21091.372569135106,
+        "return_pct": 20991.372569135106,
+        "closed_trade_mdd_pct": -61.218709352450986,
+        "hourly_mark_mdd_pct": -62.23971399007866,
+        "hourly_adverse_bound_pct": -63.070828005562205,
+        "trades": 801,
+        "win_rate_pct": 51.81023720349563,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.308352412692217
+      },
+      "extra_trades": 144,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "ATOM:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "ATOM",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 11.403508771929824,
+        "segments": [
+          {
+            "trades": 56,
+            "sum_log": -0.004018129556385794,
+            "mean_net": -0.000308076762043981
+          },
+          {
+            "trades": 44,
+            "sum_log": 0.029442533527392362,
+            "mean_net": 0.0033887379987679253
+          },
+          {
+            "trades": 44,
+            "sum_log": -0.02231795299196205,
+            "mean_net": -0.0025155727892156405
+          }
+        ],
+        "score": -0.02231795299196205
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 517562.90573244536,
+        "return_pct": 517462.9057324453,
+        "closed_trade_mdd_pct": -48.98556630596891,
+        "hourly_mark_mdd_pct": -54.62652545179449,
+        "hourly_adverse_bound_pct": -61.29152847574808,
+        "trades": 800,
+        "win_rate_pct": 55.75,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.322542232335287
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4717.639827176495,
+          "return_pct": 4617.639827176495,
+          "closed_trade_mdd_pct": -40.197592336814566,
+          "hourly_mark_mdd_pct": -46.00249936779257,
+          "hourly_adverse_bound_pct": -58.8567805875956,
+          "trades": 288,
+          "win_rate_pct": 56.94444444444444,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623623,
+          "max_gross_equity_ratio": 6.322542232335287
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1069.5731893167056,
+          "return_pct": 969.5731893167056,
+          "closed_trade_mdd_pct": -48.98556630596899,
+          "hourly_mark_mdd_pct": -54.626525451794514,
+          "hourly_adverse_bound_pct": -61.28742420660323,
+          "trades": 242,
+          "win_rate_pct": 55.37190082644628,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844491,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1045.9350539462716,
+          "return_pct": 945.9350539462716,
+          "closed_trade_mdd_pct": -46.719642683764185,
+          "hourly_mark_mdd_pct": -50.12881020062409,
+          "hourly_adverse_bound_pct": -61.29152847574812,
+          "trades": 268,
+          "win_rate_pct": 54.850746268656714,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114447,
+          "max_gross_equity_ratio": 5.790156536921939
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22381.671054345934,
+        "return_pct": 22281.671054345934,
+        "closed_trade_mdd_pct": -61.17306797300897,
+        "hourly_mark_mdd_pct": -62.1952742225299,
+        "hourly_adverse_bound_pct": -63.0224973338027,
+        "trades": 801,
+        "win_rate_pct": 51.81023720349563,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.308352412692219
+      },
+      "extra_trades": 144,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": true
+    },
+    {
+      "candidate": {
+        "id": "XRP:wick_rejection_w0.8_v1.5:h1:l2",
+        "symbol": "XRP",
+        "pattern": "wick_rejection_w0.8_v1.5",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 12.77533039647577,
+        "segments": [
+          {
+            "trades": 50,
+            "sum_log": 0.005756327783286284,
+            "mean_net": 0.0006211892009561508
+          },
+          {
+            "trades": 73,
+            "sum_log": -0.01893560595435195,
+            "mean_net": -0.0012665338327853542
+          },
+          {
+            "trades": 74,
+            "sum_log": -0.0036769800332048298,
+            "mean_net": -0.00018315254967683629
+          }
+        ],
+        "score": -0.01893560595435195
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 512517.49322024523,
+        "return_pct": 512417.49322024523,
+        "closed_trade_mdd_pct": -49.35955561555409,
+        "hourly_mark_mdd_pct": -54.73108388217259,
+        "hourly_adverse_bound_pct": -61.37663329189269,
+        "trades": 853,
+        "win_rate_pct": 53.575615474794844,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.32254223233529
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4740.616952608101,
+          "return_pct": 4640.616952608101,
+          "closed_trade_mdd_pct": -40.05069608459701,
+          "hourly_mark_mdd_pct": -46.00249936779257,
+          "hourly_adverse_bound_pct": -58.715102343236246,
+          "trades": 282,
+          "win_rate_pct": 55.673758865248224,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623614,
+          "max_gross_equity_ratio": 6.32254223233529
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1044.0289439378341,
+          "return_pct": 944.0289439378341,
+          "closed_trade_mdd_pct": -49.35955561555407,
+          "hourly_mark_mdd_pct": -54.73108388217259,
+          "hourly_adverse_bound_pct": -61.37663329189269,
+          "trades": 271,
+          "win_rate_pct": 51.66051660516605,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884449,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1055.9373562352093,
+          "return_pct": 955.9373562352093,
+          "closed_trade_mdd_pct": -46.66006155996125,
+          "hourly_mark_mdd_pct": -50.03338609822261,
+          "hourly_adverse_bound_pct": -60.988755520316204,
+          "trades": 298,
+          "win_rate_pct": 53.355704697986575,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114447,
+          "max_gross_equity_ratio": 5.790156536921937
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21834.91439962858,
+        "return_pct": 21734.91439962858,
+        "closed_trade_mdd_pct": -61.25105472996171,
+        "hourly_mark_mdd_pct": -62.27120780282986,
+        "hourly_adverse_bound_pct": -63.08670594372607,
+        "trades": 854,
+        "win_rate_pct": 48.711943793911004,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.308352412692219
+      },
+      "extra_trades": 197,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "BNB:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "BNB",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 17.532467532467532,
+        "segments": [
+          {
+            "trades": 39,
+            "sum_log": 0.003484762389710741,
+            "mean_net": 0.0004917143431928763
+          },
+          {
+            "trades": 20,
+            "sum_log": 0.003629441673676036,
+            "mean_net": 0.000930670201427441
+          },
+          {
+            "trades": 29,
+            "sum_log": -0.026586350952988377,
+            "mean_net": -0.004552907557861354
+          }
+        ],
+        "score": -0.026586350952988377
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 511688.47267226037,
+        "return_pct": 511588.47267226037,
+        "closed_trade_mdd_pct": -48.91395504948658,
+        "hourly_mark_mdd_pct": -54.662892641999704,
+        "hourly_adverse_bound_pct": -61.3184526350238,
+        "trades": 744,
+        "win_rate_pct": 55.77956989247312,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4735.1136057807835,
+          "return_pct": 4635.1136057807835,
+          "closed_trade_mdd_pct": -40.476687761345254,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -59.00846726373643,
+          "trades": 271,
+          "win_rate_pct": 56.457564575645755,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.391298413562362,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1055.7823022265832,
+          "return_pct": 955.782302226583,
+          "closed_trade_mdd_pct": -48.91395504948658,
+          "hourly_mark_mdd_pct": -54.662892641999775,
+          "hourly_adverse_bound_pct": -61.318452635023846,
+          "trades": 218,
+          "win_rate_pct": 56.42201834862385,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844498,
+          "max_gross_equity_ratio": 5.494155889753047
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1043.704888332552,
+          "return_pct": 943.7048883325521,
+          "closed_trade_mdd_pct": -46.71964268376415,
+          "hourly_mark_mdd_pct": -50.128792856130275,
+          "hourly_adverse_bound_pct": -61.291528475748116,
+          "trades": 253,
+          "win_rate_pct": 54.54545454545455,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114451,
+          "max_gross_equity_ratio": 5.7901565369219385
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22480.53449200252,
+        "return_pct": 22380.53449200252,
+        "closed_trade_mdd_pct": -61.186843611821914,
+        "hourly_mark_mdd_pct": -62.20868718669021,
+        "hourly_adverse_bound_pct": -63.020715266192305,
+        "trades": 745,
+        "win_rate_pct": 51.54362416107382,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 88,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "ETH:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "ETH",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 20.0,
+        "segments": [
+          {
+            "trades": 36,
+            "sum_log": -0.018153665096751218,
+            "mean_net": -0.002478078907866789
+          },
+          {
+            "trades": 28,
+            "sum_log": -0.0039578019053880704,
+            "mean_net": -0.0006831082437863395
+          },
+          {
+            "trades": 45,
+            "sum_log": -0.0035571320532472575,
+            "mean_net": -0.0003619091079853001
+          }
+        ],
+        "score": -0.018153665096751218
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 510120.99220722145,
+        "return_pct": 510020.99220722145,
+        "closed_trade_mdd_pct": -49.09974249764946,
+        "hourly_mark_mdd_pct": -54.75291815252423,
+        "hourly_adverse_bound_pct": -61.395262256376846,
+        "trades": 765,
+        "win_rate_pct": 54.90196078431372,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4684.114503088177,
+          "return_pct": 4584.114503088177,
+          "closed_trade_mdd_pct": -39.85325225104022,
+          "hourly_mark_mdd_pct": -46.00249936779255,
+          "hourly_adverse_bound_pct": -58.5791299811075,
+          "trades": 268,
+          "win_rate_pct": 57.46268656716418,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623614,
+          "max_gross_equity_ratio": 6.322542232335289
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1051.7949345121863,
+          "return_pct": 951.7949345121863,
+          "closed_trade_mdd_pct": -49.099742497649515,
+          "hourly_mark_mdd_pct": -54.75291815252423,
+          "hourly_adverse_bound_pct": -61.395262256376846,
+          "trades": 226,
+          "win_rate_pct": 53.982300884955755,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844496,
+          "max_gross_equity_ratio": 5.49415588975305
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1055.8238867340663,
+          "return_pct": 955.8238867340663,
+          "closed_trade_mdd_pct": -46.72589851935541,
+          "hourly_mark_mdd_pct": -50.1245892798877,
+          "hourly_adverse_bound_pct": -61.22278834354403,
+          "trades": 269,
+          "win_rate_pct": 53.15985130111524,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114445,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 22279.116286486922,
+        "return_pct": 22179.116286486922,
+        "closed_trade_mdd_pct": -61.3862944604693,
+        "hourly_mark_mdd_pct": -62.402887043479225,
+        "hourly_adverse_bound_pct": -63.168077459430684,
+        "trades": 766,
+        "win_rate_pct": 51.56657963446475,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.308352412692216
+      },
+      "extra_trades": 109,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "XRP:streak_exhaustion_n7_move0.015:h1:l2",
+        "symbol": "XRP",
+        "pattern": "streak_exhaustion_n7_move0.015",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 8.984375,
+        "segments": [
+          {
+            "trades": 56,
+            "sum_log": -0.0245201739090957,
+            "mean_net": -0.002159068772829825
+          },
+          {
+            "trades": 39,
+            "sum_log": 0.007673774750161294,
+            "mean_net": 0.001029887296118219
+          },
+          {
+            "trades": 68,
+            "sum_log": -0.016529425141625934,
+            "mean_net": -0.0011911140227206254
+          }
+        ],
+        "score": -0.0245201739090957
+      },
+      "extra_target_fraction": 0.1,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 508194.92234165367,
+        "return_pct": 508094.9223416536,
+        "closed_trade_mdd_pct": -49.21122200927307,
+        "hourly_mark_mdd_pct": -54.57448226205123,
+        "hourly_adverse_bound_pct": -61.3120903485585,
+        "trades": 819,
+        "win_rate_pct": 54.7008547008547,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4669.258867984053,
+          "return_pct": 4569.258867984053,
+          "closed_trade_mdd_pct": -40.03418314943408,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -58.61249640687476,
+          "trades": 288,
+          "win_rate_pct": 56.25,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335289
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1057.9895788893323,
+          "return_pct": 957.9895788893323,
+          "closed_trade_mdd_pct": -49.211222009273,
+          "hourly_mark_mdd_pct": -54.57448226205122,
+          "hourly_adverse_bound_pct": -61.24302104049069,
+          "trades": 237,
+          "win_rate_pct": 55.69620253164557,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884449,
+          "max_gross_equity_ratio": 5.494155889753047
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1049.0056912205823,
+          "return_pct": 949.0056912205823,
+          "closed_trade_mdd_pct": -46.71964268376419,
+          "hourly_mark_mdd_pct": -50.091388176075235,
+          "hourly_adverse_bound_pct": -61.31209034855848,
+          "trades": 292,
+          "win_rate_pct": 52.397260273972606,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21858.8991114139,
+        "return_pct": 21758.8991114139,
+        "closed_trade_mdd_pct": -61.411976162563086,
+        "hourly_mark_mdd_pct": -62.42789261704551,
+        "hourly_adverse_bound_pct": -63.192574110270364,
+        "trades": 820,
+        "win_rate_pct": 50.609756097560975,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323101,
+        "max_gross_equity_ratio": 6.3083524126922175
+      },
+      "extra_trades": 163,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "XRP:wick_rejection_w0.8_v1.5:h1:l2",
+        "symbol": "XRP",
+        "pattern": "wick_rejection_w0.8_v1.5",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 12.77533039647577,
+        "segments": [
+          {
+            "trades": 50,
+            "sum_log": 0.005756327783286284,
+            "mean_net": 0.0006211892009561508
+          },
+          {
+            "trades": 73,
+            "sum_log": -0.01893560595435195,
+            "mean_net": -0.0012665338327853542
+          },
+          {
+            "trades": 74,
+            "sum_log": -0.0036769800332048298,
+            "mean_net": -0.00018315254967683629
+          }
+        ],
+        "score": -0.01893560595435195
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 505547.22247371345,
+        "return_pct": 505447.22247371345,
+        "closed_trade_mdd_pct": -49.9005930539533,
+        "hourly_mark_mdd_pct": -54.87005001449706,
+        "hourly_adverse_bound_pct": -61.495198973359535,
+        "trades": 853,
+        "win_rate_pct": 53.575615474794844,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.622237301884449,
+        "max_gross_equity_ratio": 6.322542232335289
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4759.915764285249,
+          "return_pct": 4659.915764285249,
+          "closed_trade_mdd_pct": -40.11273260226239,
+          "hourly_mark_mdd_pct": -46.00249936779258,
+          "hourly_adverse_bound_pct": -58.73314546570714,
+          "trades": 282,
+          "win_rate_pct": 55.673758865248224,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623618,
+          "max_gross_equity_ratio": 6.322542232335289
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1029.0497844882752,
+          "return_pct": 929.0497844882752,
+          "closed_trade_mdd_pct": -49.90059305395332,
+          "hourly_mark_mdd_pct": -54.870050014497096,
+          "hourly_adverse_bound_pct": -61.49519897335956,
+          "trades": 271,
+          "win_rate_pct": 51.66051660516605,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844496,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1052.4535580596944,
+          "return_pct": 952.4535580596943,
+          "closed_trade_mdd_pct": -46.570632735497696,
+          "hourly_mark_mdd_pct": -49.89003155004836,
+          "hourly_adverse_bound_pct": -60.535633748917014,
+          "trades": 298,
+          "win_rate_pct": 53.355704697986575,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921939
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 19812.652224774953,
+        "return_pct": 19712.652224774953,
+        "closed_trade_mdd_pct": -61.410101527706075,
+        "hourly_mark_mdd_pct": -62.53353217043646,
+        "hourly_adverse_bound_pct": -63.2839968014681,
+        "trades": 854,
+        "win_rate_pct": 48.711943793911004,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323097,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 197,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "BNB:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "BNB",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 17.532467532467532,
+        "segments": [
+          {
+            "trades": 39,
+            "sum_log": 0.003484762389710741,
+            "mean_net": 0.0004917143431928763
+          },
+          {
+            "trades": 20,
+            "sum_log": 0.003629441673676036,
+            "mean_net": 0.000930670201427441
+          },
+          {
+            "trades": 29,
+            "sum_log": -0.026586350952988377,
+            "mean_net": -0.004552907557861354
+          }
+        ],
+        "score": -0.026586350952988377
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 504092.8553601149,
+        "return_pct": 503992.85536011483,
+        "closed_trade_mdd_pct": -48.78973582786794,
+        "hourly_mark_mdd_pct": -54.6992635876512,
+        "hourly_adverse_bound_pct": -61.34948426758513,
+        "trades": 744,
+        "win_rate_pct": 55.77956989247312,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4746.56813369593,
+          "return_pct": 4646.56813369593,
+          "closed_trade_mdd_pct": -41.142453780325816,
+          "hourly_mark_mdd_pct": -46.41539960461767,
+          "hourly_adverse_bound_pct": -59.466956022767725,
+          "trades": 271,
+          "win_rate_pct": 56.457564575645755,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623616,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1058.604597218387,
+          "return_pct": 958.604597218387,
+          "closed_trade_mdd_pct": -48.78973582786801,
+          "hourly_mark_mdd_pct": -54.699263587651224,
+          "hourly_adverse_bound_pct": -61.349484267585154,
+          "trades": 218,
+          "win_rate_pct": 56.42201834862385,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844487,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1022.9959452925725,
+          "return_pct": 922.9959452925724,
+          "closed_trade_mdd_pct": -46.71964268376414,
+          "hourly_mark_mdd_pct": -50.12879285613021,
+          "hourly_adverse_bound_pct": -61.2915284757481,
+          "trades": 253,
+          "win_rate_pct": 54.54545454545455,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 21335.05172000915,
+        "return_pct": 21235.05172000915,
+        "closed_trade_mdd_pct": -61.24301659916426,
+        "hourly_mark_mdd_pct": -62.26338129389144,
+        "hourly_adverse_bound_pct": -63.096683019998245,
+        "trades": 745,
+        "win_rate_pct": 51.54362416107382,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323103,
+        "max_gross_equity_ratio": 6.308352412692219
+      },
+      "extra_trades": 88,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "ETH:streak_exhaustion_n7_move0.03:h1:l2",
+        "symbol": "ETH",
+        "pattern": "streak_exhaustion_n7_move0.03",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 20.0,
+        "segments": [
+          {
+            "trades": 36,
+            "sum_log": -0.018153665096751218,
+            "mean_net": -0.002478078907866789
+          },
+          {
+            "trades": 28,
+            "sum_log": -0.0039578019053880704,
+            "mean_net": -0.0006831082437863395
+          },
+          {
+            "trades": 45,
+            "sum_log": -0.0035571320532472575,
+            "mean_net": -0.0003619091079853001
+          }
+        ],
+        "score": -0.018153665096751218
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 500184.56009976694,
+        "return_pct": 500084.5600997669,
+        "closed_trade_mdd_pct": -49.256860747630625,
+        "hourly_mark_mdd_pct": -54.923940915263834,
+        "hourly_adverse_bound_pct": -61.54117860355717,
+        "trades": 765,
+        "win_rate_pct": 54.90196078431372,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844487,
+        "max_gross_equity_ratio": 6.322542232335288
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4619.957655869467,
+          "return_pct": 4519.957655869467,
+          "closed_trade_mdd_pct": -39.58266863958867,
+          "hourly_mark_mdd_pct": -46.00249936779257,
+          "hourly_adverse_bound_pct": -58.39278892330073,
+          "trades": 268,
+          "win_rate_pct": 57.46268656716418,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.3912984135623614,
+          "max_gross_equity_ratio": 6.322542232335288
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1048.5994187260524,
+          "return_pct": 948.5994187260524,
+          "closed_trade_mdd_pct": -49.256860747630725,
+          "hourly_mark_mdd_pct": -54.92394091526389,
+          "hourly_adverse_bound_pct": -61.54117860355721,
+          "trades": 226,
+          "win_rate_pct": 53.982300884955755,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.622237301884449,
+          "max_gross_equity_ratio": 5.494155889753048
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1052.8331214520706,
+          "return_pct": 952.8331214520707,
+          "closed_trade_mdd_pct": -46.73528227274228,
+          "hourly_mark_mdd_pct": -50.118305734422286,
+          "hourly_adverse_bound_pct": -61.119678145237934,
+          "trades": 269,
+          "win_rate_pct": 53.15985130111524,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.2104600455114447,
+          "max_gross_equity_ratio": 5.79015653692194
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 20857.868406150777,
+        "return_pct": 20757.868406150777,
+        "closed_trade_mdd_pct": -61.74114613651432,
+        "hourly_mark_mdd_pct": -62.748396451619726,
+        "hourly_adverse_bound_pct": -63.50655493168729,
+        "trades": 766,
+        "win_rate_pct": 51.56657963446475,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323097,
+        "max_gross_equity_ratio": 6.3083524126922175
+      },
+      "extra_trades": 109,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    },
+    {
+      "candidate": {
+        "id": "XRP:streak_exhaustion_n7_move0.015:h1:l2",
+        "symbol": "XRP",
+        "pattern": "streak_exhaustion_n7_move0.015",
+        "hold_hours": 1,
+        "leverage": 2,
+        "raw_overlap_pct": 8.984375,
+        "segments": [
+          {
+            "trades": 56,
+            "sum_log": -0.0245201739090957,
+            "mean_net": -0.002159068772829825
+          },
+          {
+            "trades": 39,
+            "sum_log": 0.007673774750161294,
+            "mean_net": 0.001029887296118219
+          },
+          {
+            "trades": 68,
+            "sum_log": -0.016529425141625934,
+            "mean_net": -0.0011911140227206254
+          }
+        ],
+        "score": -0.0245201739090957
+      },
+      "extra_target_fraction": 0.25,
+      "full": {
+        "start_usd": 100.0,
+        "end_usd": 495345.37831865635,
+        "return_pct": 495245.37831865635,
+        "closed_trade_mdd_pct": -49.53450795015086,
+        "hourly_mark_mdd_pct": -54.478180708721744,
+        "hourly_adverse_bound_pct": -61.34331146403328,
+        "trades": 819,
+        "win_rate_pct": 54.7008547008547,
+        "margin_clipped": 656,
+        "rejected": 21,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844494,
+        "max_gross_equity_ratio": 6.32254223233529
+      },
+      "segments": [
+        {
+          "start_usd": 100.0,
+          "end_usd": 4583.299104313213,
+          "return_pct": 4483.299104313213,
+          "closed_trade_mdd_pct": -40.034183149434085,
+          "hourly_mark_mdd_pct": -46.00249936779255,
+          "hourly_adverse_bound_pct": -58.475645286001956,
+          "trades": 288,
+          "win_rate_pct": 56.25,
+          "margin_clipped": 232,
+          "rejected": 5,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.391298413562361,
+          "max_gross_equity_ratio": 6.32254223233529
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1063.8820751627654,
+          "return_pct": 963.8820751627655,
+          "closed_trade_mdd_pct": -49.53450795015093,
+          "hourly_mark_mdd_pct": -54.478180708721744,
+          "hourly_adverse_bound_pct": -61.16085670947107,
+          "trades": 237,
+          "win_rate_pct": 55.69620253164557,
+          "margin_clipped": 198,
+          "rejected": 7,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.6222373018844485,
+          "max_gross_equity_ratio": 5.494155889753049
+        },
+        {
+          "start_usd": 100.0,
+          "end_usd": 1035.8891605391243,
+          "return_pct": 935.8891605391243,
+          "closed_trade_mdd_pct": -46.71964268376414,
+          "hourly_mark_mdd_pct": -50.03526046626505,
+          "hourly_adverse_bound_pct": -61.34331146403329,
+          "trades": 292,
+          "win_rate_pct": 52.397260273972606,
+          "margin_clipped": 224,
+          "rejected": 9,
+          "liquidation_proxy_count": 0,
+          "max_reserved_equity_ratio": 1.210460045511445,
+          "max_gross_equity_ratio": 5.790156536921936
+        }
+      ],
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 19882.690232643,
+        "return_pct": 19782.690232643,
+        "closed_trade_mdd_pct": -61.81283682182678,
+        "hourly_mark_mdd_pct": -62.81819971851582,
+        "hourly_adverse_bound_pct": -63.574937536552945,
+        "trades": 820,
+        "win_rate_pct": 50.609756097560975,
+        "margin_clipped": 657,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.61817429483231,
+        "max_gross_equity_ratio": 6.308352412692218
+      },
+      "extra_trades": 163,
+      "same_hour_entries": 0,
+      "holding_overlap_trades": 0,
+      "preliminary_pass": false
+    }
+  ],
+  "limitations": [
+    "All three thirds used for discovery; cross-period comparison is NOT independent holdout",
+    "B-idle gate uses already-confirmed B opportunities only; multi-hour supplements can overlap future B signals",
+    "Hourly close MDD and adverse OHLC bound are not exchange mark-price liquidation guarantees",
+    "No contract quantity floors, minimum notional, historical listing/funding/maintenance tiers; research only"
+  ]
+}

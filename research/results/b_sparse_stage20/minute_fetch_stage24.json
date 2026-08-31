@@ -1,0 +1,406 @@
+{
+  "generated_at": "2026-08-31T06:43:59.040186+00:00",
+  "source": "Binance spot 1m, not BingX futures",
+  "windows": [
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1631080800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1632142800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1631466000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1631149200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1634922000000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1637028000000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1632142800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1637222400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1637211600000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1637258400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1637553600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1638565200000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1638565200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1639184400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1639425600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1641571200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1641826800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1643227200000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1643227200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1651554000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1652256000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1655175600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1655323200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1656950400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1658703600000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1659441600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1663257600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1667887200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1667937600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1668178800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1668416400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1674061200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1682542800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1697464800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1700582400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1702134000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1702263600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1703214000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1704286800000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1709143200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1710118800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1710266400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1710475200000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1710475200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1713495600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1713938400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1716498000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1717786800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1722614400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1723122000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1727805600000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1728298800000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1732352400000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1732928400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1734577200000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1734577200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1736780400000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1737457200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1738602000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1740938400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1741654800000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1743163200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1743627600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1744225200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1745283600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1749780000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1750626000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1752469200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1753905600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1755878400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1762293600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1763096400000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1764774000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1769799600000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1770004800000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1775833200000,
+      "rows": 76
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1780110000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1780542000000,
+      "rows": 76
+    },
+    {
+      "symbol": "VET",
+      "entry_ts": 1780542000000,
+      "rows": 76
+    },
+    {
+      "symbol": "ETH",
+      "entry_ts": 1780678800000,
+      "rows": 76
+    }
+  ]
+}

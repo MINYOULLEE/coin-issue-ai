@@ -3,6 +3,8 @@
 Before ANY trading/research/UI/deployment work read `strategy/PLANS.md`, `strategy/mdd30_standard.json`, and `strategy/plan_b_standard.json` in full.
 
 - A is the existing `answer_mdd30` system. B is `b_reserved_margin_stage16`. Never infer one plan's settings from the other.
+- On 2026-08-31 the user adopted B Stage16 + ALGO/ETH/VET: read `strategy/plan_b_combination_standard.json` and `strategy/B_COMBINATION_ADOPTION_20260831.md` before B work. `b_core_sparse_stage26_v1` is the adopted upgrade target, not yet the deployed strategy. Do not confuse adoption with activation; keep current owner-enabled Stage16 running until a verified coherent rollout.
+- Preserve research opportunity cooldowns independently of fills: supplementary holding is 1h but selected signal boundaries must be >=2h apart. A and new B can both trade ETH through completely separate accounts; symbol disjointness is not an isolation invariant.
 - The words "종목별 A+B" inside A's model describe internal components, NOT the platform B plan.
 - B Stage14/15 headline returns were withdrawn. Never restore their 5.75 multiplier, 20.7x exposure or claimed returns as active B settings.
 - The user adopted corrected Stage16, including its return below the previous research goal. Adoption is not proof of live validation.
