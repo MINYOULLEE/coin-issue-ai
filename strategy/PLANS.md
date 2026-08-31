@@ -53,6 +53,8 @@
 
 ## 검증 명령
 
+Telegram 수신·매매 알림 최신 보수: `TELEGRAM_DELIVERY_REPAIR_20260831.md`. 웹훅 인증 누락 복구, 거래별 진입·청산 알림 표식 적용. 과거 전송 기준선과 실제 신규 전송을 구분한다.
+
 2026-08-31 인증·기록 보수 최신 상태: `SECURITY_HISTORY_REPAIR_20260831.md`. A/B 세션은 플랜별로 분리하며 구형 세션은 거절한다. 로그인 제한은 DB 기반이다. 뉴스 3곳의 403 차단은 미해결이며 정상으로 간주하지 않는다. 자동매매 ON 상태 및 전략은 변경하지 않았다.
 
 `python research/scripts/audit_plan_separation.py`

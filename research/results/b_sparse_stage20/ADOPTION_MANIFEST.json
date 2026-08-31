@@ -1,15 +1,15 @@
 {
-  "created_at": "2026-08-31T10:51:38.726991+00:00",
+  "created_at": "2026-08-31T11:25:55.230643+00:00",
   "adopted_version": "b_core_sparse_stage26_v1",
-  "archive_path": "research/archives/b_stage26_20260831_1c9b42f0c096d83c.zip",
-  "archive_bytes": 56339689,
-  "archive_sha256": "07a14ccd2072f5ae6338a2c28389d163b5c336ae1b9eb885b9f05712afd588bf",
-  "source_set_sha256": "1c9b42f0c096d83c71271a11f2be752977c69b79bfa377abb4a84ba4efb391c3",
+  "archive_path": "research/archives/b_stage26_20260831_0d5ced15918c7932.zip",
+  "archive_bytes": 56344748,
+  "archive_sha256": "37939a979b2f08228bda6364364a0e219c45a6b6ff31a723c22771e212d0ce1a",
+  "source_set_sha256": "0d5ced15918c7932411473bbb32a8570d2a03ee0540d41578f723c49acf11db1",
   "files": [
     {
       "path": "AGENTS.md",
-      "bytes": 2708,
-      "sha256": "eaf3231a164516443230b6fd9d43e8a3f07944ec90eb7c4bbd730ea817e90fd4"
+      "bytes": 2953,
+      "sha256": "91e74ccb41647a18c9f58efdcf19cd98f77749f74bc05a8eb2f6fb4f737b6d38"
     },
     {
       "path": "docs/index.html",
@@ -1223,8 +1223,8 @@
     },
     {
       "path": "research/scripts/archive_b_adoption.py",
-      "bytes": 3821,
-      "sha256": "78e4641671006fcd1a01bbd5a26e30e3ec52f42e4ac2b4feaf7694a7a46f1b39"
+      "bytes": 3888,
+      "sha256": "69c3793ce07cbd67620d7d4c542a326255350a265814213132df9cd5b1a8df5c"
     },
     {
       "path": "research/scripts/audit_aggressive_liquidation_stage15.py",
@@ -1388,8 +1388,8 @@
     },
     {
       "path": "research/scripts/test_execution_reporting.cjs",
-      "bytes": 2217,
-      "sha256": "b8c33d1cc84cf3b696f02469b831866c18351635293bec293e45eb9932757508"
+      "bytes": 4246,
+      "sha256": "3e1a5cad12282fd0c05f84b32f60b2625e5ea7e4d8441fdb389303b08669f89b"
     },
     {
       "path": "research/scripts/test_operational_monitoring.mjs",
@@ -1455,6 +1455,11 @@
       "path": "research/scripts/test_telegram_plan_menu.cjs",
       "bytes": 1860,
       "sha256": "66813e041add78d76553ebe2f16fc1a4164200214cc0fcec81a3176e02b006eb"
+    },
+    {
+      "path": "research/scripts/test_telegram_webhook_auth.mjs",
+      "bytes": 774,
+      "sha256": "ed81857a6d319cd87d6fee391fc294f9200bc40df366c67342ce60310383b541"
     },
     {
       "path": "research/scripts/train_coin_answer.py",
@@ -1618,18 +1623,23 @@
     },
     {
       "path": "strategy/plan_freeze_manifest.json",
-      "bytes": 6475,
-      "sha256": "ae75feb4749afa891c376693003e99f103deef7bb9138ff9c39f1894e880ed3b"
+      "bytes": 6847,
+      "sha256": "56c0b5643236a0dee2178b22beebc11e82d5a2893591aa293cf224ef8d630644"
     },
     {
       "path": "strategy/PLANS.md",
-      "bytes": 6992,
-      "sha256": "ff43d8c435a36c30e6bed8cd0ddb8b4f109afb13ac6d9ffffdf9c0842a6892c3"
+      "bytes": 7220,
+      "sha256": "b36eca5b66d945c614e55b2dfcebf5102cb729001f9f9b03a7aa3f838054bb57"
     },
     {
       "path": "strategy/SECURITY_HISTORY_REPAIR_20260831.md",
       "bytes": 2909,
       "sha256": "52f1d4c573bf0454cdf6d9b1fd1749a40a052df579894417a12cac6c6cfec309"
+    },
+    {
+      "path": "strategy/TELEGRAM_DELIVERY_REPAIR_20260831.md",
+      "bytes": 3024,
+      "sha256": "b767958f12c9c99f4ef5797ccb1b0880146a0bb9db4ca905d5ad8506cc4d6f83"
     },
     {
       "path": "supabase/functions/_shared/a_entry_cycle.mjs",
@@ -1712,6 +1722,11 @@
       "sha256": "20974909fcdd203e5dc2a0470c8d1c86060a6c4550f9d04e22720ec3fea3b08f"
     },
     {
+      "path": "supabase/functions/_shared/telegram_webhook_auth.mjs",
+      "bytes": 542,
+      "sha256": "5098282bebb5bc558989d62d8ed00e239adc7a3e04cde666d155ab5090edb012"
+    },
+    {
       "path": "supabase/functions/bingx-account-read/index.ts",
       "bytes": 26843,
       "sha256": "ef26f47c1ce74e65e31703fe801f2e629fd50d39be23f248d0d5c8a2779d288f"
@@ -1743,13 +1758,13 @@
     },
     {
       "path": "supabase/functions/telegram-bot-webhook/index.ts",
-      "bytes": 12166,
-      "sha256": "685fac2072594b26ce97a82151cd7773e966c845bff7a644739e0a60bc14a6a0"
+      "bytes": 12383,
+      "sha256": "8199c339bb6a25262e1054da6ada3b5857f83cb56cf5e1fa12cfa6ff5eeac6cf"
     },
     {
       "path": "supabase/functions/telegram-trade-notify/index.ts",
-      "bytes": 10463,
-      "sha256": "e5aae2cebb0ada9dc16a1a496191af0436a0b227493ca7c1538e167194297dc8"
+      "bytes": 13009,
+      "sha256": "0394afc9b9422d0dd0dfc2c9eb5cf6033590794e05de55373e3444c88054d2b9"
     },
     {
       "path": "supabase/repairs/dashboard_login_rate_limit.sql",
@@ -1765,6 +1780,11 @@
       "path": "supabase/repairs/plan_b_stage26_reservations.sql",
       "bytes": 5533,
       "sha256": "a31cc02d2e934bd5bfea5265542fbaab2fc480db5ddc746d1cb146cace95dee7"
+    },
+    {
+      "path": "supabase/repairs/telegram_trade_delivery.sql",
+      "bytes": 1971,
+      "sha256": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d"
     },
     {
       "path": "supabase/repairs/test_plan_b_stage26_rollback.sql",

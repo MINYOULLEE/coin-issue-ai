@@ -11,6 +11,7 @@ Before ANY trading/research/UI/deployment work read `strategy/PLANS.md`, `strate
 - B reserves available margin, clips simultaneous requests proportionately, and fixes quantity at entry. A keeps its own existing sizing.
 - B live performance starts from $150, explicitly confirmed by the user. Historical research remains on its original $100 basis. Public B trade history was explicitly approved on 2026-08-30; never expose secrets/control endpoints with it.
 - Keep credentials, signals, trades, control sessions, IDs, notifications and state isolated. Never fall back to A credentials/tables for B.
+- Telegram receive/delivery repair: read `strategy/TELEGRAM_DELIVERY_REPAIR_20260831.md`; preserve authenticated webhook and per-trade delivery markers. Do not restore global ID/time-only notification eligibility or claim exactly-once delivery.
 - Read `strategy/SECURITY_HISTORY_REPAIR_20260831.md` for scoped dashboard sessions, DB login limits, complete A history pagination, and the unresolved three-source news HTTP403 blocker. Never restore unscoped sessions or label realized-basis funds as actual collateral.
 - Do not activate or deploy live trading merely because a strategy was adopted. Check live_ready and report unresolved execution work honestly.
 - Before handoff run `research/scripts/audit_plan_separation.py`, `research/scripts/test_reserved_margin_stage16.py`, and the Node sizing tests. An A invariant change needs explicit user authorization and review.

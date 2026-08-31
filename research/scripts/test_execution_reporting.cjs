@@ -1,5 +1,22 @@
 const test=require('node:test'),assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm');
 const {stripTypeScriptTypes}=require('node:module');
+test('A/B delayed entries and already-closed fills get per-trade entry receipts',async()=>{
+ const s=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
+ for(const [label,table,last] of [['newRows','real_trades','lastId'],['newPbRows','plan_b_real_trades','lastPbId']]){
+  const line=s.split('\n').find(x=>x.includes(`for(const x of ${label}`));const sent=[],marks=[];
+  const ctx=vm.createContext({[label]:[{id:1,status:'pending'},{id:2,status:'closed',bingx_order_id:'fixture',entry_price:10,symbol:'ETH',side:'long',leverage:3,margin_usd:20},{id:3,status:'rejected',reject_reason:'fixture'}],[last]:100,send:async m=>sent.push(m),markDelivered:async(...x)=>marks.push(x),side:String,price:String,num:String,MDD30_STANDARD:'fixture'});
+  await vm.runInContext('(async()=>{'+line+'})()',ctx);
+  assert.equal(sent.length,2);assert.equal(marks[0][0],table);assert.equal(marks[0][2],'telegram_entry_notified_at');assert.equal(marks[1][2],'telegram_rejection_notified_at');
+  const query=s.split('\n').find(x=>x.includes(`data:${label},`));assert.ok(query.includes('telegram_entry_notified_at.is.null'));assert.ok(!query.includes('.gt('));
+ }
+});
+test('A close late settlement has no global timestamp cutoff and validates actual values',async()=>{
+ const s=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8'),query=s.split('\n').find(x=>x.includes('data:closed,error:e2'));
+ assert.ok(query.includes('telegram_close_notified_at'));assert.ok(!query.includes('.gt('));
+ const line=s.split('\n').find(x=>x.includes('for(const x of closed||[]')),sent=[],marks=[];
+ const ctx=vm.createContext({closed:[{id:1,net_pnl_usd:0,close_price:10,closed_at:'2020-01-01',margin_usd:10},{id:2,net_pnl_usd:null,close_price:10}],lastClosed:'2026-08-31',send:async m=>sent.push(m),markDelivered:async(...x)=>marks.push(x),side:String,price:String,num:String});
+ await vm.runInContext('(async()=>{'+line+'})()',ctx);assert.equal(sent.length,1);assert.equal(marks[0][2],'telegram_close_notified_at');
+});
 test('B late settlement delivery does not use a close-time watermark',async()=>{
  const s=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
  const start=s.indexOf('const {data:closedPb'),end=s.indexOf('\n',s.indexOf('for(const x of closedPb',start));

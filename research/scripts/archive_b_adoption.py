@@ -28,6 +28,7 @@ def main():
     files.update((ROOT/'supabase/repairs').glob('plan_b_stage26*.sql'))
     files.add(ROOT/'supabase/repairs/test_plan_b_stage26_rollback.sql')
     files.add(ROOT/'supabase/repairs/dashboard_login_rate_limit.sql')
+    files.add(ROOT/'supabase/repairs/telegram_trade_delivery.sql')
     files.add(ROOT/'supabase/functions/bingx-account-read/index.ts')
     files.add(ROOT/'supabase/functions/coin-collector/answer_trees.ts')
     for folder in ('supabase/functions/_shared','supabase/functions/plan-b-executor','supabase/functions/plan-b-strategy','supabase/functions/plan-b-account-read','supabase/functions/plan-b-stage26-preflight','supabase/functions/telegram-bot-webhook','supabase/functions/telegram-trade-notify'):
