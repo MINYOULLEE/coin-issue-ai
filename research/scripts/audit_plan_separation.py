@@ -19,7 +19,7 @@ def main():
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
     assert a['max_gross_exposure'] == 1.6
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
-    assert b['strategy_id'] == 'b_core_idle_stage35'
+    assert b['strategy_id'] == 'b_core_bnb_stage45'
     assert b == read('strategy/plan_b_combination_standard.json')
     assert b == read('supabase/functions/_shared/plan_b_combination_standard.json')
     assert not b['acceptance']['live_validation']
@@ -33,22 +33,23 @@ def main():
     assert set(a['assets']).intersection(b['symbols']) == {'ETH'}
     assert b['isolation']['api_key_env'] == 'PLAN_B_BINGX_API_KEY'
     assert b['isolation']['secret_key_env'] == 'PLAN_B_BINGX_SECRET_KEY'
-    assert b['isolation']['client_order_prefix'] == 'pb35'
+    assert b['isolation']['client_order_prefix'] == 'pb45'
     assert {s: (v['actual_hold_hours'], v['leverage']) for s,v in b['symbols'].items()} == {
         'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2),
-        'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3), 'LINK': (1,3), 'DOT': (1,3), 'LTC': (1,3)}
+        'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3), 'LINK': (1,3), 'DOT': (1,3),
+        'LTC': (1,3), 'BNB': (1,3)}
     old = read('strategy/archive/plan_b_stage16_v1.json')
     for symbol,rule in old['symbols'].items():
         for key,value in rule.items(): assert b['symbols'][symbol][key] == value
-    for symbol in ('ALGO','ETH','VET'):
+    for symbol in ('ALGO','ETH','VET','LINK','LTC'):
         assert b['symbols'][symbol]['opportunity_cooldown_hours'] == 2
-        assert b['symbols'][symbol]['target_margin_fraction'] == .9
-    for symbol,fraction in {'LINK': .3, 'DOT': .15, 'LTC': .15}.items():
+        assert b['symbols'][symbol]['target_margin_fraction'] == 1.15
+    for symbol,fraction in {'DOT': .075, 'BNB': .125}.items():
         assert b['symbols'][symbol]['opportunity_cooldown_hours'] == 2
         assert b['symbols'][symbol]['target_margin_fraction'] == fraction
     assert read('strategy/plan_b_aggressive_candidate.json')['canonical'] == 'strategy/plan_b_standard.json'
     evidence = read(b['reference']['file'])
-    assert evidence['passes'] and evidence['ohlc_mismatches'] == [] and evidence['minute_windows'] == 173
+    assert evidence['candidate']['safe'] and evidence['ohlc_mismatches'] == [] and evidence['minute_windows'] == 24
     result = next(r for r in evidence['entry_delay_scenarios'] if r['delay_minutes'] == 0)
     for key in ('start_usd','end_usd','return_pct','closed_trade_mdd_pct','hourly_mark_mdd_pct','trades','win_rate_pct'):
         assert abs(result[key] - b['reference'][key]) < 1e-8, key

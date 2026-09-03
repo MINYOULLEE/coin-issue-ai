@@ -31,6 +31,6 @@ Deno.serve(async req=>{
    }catch(e){results.push({symbol,ok:false,error:String(e.message)});}
   }
   const mode=await bx.read('/openApi/swap/v1/positionSide/dual',{});
-  return Response.json({ok:results.every(r=>r.ok)&&String(mode.dualSidePosition)==='true',plan:'B',mode:'read_only_stage35_preflight',hedge_mode:mode.dualSidePosition,results,orders_submitted:0});
+  return Response.json({ok:results.every(r=>r.ok)&&String(mode.dualSidePosition)==='true',plan:'B',mode:'read_only_stage45_preflight',hedge_mode:mode.dualSidePosition,results,orders_submitted:0});
  }catch(e){return Response.json({ok:false,plan:'B',error:String(e.message),orders_submitted:0},{status:503});}
 });

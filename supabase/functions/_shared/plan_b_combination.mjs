@@ -1,4 +1,4 @@
-// Stage35 adopted signals and coordination. Imported by the atomic signal cycle.
+// Stage45 adopted signals and coordination. Imported by the atomic signal cycle.
 // Persistence/atomic reservation is mandatory: these pure functions do not reserve funds.
 import standard from './plan_b_combination_standard.json' with {type:'json'};
 import {decidePlanB} from './plan_b_signals.mjs';

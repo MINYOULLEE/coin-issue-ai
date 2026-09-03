@@ -1,6 +1,6 @@
 # A/B 매매 기준 — 작업 전 반드시 읽기
 
-**최신 채택 기준: `B_STAGE35_APPROVED_20260903.md`. B 운영 목표 ID `b_core_idle_stage35`: 기존 Stage26 8종목에 LINK/DOT/LTC 공백 반전 보조를 더한 11종목 조합이다. A는 변경하지 않는다. 배포 여부와 거래소 3배 격리 설정은 승인 문서의 체크리스트로 구분하며, 사용자 B ON·LIVE 상태는 변경하지 않는다. 아래 Stage26/Stage16 기록은 과거 이력이다.**
+**최신 채택 기준: `B_STAGE45_APPROVED_20260903.md`. B 운영 ID `b_core_bnb_stage45`: 기본 5종목과 ALGO/ETH/VET/LINK/DOT/LTC/BNB 공백 반전 보조를 결합한 12종목 조합이다. A는 변경하지 않는다. 사용자 B ON·LIVE 상태는 변경하지 않는다. 아래 Stage35/Stage26/Stage16 기록은 과거 이력이다.**
 
 ## A플랜: 기존 운영 기준 보존
 
@@ -14,13 +14,14 @@
 
 ## B플랜: 새 채택 조합과 현재 운영본을 구분
 
-- **2026-09-03 사용자 채택: `strategy/plan_b_combination_standard.json`, `b_core_idle_stage35_v1`.** 기존 Stage26의 기본 5종목+보조 ALGO/ETH/VET에 LINK/DOT/LTC 공백 반전을 추가한다.
+- **2026-09-03 최신 사용자 채택: `strategy/plan_b_combination_standard.json`, `b_core_bnb_stage45_v1`.** Stage35에 BNB 1시간 급락반전을 추가하고 실행 의미 그대로 보조 동시신호를 비례 감액한다.
+- Stage45 연구: $100 → $3,317,665.15, +3,317,565.15%, 962회, 승률 55.51%, 종료 기준 MDD -46.66%, 시간봉 MDD -54.74%. 비용 2배 최악 경로 -66.91%. BNB 24개 1분봉과 0/1/3/5/10분 지연을 검증했으나 독립 홀드아웃이나 실거래 성과는 아니다.
 - Stage35 연구: $100 → $2,007,973.59, +2,007,873.59%, 909회, 승률 55.67%, 종료 기준 최대낙폭 -47.13%, 시간봉 미실현 포함 -55.20%. 지연 0/1/5/10분 재계산과 Binance 1분봉 OHLC 대조 173창을 통과했지만 독립 홀드아웃·BingX 선물·미래 실거래 검증은 아니다.
 - 보조 6종목은 각 3배/1시간 보유이며 희망 담보는 ALGO/ETH/VET 90%, LINK 30%, DOT/LTC 15%다. 기본 5종목의 희망 담보 1.15는 보존한다. 실제 가용 담보·5% 여유분·비용 예약·동시 비례 배분·수량 고정을 적용한다.
 - **보조 종목의 선택 간격은 최소 2시간**이다. 1시간 보유와 다르다. 연구의 `nxt=i+hold+1`을 유지한다. 기본 종목도 주문 거절 여부와 무관하게 이미 선택한 기회의 재진입 제한과 보유 예정 구간을 유지한다.
 - ETH가 A와 새 B 모두에 있어도 계정·신호·장부·주문은 공유하지 않는다. 종목 집합의 비중복을 계정 분리 조건으로 사용하면 안 된다.
 - 채택/개발/배포 상태: `strategy/B_STAGE35_APPROVED_20260903.md`. Stage16 원본: `strategy/archive/plan_b_stage16_v1.json`.
-- B 신호 진단은 매시간 11종목의 탈락 조건·실측값·기준값을 `plan_b_opportunity_hours.decisions[*].diagnostic`에 함께 저장한다. 진단은 관찰 정보일 뿐 신호 조건·주문·담보·스위치를 바꾸지 않는다. 상세: `strategy/B_SIGNAL_DIAGNOSTICS_20260901.md`.
+- B 신호 진단은 매시간 12종목의 탈락 조건·실측값·기준값을 `plan_b_opportunity_hours.decisions[*].diagnostic`에 함께 저장한다. 진단은 관찰 정보일 뿐 신호 조건·주문·담보·스위치를 바꾸지 않는다. 상세: `strategy/B_SIGNAL_DIAGNOSTICS_20260901.md`.
 
 ## B 기본 구성의 과거 연구 기준: Stage16 공격형
 

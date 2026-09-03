@@ -31,7 +31,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
   if(method==='GET'&&!reads.has(path))throw Error('unsupported B read endpoint');
   if(method!=='GET'){
    const coin=String(params.symbol||'').replace(/-USDT$/,'');
-   const approvedLive=liveConfigurationSymbols.includes(coin)&&['ALGO','ETH','VET','LINK','DOT','LTC'].includes(coin)&&standard.symbols[coin]?.group==='supplement'&&params.leverage===3&&['LONG','SHORT'].includes(params.side);
+   const approvedLive=liveConfigurationSymbols.includes(coin)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB'].includes(coin)&&standard.symbols[coin]?.group==='supplement'&&params.leverage===3&&['LONG','SHORT'].includes(params.side);
    const config=path==='/openApi/swap/v2/trade/leverage' && method==='POST' && (!runtime.live_ready||approvedLive) && await configurationAuthorized();
    const order=path==='/openApi/swap/v2/trade/order' && (closing?await exitAuthorized():runtime.live_ready&&await liveAuthorized());
    if(!config&&!order)throw Error('B live transport locked');
@@ -65,7 +65,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
   },
   async alignLeverage(symbol){
    const expected=standard.symbols[symbol]?.leverage,pair=symbol+'-USDT';
-   const approvedLive=liveConfigurationSymbols.includes(symbol)&&['ALGO','ETH','VET','LINK','DOT','LTC'].includes(symbol)&&standard.symbols[symbol]?.group==='supplement'&&expected===3;
+   const approvedLive=liveConfigurationSymbols.includes(symbol)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB'].includes(symbol)&&standard.symbols[symbol]?.group==='supplement'&&expected===3;
    if(!expected||(runtime.live_ready&&!approvedLive)||!await configurationAuthorized())throw Error('B configuration locked');
    const mode=await request('GET','/openApi/swap/v1/positionSide/dual');
    const margin=await request('GET','/openApi/swap/v2/trade/marginType',{symbol:pair});
@@ -87,7 +87,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
    return {symbol,expected,before:{long:Number(before.longLeverage),short:Number(before.shortLeverage)},after:{long:Number(after.longLeverage),short:Number(after.shortLeverage)},orders_submitted:0};
   },
   async lookup(order){try{return normalizeBOrder(await request('GET','/openApi/swap/v2/trade/order',{symbol:order.symbol+'-USDT',clientOrderId:order.clientOrderId}));}catch(e){if(e.code===109421)return {status:'not_found'};throw e;}},
-  async submit(order){if(order.plan!=='B'||!standard.symbols[order.symbol]||!(order.clientOrderId.startsWith(standard.isolation.client_order_prefix+'-')||(order.close&&(order.clientOrderId.startsWith('pb16-')||order.clientOrderId.startsWith('pb26-'))))||!['long','short'].includes(order.side))throw Error('invalid B order');
+  async submit(order){if(order.plan!=='B'||!standard.symbols[order.symbol]||!(order.clientOrderId.startsWith(standard.isolation.client_order_prefix+'-')||(order.close&&(order.clientOrderId.startsWith('pb16-')||order.clientOrderId.startsWith('pb26-')||order.clientOrderId.startsWith('pb35-'))))||!['long','short'].includes(order.side))throw Error('invalid B order');
    const side=order.close?(order.side==='long'?'SELL':'BUY'):(order.side==='long'?'BUY':'SELL');
    return normalizeBOrder(await request('POST','/openApi/swap/v2/trade/order',{symbol:order.symbol+'-USDT',side,positionSide:order.side.toUpperCase(),type:'MARKET',quantity:order.quantity,clientOrderId:order.clientOrderId},order.close===true));
   }

@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage35_core_idle_20260903_v1",
+  "execution_version": "stage45_core_bnb_20260903_v1",
   "live_ready": true,
-  "strategy_id": "b_core_idle_stage35",
-  "note": "Owner-enabled switch preserved. Stage35 adds LINK/DOT/LTC only during core-idle windows. Atomic reservations and verified 3x isolated contract configuration are mandatory. Exit reconciliation accepts legacy pb16/pb26 IDs."
+  "strategy_id": "b_core_bnb_stage45",
+  "note": "Owner-enabled switch preserved. Stage45 adds BNB and safer supplement allocation under core-idle semantics. Atomic reservations and verified 3x isolated contract configuration are mandatory."
 }
