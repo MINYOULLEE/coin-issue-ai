@@ -16,21 +16,37 @@ export function decidePlanB(symbol, rows, nowMs=Date.now()) {
   const last=x.at(-1), ret=last.c/x.at(-2).c-1,confirmedAt=last.t+HOUR;
   if(nowMs-confirmedAt>=300000) return {side:null,reason:'stale candle',confirmedAt};
   let side=null; const meta={return_1h:ret};
+  const failed=[]; let thresholds={};
   if(q.kind==='rsi') {
     const prior=x.slice(0,-1).map(r=>r.c),d=prior.slice(1).map((v,i)=>v-prior[i]).slice(-q.window);
     const g=mean(d.map(v=>Math.max(v,0))),l=mean(d.map(v=>Math.max(-v,0)));
     meta.rsi=l===0?100:100-100/(1+g/l);
     side=meta.rsi<=q.edge?'long':meta.rsi>=100-q.edge?'short':null;
+    thresholds={long_max_rsi:q.edge,short_min_rsi:100-q.edge};
+    if(!side)failed.push('rsi_not_extreme');
   }
-  if(q.kind==='session'&&q.hours.includes(new Date(last.t).getUTCHours())) side=ret<=-q.shock?'long':ret>=q.shock?'short':null;
+  if(q.kind==='session') {
+    meta.utc_hour=new Date(last.t).getUTCHours();
+    thresholds={utc_hours:q.hours,absolute_return_min:q.shock};
+    if(!q.hours.includes(meta.utc_hour))failed.push('outside_session');
+    else {
+      side=ret<=-q.shock?'long':ret>=q.shock?'short':null;
+      if(!side)failed.push('move_below_threshold');
+    }
+  }
   if(q.kind==='squeeze') {
     const returns=x.slice(1).map((r,i)=>Math.abs(r.c/x[i].c-1));
     meta.fast_vol=mean(returns.slice(-13,-1));meta.slow_vol=mean(returns.slice(-169,-1));
     const avgVolume=mean(x.slice(-25,-1).map(r=>r.v));
     meta.volume_ratio=avgVolume>0?last.v/avgVolume:0;
-    if(meta.fast_vol<meta.slow_vol*q.compression&&last.v>avgVolume*q.volume) side=ret>0?'long':ret<0?'short':null;
+    thresholds={compression_max:q.compression,volume_ratio_min:q.volume};
+    const compressed=meta.fast_vol<meta.slow_vol*q.compression,volumeOk=last.v>avgVolume*q.volume;
+    meta.compression_ratio=meta.slow_vol>0?meta.fast_vol/meta.slow_vol:null;
+    if(!compressed)failed.push('compression_not_met');
+    if(!volumeOk)failed.push('volume_not_met');
+    if(compressed&&volumeOk){side=ret>0?'long':ret<0?'short':null;if(!side)failed.push('flat_return');}
   }
-  return {side,last,ret,meta,confirmedAt};
+  return {side,last,ret,meta,confirmedAt,diagnostic:{kind:q.kind,matched:!!side,failed,metrics:meta,thresholds}};
 }
 export function signalRow(symbol, decision, nowMs=Date.now()) {
   const q=standard.symbols[symbol];

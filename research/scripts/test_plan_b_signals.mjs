@@ -20,7 +20,7 @@ test('RSI excludes signal candle return',()=>{
 });
 test('expiry/future clock, A symbol and nonfinite price rejected',()=>{
   const s={plan:'B',symbol:'AVAX',side:'long',id:12,signalPrice:100,confirmedAt:new Date(200*H).toISOString()};
-  assert.equal(validatePlanBEntry(s,200*H).clientOrderId,'pb26-12');
+  assert.equal(validatePlanBEntry(s,200*H).clientOrderId,'pb35-12');
   assert.equal(validatePlanBEntry(s,200*H-1).ok,false);assert.equal(validatePlanBEntry(s,200*H+300000).ok,false);
   assert.equal(validatePlanBEntry({...s,symbol:'BTC'},200*H).ok,false);
   assert.equal(priceStillExecutable(s,Infinity),false);assert.equal(priceStillExecutable(s,100.36),false);

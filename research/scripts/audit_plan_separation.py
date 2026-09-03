@@ -19,32 +19,37 @@ def main():
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
     assert a['max_gross_exposure'] == 1.6
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
-    assert b['strategy_id'] == 'b_core_sparse_stage26'
+    assert b['strategy_id'] == 'b_core_idle_stage35'
     assert b == read('strategy/plan_b_combination_standard.json')
     assert b == read('supabase/functions/_shared/plan_b_combination_standard.json')
     assert not b['acceptance']['live_validation']
     runtime = read('supabase/functions/_shared/plan_b_runtime.json')
     assert runtime['strategy_id'] == b['strategy_id']
     assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
-    assert b['acceptance']['user_adopted_on'] == '2026-08-31'
+    assert b['acceptance']['user_adopted_on'] == '2026-09-03'
     assert b['live_account']['starting_capital_usd'] == 150
     assert b['live_account']['public_trade_history'] is True
     assert b['reference']['start_usd'] == 100
     assert set(a['assets']).intersection(b['symbols']) == {'ETH'}
     assert b['isolation']['api_key_env'] == 'PLAN_B_BINGX_API_KEY'
     assert b['isolation']['secret_key_env'] == 'PLAN_B_BINGX_SECRET_KEY'
-    assert b['isolation']['client_order_prefix'] == 'pb26'
+    assert b['isolation']['client_order_prefix'] == 'pb35'
     assert {s: (v['actual_hold_hours'], v['leverage']) for s,v in b['symbols'].items()} == {
-        'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2), 'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3)}
+        'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2),
+        'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3), 'LINK': (1,3), 'DOT': (1,3), 'LTC': (1,3)}
     old = read('strategy/archive/plan_b_stage16_v1.json')
     for symbol,rule in old['symbols'].items():
         for key,value in rule.items(): assert b['symbols'][symbol][key] == value
     for symbol in ('ALGO','ETH','VET'):
         assert b['symbols'][symbol]['opportunity_cooldown_hours'] == 2
         assert b['symbols'][symbol]['target_margin_fraction'] == .9
+    for symbol,fraction in {'LINK': .3, 'DOT': .15, 'LTC': .15}.items():
+        assert b['symbols'][symbol]['opportunity_cooldown_hours'] == 2
+        assert b['symbols'][symbol]['target_margin_fraction'] == fraction
     assert read('strategy/plan_b_aggressive_candidate.json')['canonical'] == 'strategy/plan_b_standard.json'
-    result = next(r['full'] for r in read(b['reference']['file'])['results']
-                  if r['target_fraction_per_signal'] == .9 and r['patterns'] == b['reference']['selector']['patterns'])
+    evidence = read(b['reference']['file'])
+    assert evidence['passes'] and evidence['ohlc_mismatches'] == [] and evidence['minute_windows'] == 173
+    result = next(r for r in evidence['entry_delay_scenarios'] if r['delay_minutes'] == 0)
     for key in ('start_usd','end_usd','return_pct','closed_trade_mdd_pct','hourly_mark_mdd_pct','trades','win_rate_pct'):
         assert abs(result[key] - b['reference'][key]) < 1e-8, key
     for name in ('plan-b-strategy', 'plan-b-account-read', 'plan-b-executor'):

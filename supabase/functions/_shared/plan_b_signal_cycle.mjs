@@ -20,9 +20,10 @@ export async function runCombinationSignals({sb,fetchCandles,now=Date.now,previe
   const decisions=Object.fromEntries(Object.keys(data).map(symbol=>[symbol,combinationDecision(symbol,data[symbol].filter(r=>r.t+H<=t).slice(-170),t)]));
   const next=advanceOpportunities(state,decisions,t);
   const rows=next.selected.map(x=>signalRow(x.symbol,decisions[x.symbol],t));
-  steps.push({state:next.state,decisions:Object.fromEntries(Object.entries(decisions).map(([k,d])=>[k,{side:d.side,confirmedAt:d.confirmedAt}])),signals:rows});
+  steps.push({state:next.state,decisions:Object.fromEntries(Object.entries(decisions).map(([k,d])=>[k,{side:d.side,confirmedAt:d.confirmedAt,diagnostic:d.diagnostic||null}])),signals:rows});
   state=next.state;
  }
  const committed=await checked(sb.rpc('plan_b_publish_opportunities',{p_expected:saved.payload.lastConfirmedAt,p_steps:steps}));
- return {ok:true,plan:'B',strategy_id:STANDARD.strategy_id,mode:committed?'published':'concurrent_worker_won',confirmed_at:new Date(state.lastConfirmedAt).toISOString(),recovered_hours:steps.length,results:steps.at(-1)?.signals.map(s=>({symbol:s.symbol,side:s.side,ok:true,stored:committed}))||[],orders_submitted:0};
+ const latest=steps.at(-1);
+ return {ok:true,plan:'B',strategy_id:STANDARD.strategy_id,mode:committed?'published':'concurrent_worker_won',confirmed_at:new Date(state.lastConfirmedAt).toISOString(),recovered_hours:steps.length,results:latest?.signals.map(s=>({symbol:s.symbol,side:s.side,ok:true,stored:committed}))||[],diagnostics:latest?Object.fromEntries(Object.entries(latest.decisions).map(([symbol,d])=>[symbol,d.diagnostic])):{},orders_submitted:0};
 }

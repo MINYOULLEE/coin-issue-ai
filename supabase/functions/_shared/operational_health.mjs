@@ -18,3 +18,18 @@ export function healthTransitions(previous={},current={}){
  return {opened:Object.entries(current).filter(([k,v])=>previous[k]!==v),resolved:Object.keys(previous).filter(k=>!(k in current))};
 }
 export function outcomeErrors(result){return (result?.results||[]).filter(x=>x.error||x.ok===false);}
+
+export function transportErrorDisposition({error,snapshot,bHealth=[],now=Date.now()}){
+ const at=Date.parse(error?.created_at||''),message=String(error?.message||'');
+ const generic=error?.source==='supabase-http'&&(
+  error?.status_code>=500||error?.status_code==null&&/timeout|dns|handshake/i.test(message)
+ );
+ if(!generic)return 'immediate';
+ const snapshotAt=Date.parse(snapshot?.updated_at||'');
+ const recovered=Number.isFinite(at)&&Number.isFinite(snapshotAt)&&snapshotAt>at&&['signals','execute','close'].every(id=>{
+  const h=bHealth.find(x=>x.id===id),updated=Date.parse(h?.updated_at||'');
+  return h?.payload?.ok===true&&Number.isFinite(updated)&&updated>at;
+ });
+ if(recovered)return 'recovered';
+ return Number.isFinite(at)&&now-at<180000?'pending':'alert';
+}

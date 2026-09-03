@@ -1,4 +1,4 @@
-// Stage26 adopted signals and coordination. Imported by the atomic signal cycle.
+// Stage35 adopted signals and coordination. Imported by the atomic signal cycle.
 // Persistence/atomic reservation is mandatory: these pure functions do not reserve funds.
 import standard from './plan_b_combination_standard.json' with {type:'json'};
 import {decidePlanB} from './plan_b_signals.mjs';
@@ -20,19 +20,38 @@ export function combinationDecision(symbol,rows,now) {
  const span=Math.max(last.h-last.l,1e-12),lower=(Math.min(last.o,last.c)-last.l)/span,upper=(last.h-Math.max(last.o,last.c))/span;
  const average=mean(x.slice(-49,-1).map(r=>r.v));
  const meta={volume_ratio:average>0?last.v/average:0,lower_wick:lower,upper_wick:upper};
- let long=false,short=false;
- if(rule.kind==='capitulation'){
+ let long=false,short=false,thresholds={},longChecks={},shortChecks={};
+ if(rule.kind==='exhaustion'){
   meta.move=last.c/x.at(-1-rule.window).c-1;
-  long=meta.move < -rule.shock&&lower>rule.wick;
-  short=meta.move > rule.shock&&upper>rule.wick;
+  const returns=x.slice(-rule.window).map((r,i,a)=>i===0?r.c/x.at(-1-rule.window-1).c-1:r.c/a[i-1].c-1);
+  const allUp=returns.every(v=>v>0),allDown=returns.every(v=>v<0);
+  thresholds={consecutive_hours:rule.window,absolute_move_min:rule.shock,wick_min:rule.wick};
+  longChecks={consecutive:allDown,shock:meta.move < -rule.shock,wick:lower>rule.wick};
+  shortChecks={consecutive:allUp,shock:meta.move > rule.shock,wick:upper>rule.wick};
+  long=longChecks.consecutive&&longChecks.shock&&longChecks.wick;
+  short=shortChecks.consecutive&&shortChecks.shock&&shortChecks.wick;
+ }else if(rule.kind==='capitulation'){
+  meta.move=last.c/x.at(-1-rule.window).c-1;
+  thresholds={absolute_move_min:rule.shock,wick_min:rule.wick,volume_ratio_min:rule.volume};
+  longChecks={shock:meta.move < -rule.shock,wick:lower>rule.wick};
+  shortChecks={shock:meta.move > rule.shock,wick:upper>rule.wick};
+  long=longChecks.shock&&longChecks.wick;
+  short=shortChecks.shock&&shortChecks.wick;
  }else{
   const prior=x.slice(-1-rule.window,-1);
   meta.prior_low=Math.min(...prior.map(r=>r.l));meta.prior_high=Math.max(...prior.map(r=>r.h));
-  long=last.l<meta.prior_low*(1-rule.excess)&&last.c>meta.prior_low&&lower>rule.wick;
-  short=last.h>meta.prior_high*(1+rule.excess)&&last.c<meta.prior_high&&upper>rule.wick;
+  thresholds={sweep_excess_min:rule.excess,wick_min:rule.wick,volume_ratio_min:rule.volume};
+  longChecks={sweep:last.l<meta.prior_low*(1-rule.excess),reclaim:last.c>meta.prior_low,wick:lower>rule.wick};
+  shortChecks={sweep:last.h>meta.prior_high*(1+rule.excess),reclaim:last.c<meta.prior_high,wick:upper>rule.wick};
+  long=longChecks.sweep&&longChecks.reclaim&&longChecks.wick;
+  short=shortChecks.sweep&&shortChecks.reclaim&&shortChecks.wick;
  }
- const side=last.v>average*rule.volume?(long?'long':short?'short':null):null;
- return {side,last,ret:last.c/x.at(-2).c-1,meta,confirmedAt};
+ const volumeOk=rule.kind==='exhaustion'||last.v>average*rule.volume;
+ const side=volumeOk?(long?'long':short?'short':null):null;
+ const failed=[];
+ if(!volumeOk)failed.push('volume_not_met');
+ if(!long&&!short)failed.push(rule.kind==='sweep'?'sweep_reclaim_not_met':'reversal_pattern_not_met');
+ return {side,last,ret:last.c/x.at(-2).c-1,meta,confirmedAt,diagnostic:{kind:rule.kind,matched:!!side,failed,metrics:meta,thresholds,long_checks:longChecks,short_checks:shortChecks}};
 }
 
 // One complete, chronological hour at a time. Missing hours must be replayed,

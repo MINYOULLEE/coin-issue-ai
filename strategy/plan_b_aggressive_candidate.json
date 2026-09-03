@@ -2,8 +2,8 @@
   "plan": "B",
   "status": "superseded_use_canonical",
   "canonical": "strategy/plan_b_standard.json",
-  "strategy_id": "b_core_sparse_stage26",
+  "strategy_id": "b_core_idle_stage35",
   "enabled": false,
   "test_mode": true,
-  "note": "Superseded pointer only. Stage26 canonical includes Stage16 core plus ALGO/ETH/VET supplement; runtime switches are not these historical candidate flags."
+  "note": "Superseded pointer only. Stage35 canonical includes Stage16 core plus ALGO/ETH/VET/LINK/DOT/LTC idle supplements; runtime switches are not these historical candidate flags."
 }

@@ -1,10 +1,10 @@
 {
   "plan": "B",
   "profile": "aggressive",
-  "standard_version": "b_core_sparse_stage26_v1",
-  "strategy_id": "b_core_sparse_stage26",
-  "adoption_status": "user_adopted_20260831",
-  "live_ready": false,
+  "standard_version": "b_core_idle_stage35_v1",
+  "strategy_id": "b_core_idle_stage35",
+  "adoption_status": "user_adopted_20260903",
+  "live_ready": true,
   "live_account": {
     "starting_capital_usd": 150,
     "basis": "user_declared_performance_baseline_not_verified_deposit",
@@ -13,7 +13,7 @@
     "order_sizing_basis": "actual_exchange_equity_and_available_margin"
   },
   "acceptance": {
-    "user_adopted_on": "2026-08-31",
+    "user_adopted_on": "2026-09-03",
     "base_cost_return_floor_pct": 1000000,
     "closed_trade_mdd_limit_pct": 70,
     "independent_validation": false,
@@ -121,6 +121,41 @@
       "opportunity_cooldown_hours": 2,
       "leverage": 3,
       "target_margin_fraction": 0.9
+    },
+    "LINK": {
+      "group": "supplement",
+      "kind": "exhaustion",
+      "window": 3,
+      "shock": 0.05,
+      "wick": 0.35,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.3
+    },
+    "DOT": {
+      "group": "supplement",
+      "kind": "capitulation",
+      "window": 12,
+      "shock": 0.05,
+      "volume_window": 48,
+      "volume": 3,
+      "wick": 0.5,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.15
+    },
+    "LTC": {
+      "group": "supplement",
+      "kind": "exhaustion",
+      "window": 5,
+      "shock": 0.05,
+      "wick": 0.35,
+      "actual_hold_hours": 1,
+      "opportunity_cooldown_hours": 2,
+      "leverage": 3,
+      "target_margin_fraction": 0.15
     }
   },
   "sizing": {
@@ -148,30 +183,32 @@
     "exit": "entry boundary + actual_hold_hours"
   },
   "reference": {
-    "file": "research/results/b_sparse_stage20/combinations.json",
+    "file": "research/results/b_idle_stage35/results.json",
     "selector": {
       "patterns": [
-        "ALGO:capitulation_n3_move0.08_vol1.5_wick0.5",
-        "ETH:sweep_n24_excess0.015_vol1.5",
-        "VET:sweep_n24_excess0.03_vol3.0"
-      ],
-      "target_fraction_per_signal": 0.9
+        "ALGO:capitulation_n3_move0.08_vol1.5_wick0.5:0.9",
+        "ETH:sweep_n24_excess0.015_vol1.5:0.9",
+        "VET:sweep_n24_excess0.03_vol3.0:0.9",
+        "LINK:exhaust_n3_move0.05:0.3",
+        "DOT:capitulation_n12_move0.05_vol3.0_wick0.5:0.15",
+        "LTC:exhaust_n5_move0.05:0.15"
+      ]
     },
     "start_usd": 100,
-    "end_usd": 1717526.822640411,
-    "return_pct": 1717426.822640411,
-    "closed_trade_mdd_pct": -47.28058752885988,
-    "hourly_mark_mdd_pct": -55.35524370329612,
-    "hourly_adverse_bound_pct": -61.909165451332385,
-    "trades": 736,
-    "win_rate_pct": 56.92934782608695,
+    "end_usd": 2007973.5884381323,
+    "return_pct": 2007873.5884381323,
+    "closed_trade_mdd_pct": -47.132684967624215,
+    "hourly_mark_mdd_pct": -55.195295132961995,
+    "hourly_adverse_bound_pct": -61.77269758737087,
+    "trades": 909,
+    "win_rate_pct": 55.66556655665566,
     "margin_clipped": 668,
     "rejected": 21,
     "liquidation_proxy_count": 0,
     "max_reserved_equity_ratio": 1.6222373018844491,
     "max_gross_equity_ratio": 6.322542232335289,
-    "extra_trades": 80,
-    "disclaimer": "Binance spot OHLC leveraged simulation, all thirds used for discovery; not BingX futures/live validation"
+    "extra_trades": 253,
+    "disclaimer": "Binance spot OHLC leveraged simulation; all thirds used for discovery and minute-delay validation is not an independent holdout or BingX futures/live validation"
   },
   "isolation": {
     "api_key_env": "PLAN_B_BINGX_API_KEY",
@@ -179,13 +216,13 @@
     "state_table": "plan_b_trading_state",
     "signals_table": "plan_b_signals",
     "trades_table": "plan_b_real_trades",
-    "client_order_prefix": "pb26"
+    "client_order_prefix": "pb35"
   },
   "remaining_work": [
     "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
-  "display_name": "B 공격형 · Stage16 + ALGO/ETH/VET 희소 반전",
+  "display_name": "B 공격형 · Stage35 기본5 + 보조6 공백 반전",
   "coordination": {
     "priority": "core",
     "same_account_groups_mutually_exclusive": true,
@@ -205,7 +242,9 @@
     "research/results/b_sparse_stage20/AUDIT_STAGE22.md",
     "research/results/b_sparse_stage20/COST_STAGE23.md",
     "research/results/b_sparse_stage20/DELAY_COLLISION_STAGE24.md",
-    "research/results/b_sparse_stage20/HANDOFF_STAGE25.md"
+    "research/results/b_sparse_stage20/HANDOFF_STAGE25.md",
+    "research/results/b_idle_stage34/REPORT.md",
+    "research/results/b_idle_stage35/results.json"
   ],
-  "implementation_status": "deployed_contract_alignment_verified_20260831"
+  "implementation_status": "stage35_deployed_11_symbols_preflight_ok_20260903"
 }

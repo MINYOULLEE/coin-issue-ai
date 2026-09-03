@@ -1,0 +1,84 @@
+{
+  "id": "B-IDLE-STAGE35",
+  "generated_at": "2026-09-03T05:10:12.208339+00:00",
+  "research_only": true,
+  "candidate": {
+    "LINK": 0.3,
+    "DOT": 0.15,
+    "LTC": 0.15
+  },
+  "minute_windows": 173,
+  "ohlc_mismatches": [],
+  "entry_delay_scenarios": [
+    {
+      "delay_minutes": 0,
+      "start_usd": 100.0,
+      "end_usd": 2007973.5884381323,
+      "return_pct": 2007873.5884381323,
+      "closed_trade_mdd_pct": -47.132684967624215,
+      "hourly_mark_mdd_pct": -55.195295132961995,
+      "hourly_adverse_bound_pct": -61.77269758737087,
+      "trades": 909,
+      "win_rate_pct": 55.66556655665566,
+      "margin_clipped": 668,
+      "rejected": 21,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.622237301884449,
+      "max_gross_equity_ratio": 6.322542232335291
+    },
+    {
+      "delay_minutes": 1,
+      "start_usd": 100.0,
+      "end_usd": 2158761.7866191864,
+      "return_pct": 2158661.7866191864,
+      "closed_trade_mdd_pct": -46.78537419025476,
+      "hourly_mark_mdd_pct": -55.20579735409474,
+      "hourly_adverse_bound_pct": -61.78165806561613,
+      "trades": 909,
+      "win_rate_pct": 56.1056105610561,
+      "margin_clipped": 668,
+      "rejected": 21,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844485,
+      "max_gross_equity_ratio": 6.32254223233529
+    },
+    {
+      "delay_minutes": 5,
+      "start_usd": 100.0,
+      "end_usd": 2050238.7305183029,
+      "return_pct": 2050138.730518303,
+      "closed_trade_mdd_pct": -47.18431158077156,
+      "hourly_mark_mdd_pct": -54.789114549159464,
+      "hourly_adverse_bound_pct": -61.4340698145367,
+      "trades": 909,
+      "win_rate_pct": 56.215621562156215,
+      "margin_clipped": 668,
+      "rejected": 21,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844494,
+      "max_gross_equity_ratio": 6.322542232335287
+    },
+    {
+      "delay_minutes": 10,
+      "start_usd": 100.0,
+      "end_usd": 1951164.604399706,
+      "return_pct": 1951064.6043997062,
+      "closed_trade_mdd_pct": -47.03712224674065,
+      "hourly_mark_mdd_pct": -55.06062123791713,
+      "hourly_adverse_bound_pct": -61.657794035874566,
+      "trades": 909,
+      "win_rate_pct": 56.43564356435643,
+      "margin_clipped": 668,
+      "rejected": 21,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.622237301884449,
+      "max_gross_equity_ratio": 6.322542232335288
+    }
+  ],
+  "passes": true,
+  "limitations": [
+    "Binance spot minute data, not BingX futures fills",
+    "Exit remains at original hourly boundary",
+    "No independent untouched holdout"
+  ]
+}

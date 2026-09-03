@@ -1,0 +1,48 @@
+{
+  "id": "B-IDLE-STAGE33",
+  "generated_at": "2026-09-02T14:12:42.988912+00:00",
+  "research_only": true,
+  "baseline": {
+    "start_usd": 100.0,
+    "end_usd": 1717526.822640411,
+    "return_pct": 1717426.822640411,
+    "closed_trade_mdd_pct": -47.28058752885988,
+    "hourly_mark_mdd_pct": -55.35524370329612,
+    "hourly_adverse_bound_pct": -61.909165451332385,
+    "trades": 736,
+    "win_rate_pct": 56.92934782608695,
+    "margin_clipped": 668,
+    "rejected": 21,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844491,
+    "max_gross_equity_ratio": 6.322542232335289
+  },
+  "baseline_double_cost": {
+    "start_usd": 100.0,
+    "end_usd": 58461.7822324536,
+    "return_pct": 58361.78223245361,
+    "closed_trade_mdd_pct": -57.21001250607528,
+    "hourly_mark_mdd_pct": -58.273574602718355,
+    "hourly_adverse_bound_pct": -64.38011588649022,
+    "trades": 737,
+    "win_rate_pct": 53.86702849389417,
+    "margin_clipped": 669,
+    "rejected": 20,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.61817429483231,
+    "max_gross_equity_ratio": 6.308352412692217
+  },
+  "fixed_link": {
+    "pattern": "LINK exhaust_n3_move0.05",
+    "leverage": 3,
+    "hold_hours": 1
+  },
+  "tested_candidates": 0,
+  "selected_candidates": 0,
+  "results": [],
+  "limitations": [
+    "All thirds used for comparison; not independent holdout",
+    "Binance spot OHLC proxy, not BingX futures fills",
+    "Research only; no A or live B changes"
+  ]
+}

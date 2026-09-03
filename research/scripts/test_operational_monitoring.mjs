@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {healthProblems,healthTransitions,outcomeErrors} from '../../supabase/functions/_shared/operational_health.mjs';
+import {healthProblems,healthTransitions,outcomeErrors,transportErrorDisposition} from '../../supabase/functions/_shared/operational_health.mjs';
 import {fetchNews,cftcRss} from '../../supabase/functions/_shared/news_fetch.mjs';
 const now=Date.parse('2026-08-31T05:00:00Z');
 const health=['signals','execute','close'].map(id=>({id,payload:{ok:true},updated_at:new Date(now).toISOString()}));
@@ -9,6 +9,13 @@ test('OFF does not require execution heartbeat but does require close management
 test('partial news failure and A recovery failure are not hidden by fresh heartbeat',()=>{const p=healthProblems({snapshot:{payload:{status:{Coinbase:{ok:false,error:'HTTP 403'}},signal_candidates:{entry_recovery:{ok:false}}}},bHealth:health,bState:{enabled:true},now});assert(p['news:Coinbase']);assert(p.a_recovery);});
 test('alerts fire on change and once on recovery, not on every cycle',()=>{assert.equal(healthTransitions({a:'bad'},{a:'bad'}).opened.length,0);assert.deepEqual(healthTransitions({a:'bad'},{}).resolved,['a']);assert.equal(healthTransitions({}, {a:'bad'}).opened.length,1);});
 test('nested order/exit failures count even when HTTP handler succeeded',()=>assert.equal(outcomeErrors({results:[{id:1,error:'close failed'},{id:2,ok:false},{id:3,ok:true}]}).length,2));
+test('transport outage waits for semantic recovery but trading errors remain immediate',()=>{
+ const error={source:'supabase-http',status_code:null,message:'DNS timeout',created_at:new Date(now-120000).toISOString()};
+ assert.equal(transportErrorDisposition({error,snapshot:{updated_at:new Date(now-60000).toISOString()},bHealth:health,now}),'recovered');
+ assert.equal(transportErrorDisposition({error,snapshot:{updated_at:new Date(now-180000).toISOString()},bHealth:health,now}),'pending');
+ assert.equal(transportErrorDisposition({error:{...error,source:'plan-b-http'},snapshot:{},bHealth:[],now}),'immediate');
+ assert.equal(transportErrorDisposition({error:{...error,created_at:new Date(now-240000).toISOString()},snapshot:{},bHealth:[],now}),'alert');
+});
 const html='<table><tr><td><time datetime="2026-08-30T12:00:00Z"></time></td><td><a href="/PressRoom/PressReleases/123">Official news</a></td></tr></table>';
 test('CFTC fallback preserves official URL and publication date',async()=>{const seen=[];const r=await fetchNews('CFTC Press','https://fixture.invalid/rss',{fetcher:async u=>{seen.push(u);return seen.length===1?new Response('',{status:403}):new Response(html);}});assert.equal(r.fallback,true);assert(r.xml.includes('https://www.cftc.gov/PressRoom/PressReleases/123'));assert(r.xml.includes('Sun, 30 Aug 2026'));});
 test('blocked fallback never pretends success',async()=>{await assert.rejects(fetchNews('CFTC Press','https://fixture.invalid',{fetcher:async()=>new Response('',{status:403})}),/RSS HTTP 403.*공식 목록 HTTP 403/);});
