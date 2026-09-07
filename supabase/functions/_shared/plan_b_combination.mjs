@@ -1,4 +1,4 @@
-// Stage45 adopted signals and coordination. Imported by the atomic signal cycle.
+// Stage66 adopted signals and coordination. Imported by the atomic signal cycle.
 // Persistence/atomic reservation is mandatory: these pure functions do not reserve funds.
 import standard from './plan_b_combination_standard.json' with {type:'json'};
 import {decidePlanB} from './plan_b_signals.mjs';
@@ -19,7 +19,8 @@ export function combinationDecision(symbol,rows,now) {
  if(now-confirmedAt>=standard.coordination.entry_ttl_ms)return {side:null,reason:'stale candle',confirmedAt};
  const span=Math.max(last.h-last.l,1e-12),lower=(Math.min(last.o,last.c)-last.l)/span,upper=(last.h-Math.max(last.o,last.c))/span;
  const average=mean(x.slice(-49,-1).map(r=>r.v));
- const meta={volume_ratio:average>0?last.v/average:0,lower_wick:lower,upper_wick:upper};
+ const atr_24=mean(x.slice(-24).map((r,i,a)=>{const previous=i?a[i-1].c:x.at(-25).c;return Math.max(r.h-r.l,Math.abs(r.h-previous),Math.abs(r.l-previous));}));
+ const meta={volume_ratio:average>0?last.v/average:0,lower_wick:lower,upper_wick:upper,atr_24};
  let long=false,short=false,thresholds={},longChecks={},shortChecks={};
  if(rule.kind==='exhaustion'){
   meta.move=last.c/x.at(-1-rule.window).c-1;

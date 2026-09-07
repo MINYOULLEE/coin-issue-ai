@@ -2,8 +2,8 @@
   "plan": "B",
   "status": "superseded_use_canonical",
   "canonical": "strategy/plan_b_standard.json",
-  "strategy_id": "b_core_bnb_stage45",
+  "strategy_id": "b_profit_lock_stage66",
   "enabled": false,
   "test_mode": true,
-  "note": "Pointer only. Stage45 canonical includes the Stage16 core plus ALGO/ETH/VET/LINK/DOT/LTC/BNB idle supplements; runtime switches are controlled separately and remain owner-enabled."
+  "note": "Pointer only. Stage66 preserves Stage45 entries and adds ICP/BCH/UNI causal profit locks; runtime switches remain owner-controlled and enabled."
 }

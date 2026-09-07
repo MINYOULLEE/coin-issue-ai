@@ -1,5 +1,6 @@
 import {allocatePlanB,PLAN_B_STANDARD as STANDARD} from './plan_b_sizing.mjs';
 import {constrainBQuantity} from './plan_b_exchange.mjs';
+import {advanceProfitLock,normalizeHourlyKlines,normalizeKlines,profitFloorBreached,profitLockPolicy} from './plan_b_profit_lock.mjs';
 
 export async function checked(query) { const {data,error}=await query;if(error)throw error;return data; }
 export function selectExecutionGroup(signals,intents){
@@ -18,17 +19,30 @@ export function positionQuantity(raw,symbol,side) {
  const rows=Array.isArray(raw)?raw:raw?.positions;if(!Array.isArray(rows))throw Error('invalid position response');
  return rows.filter(p=>p.symbol===symbol+'-USDT'&&p.positionSide===side.toUpperCase()).reduce((sum,p)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');return sum+Math.abs(q);},0);
 }
+function epochMs(value){const n=Number(value);return Number.isFinite(n)&&n>0?(n<100000000000?n*1000:n):NaN;}
+function historyRows(raw){
+ if(Array.isArray(raw))return raw;
+ for(const key of ['list','positionHistory','positions','items','data'])if(Array.isArray(raw?.[key]))return raw[key];
+ return [];
+}
+function presentNumber(row,keys){for(const key of keys)if(row?.[key]!=null&&Number.isFinite(Number(row[key])))return Number(row[key]);return null;}
 export function historySettlement(raw,trade) {
- const rows=Array.isArray(raw)?raw:raw?.positionHistory||raw?.positions||raw?.list;
- if(!Array.isArray(rows))return null;
+ const rows=historyRows(raw);
  const opened=Date.parse(trade.filled_at||trade.created_at);
- const matches=rows.filter(p=>String(p.symbol)===trade.symbol+'-USDT'&&String(p.positionSide).toLowerCase()===trade.side&&
-  Math.abs(Number(p.openTime??p.positionTime??p.createTime)-opened)<=120000&&Number(p.closeTime)>opened);
+ const matches=rows.filter(p=>{
+  const symbol=String(p.symbol||'').toUpperCase().replace('/','-'),normalized=symbol.includes('-')?symbol:symbol.endsWith('USDT')?symbol.slice(0,-4)+'-USDT':symbol;
+  const rawSide=String(p.positionSide??p.side??p.direction??'').toUpperCase();
+  const side=rawSide.includes('SHORT')||rawSide.includes('SELL')?'short':rawSide.includes('LONG')||rawSide.includes('BUY')?'long':Number(p.positionAmt??p.positionAmount??p.amount)<0?'short':'long';
+  const openAt=epochMs(p.openTime??p.positionTime??p.createTime??p.time),closeAt=epochMs(p.closeTime??p.updateTime??p.endTime);
+  return normalized===trade.symbol+'-USDT'&&side===trade.side&&Math.abs(openAt-opened)<=120000&&closeAt>opened;
+ });
  if(matches.length!==1)return null;
- const p=matches[0],net=Number(p.netProfit),price=Number(p.avgClosePrice??p.closeAvgPrice??p.closePrice);
+ const p=matches[0],net=presentNumber(p,['netProfit','realizedProfit','realisedProfit','realizedPnl']),price=presentNumber(p,['avgClosePrice','closeAvgPrice','closePrice']);
  // Missing netProfit is not zero: do not guess whether a gross field includes funding.
- if(p.netProfit==null||!Number.isFinite(net)||!Number.isFinite(price)||price<=0)return null;
- return {net_pnl_usd:net,close_price:price,fee_usd:p.commission==null?null:Math.abs(Number(p.commission)),closed_at:new Date(Number(p.closeTime)).toISOString()};
+ if(net==null||price==null||price<=0)return null;
+ // BingX positionHistory can expose the settlement fee as positionCommission.
+ const fee=presentNumber(p,['positionCommission','commission','tradingFee','fee']),closedAt=epochMs(p.closeTime??p.updateTime??p.endTime);
+ return {net_pnl_usd:net,close_price:price,fee_usd:fee==null?null:Math.abs(fee),closed_at:new Date(closedAt).toISOString()};
 }
 export async function executeBatch({sb,bx,now=Date.now}) {
  const state=await checked(sb.from('plan_b_trading_state').select('*').eq('id','singleton').single());
@@ -101,7 +115,8 @@ export async function recordEntry({sb,order,fill,now=Date.now}) {
  const existing=await checked(sb.from('plan_b_real_trades').select('status,filled_at,dispatch_started_at').eq('signal_id',s.id).maybeSingle());
  if(existing?.status==='closed')return;
  const filledAt=existing?.filled_at||(Number.isFinite(fill.filledAt)&&fill.filledAt>0?new Date(fill.filledAt).toISOString():stamp);
- await checked(sb.from('plan_b_real_trades').upsert({signal_id:s.id,symbol:order.symbol,side:order.side,status:'open',entry_price:fill.price,quantity:fill.quantity,leverage:order.leverage,margin_usd:fill.price*fill.quantity/order.leverage,client_order_id:order.clientOrderId,bingx_order_id:fill.orderId,signal_confirmed_at:s.confirmed_at,dispatch_started_at:existing?.dispatch_started_at||stamp,filled_at:filledAt},{onConflict:'signal_id'}));
+ const policy=profitLockPolicy({symbol:order.symbol,side:order.side,entryPrice:fill.price,atr:Number(s.strategy_params?.atr_24)});
+ await checked(sb.from('plan_b_real_trades').upsert({signal_id:s.id,symbol:order.symbol,side:order.side,status:'open',entry_price:fill.price,quantity:fill.quantity,leverage:order.leverage,margin_usd:fill.price*fill.quantity/order.leverage,client_order_id:order.clientOrderId,bingx_order_id:fill.orderId,signal_confirmed_at:s.confirmed_at,dispatch_started_at:existing?.dispatch_started_at||stamp,filled_at:filledAt,profit_lock_policy:policy?.policy||null,profit_lock_trigger_pct:policy?.triggerPct||null,profit_lock_keep_fraction:policy?.keepFraction||null},{onConflict:'signal_id'}));
  await checked(sb.from('plan_b_signals').update({dispatched_at:stamp}).eq('id',s.id));
  await checked(sb.from('plan_b_execution_intents').update({status:fill.status==='filled'?'open':'partial',fill_quantity:fill.quantity,fill_price:fill.price,order_id:fill.orderId,updated_at:stamp}).eq('client_order_id',order.clientOrderId));
 }
@@ -123,10 +138,24 @@ export async function reconcileEntries({sb,bx,now=Date.now}){
 }
 export async function closeDue({sb,bx,now=Date.now}){
  // Exit management deliberately does not depend on the new-entry switch or paper mode.
- const trades=await checked(sb.from('plan_b_real_trades').select('*,plan_b_signals!inner(expires_at)').eq('status','open'))||[];
+ const trades=await checked(sb.from('plan_b_real_trades').select('*,plan_b_signals!inner(expires_at,strategy_id,strategy_params)').eq('status','open'))||[];
  const results=[];
  for(const trade of trades){try{
-  if(Date.parse(trade.plan_b_signals.expires_at)>now())continue;
+  let protectionDue=false;
+  if(trade.plan_b_signals.strategy_id===STANDARD.strategy_id&&trade.profit_lock_policy){
+   const raw=await bx.read('/openApi/swap/v3/quote/klines',{symbol:trade.symbol+'-USDT',interval:'1h',limit:3});
+   const completed=normalizeHourlyKlines(raw,now()).filter(c=>c.t>=Math.floor(Date.parse(trade.filled_at)/3600000)*3600000);
+   const latest=completed.at(-1),update=latest?advanceProfitLock(trade,latest):null;
+   if(update){await checked(sb.from('plan_b_real_trades').update({...update,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));Object.assign(trade,update);}
+   if(trade.profit_lock_armed_at){
+    const marks=await bx.read('/openApi/swap/v2/quote/premiumIndex',{symbol:trade.symbol+'-USDT'}),mark=Number((Array.isArray(marks)?marks[0]:marks)?.markPrice);
+    const minuteRaw=await bx.read('/openApi/swap/v3/quote/klines',{symbol:trade.symbol+'-USDT',interval:'1m',limit:2});
+    protectionDue=profitFloorBreached(trade,mark,now(),normalizeKlines(minuteRaw,60000,now()));
+   }
+  }
+  const scheduledDue=Date.parse(trade.plan_b_signals.expires_at)<=now();
+  if(!scheduledDue&&!protectionDue)continue;
+  const exitReason=protectionDue?'profit_lock':'scheduled_time';
   if(!trade.bingx_order_id){results.push({id:trade.id,error:'unverified trade; no synthetic close'});continue;}
   const intent=await checked(sb.from('plan_b_execution_intents').select('*').eq('signal_id',trade.signal_id).single());
   if(!['open','closing'].includes(intent.status)){results.push({id:trade.id,error:'entry reconciliation pending'});continue;}
@@ -150,22 +179,24 @@ export async function closeDue({sb,bx,now=Date.now}){
    const attempt=Number(intent.close_attempt||0)+1,clientOrderId=trade.client_order_id+'-c'+attempt;
    const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));
    if(!claimed?.length)continue;
+   await checked(sb.from('plan_b_real_trades').update({exit_reason:trade.exit_reason||exitReason,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
    const order={plan:'B',symbol:trade.symbol,side:trade.side,quantity,clientOrderId,close:true};
    const known=await bx.lookup(order),confirmation=known.status==='not_found'?await bx.submit(order):known;
    if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
    const remaining=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
    if(remaining>0){results.push({id:trade.id,status:'close_pending',remaining});continue;}
   }
-  await checked(sb.from('plan_b_real_trades').update({status:'closed',net_pnl_usd:null,closed_at:new Date(now()).toISOString(),updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
+  await checked(sb.from('plan_b_real_trades').update({status:'closed',exit_reason:trade.exit_reason||exitReason,net_pnl_usd:null,closed_at:new Date(now()).toISOString(),updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
   await checked(sb.from('plan_b_signals').update({status:'closed'}).eq('id',trade.signal_id));
   await checked(sb.from('plan_b_execution_intents').update({status:'closed'}).eq('id',intent.id));
   results.push({id:trade.id,status:'closed',settlement:'pending_exchange_history'});
  }catch(error){results.push({id:trade.id,error:String(error.message)});}
  }
+ // BingX v1 positionHistory requires page/limit rather than pageIndex/pageSize.
  const unsettled=await checked(sb.from('plan_b_real_trades').select('*').eq('status','closed').is('net_pnl_usd',null).not('bingx_order_id','is',null))||[];
- for(const trade of unsettled){
-  const raw=await bx.read('/openApi/swap/v1/trade/positionHistory',{symbol:trade.symbol+'-USDT',startTime:Date.parse(trade.created_at)-120000,endTime:now(),pageIndex:1,pageSize:100});
+ for(const trade of unsettled){try{
+  const raw=await bx.read('/openApi/swap/v1/trade/positionHistory',{symbol:trade.symbol+'-USDT',startTs:Date.parse(trade.created_at)-120000,endTs:now(),page:1,limit:100});
   const settled=historySettlement(raw,trade);if(settled)await checked(sb.from('plan_b_real_trades').update({...settled,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
- }
+ }catch(error){results.push({id:trade.id,error:'settlement lookup failed: '+String(error.message)});}}
  return {ok:results.every(r=>!r.error),results};
 }
