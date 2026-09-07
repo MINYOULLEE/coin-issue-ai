@@ -76,6 +76,8 @@
     "supabase/migrations/20260907112436_add_plan_b_stage66_profit_lock.sql": "c18d4aa2514d89218dc17433a6a7ef29d1df2701c68c0092541f2f0ee6d1073f",
     "strategy/B_STAGE66_APPROVED_20260907.md": "ac2429eeaca22c9fb7712f34e4e6406036be44b6ab14947cfed9eef7039854a9",
     "strategy/PLANS.md": "a786890f95babc174d191be1e08030ccf21263b4a7eba66bc2b1cb2e4384fb41",
-    "supabase/migrations/20260907152121_update_plan_b_stage66_atomic_functions.sql": "6290c9d41ecee484e40c6a4c6012251b770cdcaeab0667eabcf81033d684408f"
+    "supabase/migrations/20260907152121_update_plan_b_stage66_atomic_functions.sql": "6290c9d41ecee484e40c6a4c6012251b770cdcaeab0667eabcf81033d684408f",
+    "research/scripts/test_plan_b_order_lifecycle.mjs": "20376af0bde03105b4898be840b41795c7fca015f55da1224920717a46161986",
+    "supabase/migrations/20260907153957_correct_plan_b_stage66_validation_status.sql": "7b05e44cdbb7426e0913c602ee2ab50af2e10800e7d5bfd2fa8660c3acd5bfc4"
   }
 }
