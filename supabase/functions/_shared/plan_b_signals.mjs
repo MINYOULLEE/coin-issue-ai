@@ -15,7 +15,8 @@ export function decidePlanB(symbol, rows, nowMs=Date.now()) {
   }
   const last=x.at(-1), ret=last.c/x.at(-2).c-1,confirmedAt=last.t+HOUR;
   if(nowMs-confirmedAt>=300000) return {side:null,reason:'stale candle',confirmedAt};
-  let side=null; const meta={return_1h:ret};
+  const atr_24=mean(x.slice(-24).map((r,i,a)=>{const previous=i?a[i-1].c:x.at(-25).c;return Math.max(r.h-r.l,Math.abs(r.h-previous),Math.abs(r.l-previous));}));
+  let side=null; const meta={return_1h:ret,atr_24};
   const failed=[]; let thresholds={};
   if(q.kind==='rsi') {
     const prior=x.slice(0,-1).map(r=>r.c),d=prior.slice(1).map((v,i)=>v-prior[i]).slice(-q.window);
@@ -53,7 +54,7 @@ export function signalRow(symbol, decision, nowMs=Date.now()) {
   if(!decision.side || nowMs<decision.confirmedAt || nowMs-decision.confirmedAt>=300000) throw Error('ineligible signal');
   const confirmed=new Date(decision.confirmedAt).toISOString();
   return {signal_key:`${standard.isolation.client_order_prefix}:${symbol}:${confirmed}:${decision.side}`,symbol,side:decision.side,status:'active',
-    signal_price:decision.last.c,volume_ratio:decision.meta.volume_ratio||0,return_1h:decision.ret,realized_vol_24h:0,
+    signal_price:decision.last.c,volume_ratio:decision.meta.volume_ratio||0,return_1h:decision.ret,realized_vol_24h:decision.meta.atr_24/decision.last.c,
     hold_hours:q.actual_hold_hours,leverage:q.leverage,portfolio_weight:1,portfolio_scale:1,
     confirmed_at:confirmed,entry_deadline:new Date(decision.confirmedAt+300000).toISOString(),
     expires_at:new Date(decision.confirmedAt+q.actual_hold_hours*HOUR).toISOString(),strategy_id:standard.strategy_id,

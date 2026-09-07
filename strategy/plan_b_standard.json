@@ -1,9 +1,9 @@
 {
   "plan": "B",
   "profile": "aggressive",
-  "standard_version": "b_core_bnb_stage45_v1",
-  "strategy_id": "b_core_bnb_stage45",
-  "adoption_status": "user_adopted_20260903",
+  "standard_version": "b_profit_lock_stage66_v1",
+  "strategy_id": "b_profit_lock_stage66",
+  "adoption_status": "user_adopted_20260907",
   "live_ready": true,
   "live_account": {
     "starting_capital_usd": 150,
@@ -13,7 +13,7 @@
     "order_sizing_basis": "actual_exchange_equity_and_available_margin"
   },
   "acceptance": {
-    "user_adopted_on": "2026-09-03",
+    "user_adopted_on": "2026-09-07",
     "base_cost_return_floor_pct": 1000000,
     "closed_trade_mdd_limit_pct": 70,
     "independent_validation": false,
@@ -171,6 +171,18 @@
       "target_margin_fraction": 0.125
     }
   },
+  "profit_lock": {
+    "policy_version": "causal_atr_peak_close_stage66_v1",
+    "symbols": {
+      "ICP": {"trigger_quantile": 0.30, "trigger_atr_ratio_long": 0.747411954438378, "trigger_atr_ratio_short": 1.039223666728333, "keep_fraction": 0.70},
+      "BCH": {"trigger_quantile": 0.70, "trigger_atr_ratio_long": 2.1025087922182553, "trigger_atr_ratio_short": 1.6855803932130378, "keep_fraction": 0.75},
+      "UNI": {"trigger_quantile": 0.60, "trigger_atr_ratio_long": 1.9730814639905507, "trigger_atr_ratio_short": 2.526105815343654, "keep_fraction": 0.75}
+    },
+    "activation": "completed_hour_close_only",
+    "enforcement": "next_minute_cycle_market_close_after_floor_cross",
+    "fallback": "original_scheduled_time_exit",
+    "bootstrap": "frozen_last_120_completed_profitable_same_symbol_side_research_samples"
+  },
   "sizing": {
     "mode": "reserved_margin_fixed_entry_quantity",
     "target_margin_fraction": "per_symbol",
@@ -196,7 +208,7 @@
     "exit": "entry boundary + actual_hold_hours"
   },
   "reference": {
-    "file": "research/results/b_combo_stage44/results.json",
+    "file": "research/results/combined_profit_lock_stage64/RESULTS.json",
     "selector": {
       "patterns": [
         "ALGO:capitulation_n3_move0.08_vol1.5_wick0.5:1.15",
@@ -209,13 +221,13 @@
       ]
     },
     "start_usd": 100,
-    "end_usd": 3317665.1530879536,
-    "return_pct": 3317565.1530879536,
-    "closed_trade_mdd_pct": -46.657990124757006,
-    "hourly_mark_mdd_pct": -54.73644967098248,
+    "end_usd": 4556311.855381206,
+    "return_pct": 4556211.855381206,
+    "closed_trade_mdd_pct": -46.657990124757,
+    "hourly_mark_mdd_pct": -54.64800441993866,
     "hourly_adverse_bound_pct": -62.0535773702686,
     "trades": 962,
-    "win_rate_pct": 55.50935550935551,
+    "win_rate_pct": 55.61330561330561,
     "margin_clipped": 880,
     "rejected": 21,
     "liquidation_proxy_count": 0,
@@ -230,13 +242,13 @@
     "state_table": "plan_b_trading_state",
     "signals_table": "plan_b_signals",
     "trades_table": "plan_b_real_trades",
-    "client_order_prefix": "pb45"
+    "client_order_prefix": "pb66"
   },
   "remaining_work": [
     "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
-  "display_name": "B 공격형 · Stage45 기본5 + 보조7 공백 반전",
+  "display_name": "B 공격형 · Stage66 Stage45 + ICP/BCH/UNI 수익보호",
   "coordination": {
     "priority": "core",
     "same_account_groups_mutually_exclusive": true,
@@ -262,5 +274,5 @@
     "research/results/b_combo_stage43/results.json",
     "research/results/b_combo_stage44/results.json"
   ],
-  "implementation_status": "stage45_deployed_12_symbols_live_on_preflight_ok_pending_natural_signal_20260903"
+  "implementation_status": "stage66_deployed_live_on_health_ok_pending_natural_signal_20260907"
 }

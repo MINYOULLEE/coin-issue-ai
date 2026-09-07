@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage45_core_bnb_20260903_v1",
+  "execution_version": "stage66_profit_lock_20260907_v1",
   "live_ready": true,
-  "strategy_id": "b_core_bnb_stage45",
-  "note": "Owner-enabled switch preserved. Stage45 adds BNB and safer supplement allocation under core-idle semantics. Atomic reservations and verified 3x isolated contract configuration are mandatory."
+  "strategy_id": "b_profit_lock_stage66",
+  "note": "Owner-enabled switch preserved. Stage66 keeps Stage45 entries and adds causal completed-close profit locks for ICP/BCH/UNI. Atomic reservations, minute breach checks and verified isolated leverage remain mandatory."
 }
