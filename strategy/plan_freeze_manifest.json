@@ -74,7 +74,8 @@
     "supabase/functions/_shared/plan_b_profit_lock.mjs": "54367d0d4647c5dfe3f14ceef7999dd5e743e6991ec15a63e07e9c02bb0d8c28",
     "research/scripts/test_plan_b_profit_lock.mjs": "382d0cc35c31199c7081d655c5abf2d16012c2b760c91a955902f04db7b3ec14",
     "supabase/migrations/20260907112436_add_plan_b_stage66_profit_lock.sql": "c18d4aa2514d89218dc17433a6a7ef29d1df2701c68c0092541f2f0ee6d1073f",
-    "strategy/B_STAGE66_APPROVED_20260907.md": "c8ebe69638479c7af51eea2dc73a6764660a32ae645626b9821db2826f2a6ea3",
-    "strategy/PLANS.md": "a786890f95babc174d191be1e08030ccf21263b4a7eba66bc2b1cb2e4384fb41"
+    "strategy/B_STAGE66_APPROVED_20260907.md": "ac2429eeaca22c9fb7712f34e4e6406036be44b6ab14947cfed9eef7039854a9",
+    "strategy/PLANS.md": "a786890f95babc174d191be1e08030ccf21263b4a7eba66bc2b1cb2e4384fb41",
+    "supabase/migrations/20260907152121_update_plan_b_stage66_atomic_functions.sql": "6290c9d41ecee484e40c6a4c6012251b770cdcaeab0667eabcf81033d684408f"
   }
 }
