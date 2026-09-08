@@ -13,12 +13,19 @@ export function createAEntryCycle({db,signed,now=()=>new Date().toISOString()}) 
   const existing=(await db(`real_trades?signal_id=eq.${id}&select=id,status,entry_submitted_at,entry_filled_at`))?.[0];
   if(existing?.status==='closed'){if(terminal)await release(id);return {ok:true,signal_id:id,already_closed:true};}
   const stamp=now(),notional=qty*price,margin=notional/Number(p.leverage),fee=notional*Number(p.fee_rate||.001);
+  const stopPct=Number(p.stop_pct||.15),priceFactor=10**Number(p.price_precision||2),stopPrice=Math.round(price*(s.side==='long'?1-stopPct:1+stopPct)*priceFactor)/priceFactor,closeSide=s.side==='long'?'SELL':'BUY';
+  let protectedAt=null;
+  if(terminal){
+   try{await signed('POST','/openApi/swap/v2/trade/order',{symbol:p.symbol,side:closeSide,positionSide:p.positionSide,type:'STOP_MARKET',stopPrice,quantity:qty,workingType:'MARK_PRICE',recvWindow:5000});protectedAt=now();}
+   catch(e){try{await signed('POST','/openApi/swap/v2/trade/order',{symbol:p.symbol,side:closeSide,positionSide:p.positionSide,type:'MARKET',quantity:qty,recvWindow:5000});}catch{}await invalid(id,`Stage75 비상손절 부착 실패로 안전청산: ${String(e.message).slice(0,300)}`);await release(id);return {ok:false,rejected:true,safety_closed:true,signal_id:id};}
+  }
   const record={signal_id:id,symbol:s.symbol,bingx_symbol:p.symbol,side:s.side,signal_type:s.signal_type,status:'open',test_mode:false,margin_usd:margin,
-   leverage:Number(p.leverage),notional_usd:notional,quantity:qty,entry_price:price,stop_price:null,target_price:null,bingx_order_id:String(orderId),
+   leverage:Number(p.leverage),notional_usd:notional,quantity:qty,entry_price:price,stop_price:stopPrice,target_price:null,bingx_order_id:String(orderId),
    strategy_epoch:s.strategy_epoch,collector_version:Number(s.collector_version||0),executor_version:Number(p.executor_version),signal_model_version:s.signal_model_version,
    signal_price:Number(p.signal_price),submitted_price:Number(p.signal_price),slippage_pct:(price/Number(p.signal_price)-1)*100*(s.side==='long'?1:-1),
    entry_submitted_at:existing?.entry_submitted_at||p.submitted_at||stamp,entry_filled_at:existing?.entry_filled_at||stamp,expected_fee_usd:fee,
-   strategy_config:{daily_rebalance:true,exposure_multiplier:p.exposure_multiplier,max_gross_exposure:p.max_gross_exposure}};
+   stop_order_created_at:protectedAt,protective_verified:!!protectedAt,
+   strategy_config:{daily_rebalance:true,stage75:true,stop_pct:stopPct,exposure_multiplier:p.exposure_multiplier,max_gross_exposure:p.max_gross_exposure}};
   if(existing)await db(`real_trades?id=eq.${existing.id}&status=eq.open`,{method:'PATCH',body:JSON.stringify(record)});
   else await db('real_trades?on_conflict=signal_id',{method:'POST',headers:{Prefer:'resolution=ignore-duplicates,return=minimal'},body:JSON.stringify(record)});
   await db(`trade_signals?id=eq.${id}`,{method:'PATCH',body:JSON.stringify({account_equity_usd:Number(p.equity),margin_usd:margin,leverage:Number(p.leverage),notional_usd:notional,fee_usd:fee,updated_at:stamp})});
@@ -33,13 +40,13 @@ export function createAEntryCycle({db,signed,now=()=>new Date().toISOString()}) 
  }
  async function submit(p){
   const s=p.signal||{},id=Number(s.id);let reserved=false,possible=false;
-  if(s.signal_type!=='answer_mdd30'||!['BTC','ETH','XRP','TRX','SOL'].includes(s.symbol)||p.symbol!==s.symbol+'-USDT'||!['long','short'].includes(s.side)||p.side!==(s.side==='long'?'BUY':'SELL')||p.positionSide!==s.side.toUpperCase()||Number(p.leverage)!==10||!Number.isFinite(Number(p.quantity))||Number(p.quantity)<=0||!Number.isSafeInteger(id))throw Error('invalid A entry');
+  if(s.signal_type!=='answer_mdd30'||!['BTC','ETH','XRP','TRX','SOL'].includes(s.symbol)||p.symbol!==s.symbol+'-USDT'||!['long','short'].includes(s.side)||p.side!==(s.side==='long'?'BUY':'SELL')||p.positionSide!==s.side.toUpperCase()||Number(p.leverage)!==3||Number(p.stop_pct)!==.15||!Number.isFinite(Number(p.quantity))||Number(p.quantity)<=0||!Number.isSafeInteger(id))throw Error('invalid A Stage75 entry');
   try{
    const slot=await db('rpc/reserve_real_trade_slot',{method:'POST',body:JSON.stringify({p_signal_id:id,p_symbol:s.symbol,p_side:s.side,p_max_concurrent:Number(p.max_concurrent_positions),p_max_same_direction:Number(p.max_same_direction)})});
    if(!slot?.reserved)return {ok:true,pending:true,signal_id:id,reason:slot?.reason};reserved=true;
    const state=(await db('real_trading_state?id=eq.singleton&select=enabled,test_mode'))?.[0];
    if(!state?.enabled||state.test_mode)throw Error('A new entries disabled');
-   await signed('POST','/openApi/swap/v2/trade/leverage',{symbol:p.symbol,side:p.positionSide,leverage:10,recvWindow:5000});
+   await signed('POST','/openApi/swap/v2/trade/leverage',{symbol:p.symbol,side:p.positionSide,leverage:3,recvWindow:5000});
    const payload={...p,submitted_at:now()};
    // Persist BEFORE sending. A timeout/worker crash must never release this reservation by age.
    await patch(id,{request_payload:payload,execution_status:'submitted'});possible=true;

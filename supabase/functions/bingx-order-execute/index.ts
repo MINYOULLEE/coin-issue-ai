@@ -31,8 +31,9 @@ const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX",
 const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strategy_f","strategy_g"];
 const DAILY_REBALANCE_TYPES = [...SUITE_TYPES, "answer_mdd30"];
 const MDD30_ASSETS = new Set(["BTC", "ETH", "XRP", "TRX", "SOL"]);
-const MDD30_EXCHANGE_LEVERAGE = 10;
-const MDD30_MAX_GROSS_EXPOSURE = 1.6;
+const MDD30_EXCHANGE_LEVERAGE = 3;
+const MDD30_MAX_GROSS_EXPOSURE = 2.24;
+const MDD30_STOP_PCT = 0.15;
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
 const EXECUTOR_VERSION = 51;
@@ -440,7 +441,7 @@ async function handleProtect(payload: any): Promise<Response> {
             }),
           });
         }
-        if (DAILY_REBALANCE_TYPES.includes(row.signal_type)) {
+        if (DAILY_REBALANCE_TYPES.includes(row.signal_type) && row.signal_type !== "answer_mdd30") {
           // Daily-rebalance strategies intentionally have no exchange SL/TP.
           // Keep protective_verified=false so the database never claims that
           // a protective order exists when there is none.
@@ -656,6 +657,72 @@ async function handleMdd30LeverageRepair(): Promise<Response> {
   }
 }
 
+async function handleMdd30Resize(payload: any): Promise<Response> {
+  try {
+    const rows = await db(`real_trades?signal_id=eq.${Number(payload.id)}&status=eq.open&signal_type=eq.answer_mdd30&select=*&limit=1`);
+    const row = rows?.[0];
+    if (!row) return Response.json({ ok: false, error: "A Stage75 open trade not found" }, { status: 404 });
+    const state = (await db("real_trading_state?id=eq.singleton&select=*&limit=1"))?.[0];
+    if (!state?.enabled || state.test_mode) return Response.json({ ok: false, error: "A live trading is not enabled" }, { status: 409 });
+    const balanceData = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v3/user/balance", { recvWindow: 5000 });
+    const balances = Array.isArray(balanceData) ? balanceData : (Array.isArray(balanceData?.balance) ? balanceData.balance : [balanceData?.balance || balanceData || {}]);
+    const usdt = balances.find((x: any) => String(x?.asset || "").toUpperCase() === "USDT") || balances[0] || {};
+    const equity = Number(usdt.equity ?? usdt.balance ?? 0);
+    if (!(equity > 0)) throw Error("invalid live equity");
+    const peak = Math.max(Number(state.a_equity_peak_usd || 0), equity);
+    const drawdown = peak > 0 ? (peak - equity) / peak : 0;
+    let guard = !!state.a_drawdown_guard_active;
+    if (!guard && drawdown >= .35) guard = true;
+    else if (guard && drawdown <= .175) guard = false;
+    const scale = guard ? 1.05 : 1.4;
+    const baseExposure = Number(payload.base_exposure_multiplier);
+    if (!(baseExposure >= 0) || baseExposure > 1.6) throw Error("invalid Stage75 base exposure");
+    const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT";
+    const contract = await getContract(bxSymbol), qtyPrecision = Number(contract.quantityPrecision ?? 3), pricePrecision = Number(contract.pricePrecision ?? 2);
+    const raw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
+    const positions = Array.isArray(raw) ? raw : (raw?.positions || []);
+    const position = positions.find((p: any) => p.symbol === bxSymbol && p.positionSide === positionSide);
+    const currentQty = Math.abs(Number(position?.positionAmt ?? position?.positionAmount ?? 0));
+    if (!(currentQty > 0)) throw Error("exchange position missing");
+    const mark = Number(position?.markPrice ?? position?.price ?? row.entry_price);
+    const targetQty = roundDown(equity * baseExposure * scale / mark, qtyPrecision);
+    const delta = roundDown(Math.abs(targetQty - currentQty), qtyPrecision);
+    const minQty = Number(contract.tradeMinQuantity ?? 0), minUsdt = Number(contract.tradeMinUSDT ?? 2);
+    if (!(delta > 0) || delta < minQty || delta * mark < minUsdt) {
+      await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString() }) });
+      return Response.json({ ok: true, resized: false, skipped: "quantity delta below exchange minimum", current_quantity: currentQty, target_quantity: targetQty, scale });
+    }
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: 3, recvWindow: 5000 });
+    const adding = targetQty > currentQty;
+    const orderSide = adding ? (row.side === "long" ? "BUY" : "SELL") : (row.side === "long" ? "SELL" : "BUY");
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: orderSide, positionSide, type: "MARKET", quantity: delta, recvWindow: 5000 });
+    await new Promise(resolve => setTimeout(resolve, 500));
+    const afterRaw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
+    const afterRows = Array.isArray(afterRaw) ? afterRaw : (afterRaw?.positions || []);
+    const after = afterRows.find((p: any) => p.symbol === bxSymbol && p.positionSide === positionSide);
+    const finalQty = Math.abs(Number(after?.positionAmt ?? after?.positionAmount ?? 0));
+    const avgPrice = Number(after?.avgPrice ?? after?.entryPrice ?? mark);
+    if (!(finalQty > 0)) throw Error("resize left no exchange position");
+    const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
+    for (const order of (Array.isArray(openOrders) ? openOrders : (openOrders?.orders || [])).filter((o: any) => String(o.positionSide) === positionSide && String(o.type) === "STOP_MARKET")) {
+      await fetchSigned(API_KEY, SECRET_KEY, "DELETE", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId: order.orderId ?? order.orderID, recvWindow: 5000 });
+    }
+    const stopPrice = roundTo(avgPrice * (row.side === "long" ? .85 : 1.15), pricePrecision);
+    try {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "STOP_MARKET", stopPrice, quantity: finalQty, workingType: "MARK_PRICE", recvWindow: 5000 });
+    } catch (e) {
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "MARKET", quantity: finalQty, recvWindow: 5000 });
+      throw Error(`Stage75 stop replacement failed; safety closed: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
+    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
+    await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: nowIso }) });
+    return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, scale, stop_price: stopPrice });
+  } catch (e) {
+    return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
+  }
+}
+
 Deno.serve(async (req: Request) => {
   if (req.method !== "POST") return Response.json({ ok: false, error: "POST required" }, { status: 405 });
   if (!INTERNAL_KEY || req.headers.get("x-internal-key") !== INTERNAL_KEY) {
@@ -676,6 +743,7 @@ Deno.serve(async (req: Request) => {
   // 전체 실거래 기록을 BingX 실제 체결 내역·실시간 포지션과 하나하나 대조하는 전수검사.
   if (signal?.action === "audit") return await handleAudit();
   if (signal?.action === "repair_mdd30_leverage") return await handleMdd30LeverageRepair();
+  if (signal?.action === "resize_mdd30") return await handleMdd30Resize(signal);
 
   // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
   if (signal?.action === "protect") return await handleProtect(signal);
@@ -904,9 +972,23 @@ Deno.serve(async (req: Request) => {
     }
 
     const signalStrategy = signal.entry_metrics?.strategy_config || {};
-    const exposureMultiplier = candidateA
+    let exposureMultiplier = candidateA
       ? Number(signalStrategy.exposure_multiplier ?? 1)
       : 0;
+    if (mdd30) {
+      const priorPeak = Number(state.a_equity_peak_usd || 0);
+      const peak = Math.max(priorPeak, equity);
+      const drawdown = peak > 0 ? (peak - equity) / peak : 0;
+      let guard = !!state.a_drawdown_guard_active;
+      if (!guard && drawdown >= 0.35) guard = true;
+      else if (guard && drawdown <= 0.175) guard = false;
+      const baseExposure = Number(signalStrategy.base_exposure_multiplier ?? exposureMultiplier / 1.4);
+      exposureMultiplier = baseExposure * (guard ? 1.05 : 1.4);
+      await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({
+        a_equity_peak_usd: peak, a_drawdown_guard_active: guard,
+        a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString(),
+      }) });
+    }
     const strategyMaxGrossExposure = candidateA
       ? (mdd30 ? MDD30_MAX_GROSS_EXPOSURE : clamp(Number(signalStrategy.max_gross_exposure ?? 6), 0.1, 6))
       : 6;
@@ -921,8 +1003,8 @@ Deno.serve(async (req: Request) => {
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
     if (mdd30 && Number(state.max_leverage) < MDD30_EXCHANGE_LEVERAGE) {
-      await insertRejected(signal, "MDD30 최종 기준은 거래소 레버리지 10x 필요");
-      return Response.json({ ok: false, error: "real_trading_state.max_leverage must be at least 10 for answer_mdd30" }, { status: 400 });
+      await insertRejected(signal, "A Stage75 기준은 거래소 레버리지 3x 필요");
+      return Response.json({ ok: false, error: "real_trading_state.max_leverage must be at least 3 for answer_mdd30" }, { status: 400 });
     }
     const leverage = mdd30
       ? MDD30_EXCHANGE_LEVERAGE
@@ -1111,6 +1193,8 @@ Deno.serve(async (req: Request) => {
         max_concurrent_positions: Number(state.max_concurrent_positions),
         max_same_direction: Number(state.max_same_direction),
         executor_version: EXECUTOR_VERSION,
+        stop_pct: MDD30_STOP_PCT,
+        price_precision: pricePrecision,
       };
       EdgeRuntime.waitUntil(fetch(PROJECT_URL + "/functions/v1/bingx-order-submit", {
         method: "POST",

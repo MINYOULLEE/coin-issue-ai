@@ -11,13 +11,26 @@ def read(path):
 def main():
     manifest = read('strategy/plan_freeze_manifest.json')
     for path, expected in manifest['sha256'].items():
-        actual = hashlib.sha256((ROOT / path).read_text(encoding='utf-8').replace('\r\n','\n').encode('utf-8')).hexdigest()
-        assert actual == expected, f'Frozen file changed: {path}'
+        actual = hashlib.sha256((ROOT / path).read_bytes().replace(b'\r\n', b'\n')).hexdigest()
+        assert actual == expected, f'Frozen file changed: {path} ({actual} != {expected})'
     a = read('strategy/mdd30_standard.json')
     b = read('strategy/plan_b_standard.json')
     assert a['strategy_id'] == 'answer_mdd30'
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
-    assert a['max_gross_exposure'] == 1.6
+    assert a['standard_version'] == 'mdd30_drawdown_guard_stage75_v1'
+    assert a['exchange_leverage'] == 3
+    assert a['base_exposure_scale'] == 1.4
+    assert a['max_gross_exposure'] == 2.24
+    assert a['emergency_stop_loss_pct'] == 15
+    assert a['drawdown_guard'] == {
+        'equity_peak_basis': 'actual_bingx_equity',
+        'activation_drawdown_pct': 35,
+        'active_exposure_scale': 1.05,
+        'recovery_drawdown_pct': 17.5,
+        'normal_exposure_scale': 1.4,
+        'evaluation': 'before_next_daily_rebalance',
+        'state_persistence_required': True,
+    }
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
     assert b['strategy_id'] == 'b_profit_lock_stage66'
     assert b == read('strategy/plan_b_combination_standard.json')

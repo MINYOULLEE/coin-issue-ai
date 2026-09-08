@@ -5,7 +5,7 @@ const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const COINS = ["BTC","ETH","XRP","SOL","BNB","DOGE","ADA","LINK","AVAX","SUI","LTC","BCH","TRX","AAVE"];
 const COLLECTOR_VERSION = 65;
 const REQUIRED_EXECUTOR_VERSION = 49;
-const STRATEGY_EPOCH = "answer_mdd30_2026_08_27";
+const STRATEGY_EPOCH = "answer_mdd30_stage75_2026_09_08";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
 const SIGNAL_MODEL_VERSION = "answer_mdd30_five_asset_v1";
 const STRATEGY_TYPES = ["answer_mdd30"];
@@ -275,6 +275,13 @@ async function triggerClose(signal,reason){
     const j=await r.json().catch(()=>({}));if(!j.ok||!j.closed)console.error("strategy close not applied:",signal.symbol,j.error||j.skipped);return !!(j.ok&&j.closed);
   }catch(e){console.error("triggerClose failed:",e instanceof Error?e.message:String(e));return false}
 }
+async function triggerMdd30Resize(signal,baseExposure){
+  if(!INTERNAL_TRADE_SECRET)return {ok:false,error:"internal trade secret missing"};
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"resize_mdd30",id:signal.id,base_exposure_multiplier:baseExposure})});
+    return await r.json().catch(()=>({ok:false,error:"invalid resize response"}));
+  }catch(e){return {ok:false,error:e instanceof Error?e.message:String(e)}}
+}
 // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출한다. 새 주문이 없어도 실거래
 // 포지션이 실제로 끝났는지 즉시 확인해서 real_trades를 최신 상태로 맞추다. 이게 없으면
 // 새 신호가 한동안 안 나올 때 이미 끝난 실거래가 계속 '진행 중'으로 남는 빈틈이 생긴다.
@@ -427,7 +434,7 @@ async function manageSignals(market,old){
     const referenceEquity=Math.max(0.01,Number(old.paper_account?.equity_usd||old.paper_account?.balance_usd||1000));
     const estimatedNotional=referenceEquity*exposure,estimatedMargin=estimatedNotional/Math.max(1,leverage);
     const plan={leverage,account_equity_usd:referenceEquity,margin_usd:estimatedMargin,notional_usd:estimatedNotional,fee_usd:estimatedNotional*.001,risk_usd:stopPct?estimatedNotional*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
-    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"30% 방어형 5종목 답안지",market_regime:"answer_mdd30",exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:1.6,fixed_take_profit:false,exit_mode:"daily_answer_rebalance",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:null,manual_immediate_rebalance:manualImmediate}},created_at:created,expires_at:expires,updated_at:created});
+    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"A Stage75 낙폭방어형",market_regime:"answer_mdd30",base_exposure_multiplier:exposure/1.4,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:2.24,fixed_take_profit:false,exit_mode:"daily_answer_rebalance_with_emergency_stop",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:15,manual_immediate_rebalance:manualImmediate}},created_at:created,expires_at:expires,updated_at:created});
     const execution=await triggerRealTrade(s);
     // trade_signals_status_check does not include "rejected". A failed live
     // entry is a terminally invalid signal, so use the schema-supported status
@@ -463,7 +470,7 @@ async function manageSignals(market,old){
       }
       const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
       if(current&&(reservedSignalIds.has(Number(current.id))||!liveOpenSignalIds.has(Number(current.id)))){audit.push({symbol,status:"entry_pending",reason:"거래소 체결 확인/복구 대기"});continue;}
-      if(current&&(!answer?.side||current.side!==answer.side||Math.abs(Number(current.entry_metrics?.strategy_config?.exposure_multiplier||0)-Number(answer.exposure||0))>.000001||legacyExecutorSignalIds.has(Number(current.id)))){
+      if(current&&(!answer?.side||current.side!==answer.side||Math.abs(Number(current.entry_metrics?.strategy_config?.base_exposure_multiplier||0)-Number(answer.exposure||0))>.000001||legacyExecutorSignalIds.has(Number(current.id)))){
         const reason=!answer?.side?`${symbol} 현금 전환`:current.side!==answer.side?`${symbol} 방향 전환`:legacyExecutorSignalIds.has(Number(current.id))?`${symbol} 최종 v${REQUIRED_EXECUTOR_VERSION} 포지션 크기 교정`:`${symbol} 확신도 배수 변경`;
         if(await triggerClose(current,reason)){
           const price=Number(market[symbol]?.price||current.entry_price),result=(price/Number(current.entry_price)-1)*100*(current.side==="long"?1:-1),notional=Number(current.notional_usd||0),margin=Number(current.margin_usd||0),net=notional*result/100-Number(current.fee_usd||0);
@@ -471,10 +478,15 @@ async function manageSignals(market,old){
         }else{audit.push({symbol,status:"close_failed",reason:"기존 목표 청산 실패 · 신규진입 차단"});continue}
       }
       const stillOpen=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
-      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure),10,24,[`${symbol} 5년 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`원본 ${Number(answer.raw_exposure).toFixed(3)}배 × 방어비중 ${Number(answer.portfolio_weight).toFixed(3)}`],0,Number(answer.confidence)*100,forceAnswerRebalance):null;
-      audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?"held":answer?.side?"entry_failed":"cash",answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
+      let resize=null;
+      if(answer?.side&&stillOpen&&stillOpen.side===answer.side){
+        resize=await triggerMdd30Resize(stillOpen,Number(answer.exposure));
+        if(!resize?.ok){audit.push({symbol,status:"resize_failed",reason:resize?.error||"Stage75 수량 차이 조정 실패"});continue}
+      }
+      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*1.4,3,24,[`${symbol} Stage75 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 정상배율 1.4`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
+      audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
-    const completed=!audit.some(x=>["close_failed","entry_failed","entry_pending"].includes(x.status));
+    const completed=!audit.some(x=>["close_failed","resize_failed","entry_failed","entry_pending"].includes(x.status));
     if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
     candidates.hourly_audit={closed_at:closedDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
     if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});
@@ -517,6 +529,21 @@ Deno.serve(async req=>{
   if(req.method!=="POST")return new Response("POST required",{status:405});
   if(!await schedulerAuthorized(req))return Response.json({ok:false,error:"scheduler authorization required"},{status:401});
   try{
+    const requestBody=await req.clone().json().catch(()=>({}));
+    if(requestBody?.action==="close_all_a"){
+      const active=await activeSignals();
+      const targets=active.filter((s:any)=>s.signal_type==="answer_mdd30");
+      const results=[];
+      for(const signal of targets){
+        const closed=await triggerClose(signal,"A Stage75 전환 전 사용자 승인 전량 청산");
+        results.push({id:signal.id,symbol:signal.symbol,side:signal.side,closed});
+      }
+      return Response.json({ok:results.every((x:any)=>x.closed),action:"close_all_a",results});
+    }
+    if(requestBody?.action==="audit_a"){
+      const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"audit"})});
+      return Response.json(await r.json().catch(()=>({ok:false,error:"invalid audit response"})),{status:r.status});
+    }
     const old=await current();
     const market=await fetchMarket();
     const signalState=await manageSignals(market,old);
