@@ -1,11 +1,11 @@
 /* Presentation only: A/B endpoints, sessions and order permissions remain independent. */
 const PLAN_CONTROLS = Object.freeze({
   A: Object.freeze({endpoint:'bingx-account-read',session:'bingx_dashboard_session',title:'기존 독립 판단형',start:100}),
-  B: Object.freeze({endpoint:'plan-b-account-read',session:'plan_b_dashboard_session',title:'공격형 · 기본 5 + 보조 3',start:150})
+  B: Object.freeze({endpoint:'plan-b-account-read',session:'plan_b_dashboard_session',title:'공격형 · 기본 5 + 보조 7',start:650})
 });
 const pcRuntime = {A:{epoch:0,busy:false},B:{epoch:0,busy:false}};
 const pcMoney = value => value == null || value === '' || !Number.isFinite(Number(value)) ? '미확인' : '$'+Number(value).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-function pcSide(){ $('sidepanel').innerHTML='<div class="side-head"><h3>계정은 각각 · 제어는 한곳</h3></div><div class="focus"><h4>A / B 독립 운영</h4><p>API·세션·신호·주문·기록을 공유하지 않습니다. 합산 잔고나 일괄 주문 기능은 없습니다.</p></div><div class="focus"><h4>스위치의 의미</h4><p>신규 주문 허용을 변경합니다. 중지는 기존 포지션의 일괄 청산이 아닙니다.</p></div><div class="focus"><h4>기록은 공개</h4><p>A 시작 기준 $100 / B 시작 기준 $150. 계좌 조회·제어는 플랜별 인증이 필요합니다.</p></div>'; }
+function pcSide(){ $('sidepanel').innerHTML='<div class="side-head"><h3>계정은 각각 · 제어는 한곳</h3></div><div class="focus"><h4>A / B 독립 운영</h4><p>API·세션·신호·주문·기록을 공유하지 않습니다. 합산 잔고나 일괄 주문 기능은 없습니다.</p></div><div class="focus"><h4>스위치의 의미</h4><p>신규 주문 허용을 변경합니다. 중지는 기존 포지션의 일괄 청산이 아닙니다.</p></div><div class="focus"><h4>기록은 공개</h4><p>A 시작 기준 $100 / B 시작 기준 $650. 계좌 조회·제어는 플랜별 인증이 필요합니다.</p></div>'; }
 async function pcRequest(plan,action,extra={},token=sessionStorage.getItem(PLAN_CONTROLS[plan].session)){
   const response=await fetch(C.supabaseUrl.replace(/\/$/,'')+'/functions/v1/'+PLAN_CONTROLS[plan].endpoint,{method:'POST',headers:bxHeaders(token),body:JSON.stringify({action,...extra}),cache:'no-store'});
   let data;try{data=await response.json()}catch{data={error:'서버 응답을 읽을 수 없습니다.'}}
@@ -31,7 +31,7 @@ function renderTradingControls(){for(const p of ['A','B']){pcRuntime[p].epoch++;
 // that used to live here (string-replacing old A wording, stripping the dead history lock button)
 // are gone -- the base functions already produce the final text. Only B's own patch below remains.
 const pcOriginalB=renderPlanB;
-renderPlanB=function(kind){pcOriginalB(kind);if(kind==='recommend')$('content').insertAdjacentHTML('beforeend','<p class="pc-research-note">기본 신호 희망 담보 계수 1.15 / 보조 0.90. 가용 담보 115%를 뜻하지 않습니다. 기존 예약 담보·비용과 equity 5% 여유분을 제외한 한도에서 동시 요청을 비례 배분하고 진입 수량을 고정합니다. A의 담보 방식은 변경하지 않습니다. 연구 $100 / 실거래 성과 기준 $150.</p>');};
+renderPlanB=function(kind){pcOriginalB(kind);if(kind==='recommend')$('content').insertAdjacentHTML('beforeend','<p class="pc-research-note">종목별 희망 담보 계수는 실제 가용 담보 115%를 뜻하지 않습니다. 기존 예약 담보·비용과 equity 5% 여유분을 제외한 한도에서 동시 요청을 비례 배분하고 진입 수량을 고정합니다. A의 담보 방식은 변경하지 않습니다. 연구 $100 / 실거래 성과 기준 $650.</p>');};
 const pcOriginalRender=render;
 render=function(bg){if(FILTER==='plan-a-bingx'||FILTER==='plan-b-bingx')FILTER='trading';if(FILTER==='trading'){if(!bg)renderTradingControls();return}if(bg&&(FILTER==='plan-a-history'||FILTER==='plan-b-history'))return;if(!DATA&&(FILTER==='plan-a-history'||FILTER==='plan-b-history')){FILTER==='plan-a-history'?renderBingXHistory():loadPlanBHistory();return}pcOriginalRender(bg);};
 const pcNavA=document.querySelector('[data-filter="plan-a-bingx"]'),pcNavB=document.querySelector('[data-filter="plan-b-bingx"]');

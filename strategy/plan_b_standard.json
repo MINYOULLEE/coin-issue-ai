@@ -6,7 +6,7 @@
   "adoption_status": "user_adopted_20260907",
   "live_ready": true,
   "live_account": {
-    "starting_capital_usd": 150,
+    "starting_capital_usd": 650,
     "basis": "user_declared_performance_baseline_not_verified_deposit",
     "public_trade_history": true,
     "public_history_approved_on": "2026-08-30",

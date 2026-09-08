@@ -40,7 +40,7 @@ def main():
     assert runtime['strategy_id'] == b['strategy_id']
     assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
     assert b['acceptance']['user_adopted_on'] == '2026-09-07'
-    assert b['live_account']['starting_capital_usd'] == 150
+    assert b['live_account']['starting_capital_usd'] == 650
     assert b['live_account']['public_trade_history'] is True
     assert b['reference']['start_usd'] == 100
     assert set(a['assets']).intersection(b['symbols']) == {'ETH'}

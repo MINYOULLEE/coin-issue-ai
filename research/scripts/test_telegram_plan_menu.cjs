@@ -19,6 +19,6 @@ test('A/B overview routes read isolated account/state and return actual status',
  await context.answer('6818439075','🔵 A 현황');await context.answer('6818439075','🟣 B 현황');
  assert.deepEqual(tables,['real_trading_state','plan_b_trading_state']);
  assert.match(sent[0].text,/A플랜/);assert.match(sent[0].text,/100.00/);
- assert.match(sent[1].text,/B플랜/);assert.match(sent[1].text,/150.00/);assert.match(sent[1].text,/ON · LIVE/);
+ assert.match(sent[1].text,/B플랜/);assert.match(sent[1].text,/성과 기준 \$650/);assert.match(sent[1].text,/ON · LIVE/);
  await context.answer('6818439075','🔗 대시보드');assert.ok(sent[2].reply_markup.inline_keyboard);
 });

@@ -9,7 +9,7 @@ Before ANY trading/research/UI/deployment work read `strategy/PLANS.md`, `strate
 - B Stage14/15 headline returns were withdrawn. Never restore their 5.75 multiplier, 20.7x exposure or claimed returns as active B settings.
 - The user adopted corrected Stage16, including its return below the previous research goal. Adoption is not proof of live validation.
 - B reserves available margin, clips simultaneous requests proportionately, and fixes quantity at entry. A keeps its own existing sizing.
-- B live performance starts from $150, explicitly confirmed by the user. Historical research remains on its original $100 basis. Public B trade history was explicitly approved on 2026-08-30; never expose secrets/control endpoints with it.
+- B live performance baseline is $650, explicitly confirmed by the user on 2026-09-08 after increasing it from the original $150. Historical research remains on its original $100 basis. Public B trade history was explicitly approved on 2026-08-30; never expose secrets/control endpoints with it.
 - Keep credentials, signals, trades, control sessions, IDs, notifications and state isolated. Never fall back to A credentials/tables for B.
 - Telegram receive/delivery repair: read `strategy/TELEGRAM_DELIVERY_REPAIR_20260831.md`; preserve authenticated webhook and per-trade delivery markers. Do not restore global ID/time-only notification eligibility or claim exactly-once delivery.
 - Read `strategy/SECURITY_HISTORY_REPAIR_20260831.md` for scoped dashboard sessions, DB login limits, complete A history pagination, and the unresolved three-source news HTTP403 blocker. Never restore unscoped sessions or label realized-basis funds as actual collateral.
