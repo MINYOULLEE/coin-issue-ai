@@ -1,0 +1,239 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>해외거래소 입금 가이드 | 업비트→BingX · 빗썸→Bitget</title>
+  <style>
+    :root{
+      --bg:#07101d; --card:#101b2e; --card2:#13223a; --text:#f7f9fc; --muted:#a7b3c7;
+      --line:#263650; --blue:#4da3ff; --green:#36d399; --warn:#ffd166; --danger:#ff7b7b;
+      --shadow:0 18px 50px rgba(0,0,0,.26);
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:linear-gradient(180deg,#07101d 0%,#0a1423 100%);color:var(--text);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.55}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:900px;margin:0 auto;padding:30px 18px 80px}
+    .hero{padding:34px 26px;border:1px solid var(--line);border-radius:24px;background:linear-gradient(135deg,#12213a,#0d1729);box-shadow:var(--shadow)}
+    .eyebrow{font-size:13px;font-weight:800;color:#8fc7ff;letter-spacing:.08em;text-transform:uppercase}
+    h1{font-size:clamp(30px,6vw,52px);line-height:1.06;margin:10px 0 14px;letter-spacing:-.04em}
+    .hero p{margin:0;color:var(--muted);font-size:17px}
+    .notice{margin-top:18px;padding:14px 16px;border-radius:14px;background:#0b1728;border:1px solid #23415f;color:#dbeaff;font-weight:700}
+    .section{margin-top:24px}
+    .section-title{font-size:22px;margin:0 0 12px;letter-spacing:-.02em}
+    .choose{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    .route{padding:20px;border:1px solid var(--line);border-radius:20px;background:var(--card);box-shadow:0 10px 28px rgba(0,0,0,.13)}
+    .route strong{display:block;font-size:21px;margin-bottom:6px}
+    .route .arrow{color:var(--green);font-weight:900}
+    .route p{margin:0 0 14px;color:var(--muted);font-size:14px}
+    .btns{display:flex;flex-wrap:wrap;gap:9px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:0 15px;border-radius:12px;background:var(--blue);font-weight:800;border:none;cursor:pointer}
+    .btn.secondary{background:#1b2c47;color:#eef5ff;border:1px solid #314766}
+    .btn.green{background:var(--green);color:#062216}
+    .steps{display:grid;gap:12px}
+    .step{display:grid;grid-template-columns:44px 1fr;gap:14px;align-items:flex-start;padding:18px;border:1px solid var(--line);border-radius:18px;background:var(--card)}
+    .num{width:44px;height:44px;border-radius:13px;display:grid;place-items:center;background:#183256;color:#9dcbff;font-weight:900;font-size:18px}
+    .step h3{margin:0 0 5px;font-size:18px}
+    .step p{margin:0;color:var(--muted)}
+    .mini{margin-top:10px;font-size:13px;color:#c9d5e7;background:#0b1627;border:1px solid #223551;border-radius:11px;padding:10px 12px}
+    .codebox{display:flex;gap:8px;align-items:center;margin-top:10px}
+    .code{flex:1;padding:12px 14px;border-radius:11px;background:#08111f;border:1px dashed #3f5f87;font-weight:900;letter-spacing:.08em}
+    .warning{margin-top:24px;padding:18px;border-radius:18px;background:#211b0d;border:1px solid #5a4820}
+    .warning strong{color:var(--warn)}
+    .warning ul{margin:10px 0 0;padding-left:20px;color:#e9dfc6}
+    .summary{margin-top:24px;padding:22px;border-radius:20px;background:linear-gradient(135deg,#0d2a25,#0d1d2c);border:1px solid #27564b;text-align:center}
+    .summary b{font-size:20px}
+    .flow{margin-top:10px;color:#cbeadf;font-weight:800;line-height:1.9}
+    .footer{margin-top:26px;text-align:center;color:#728198;font-size:12px}
+    .tag{display:inline-block;padding:4px 8px;border-radius:999px;background:#183256;color:#b9dcff;font-size:12px;font-weight:800;margin-bottom:8px}
+    @media(max-width:680px){
+      .wrap{padding:18px 12px 60px}.hero{padding:26px 18px;border-radius:20px}.choose{grid-template-columns:1fr}.route{padding:17px}.step{grid-template-columns:38px 1fr;padding:15px}.num{width:38px;height:38px}.btn{width:100%}.codebox{flex-direction:column;align-items:stretch}
+    }
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <section class="hero">
+      <div class="eyebrow">초보자용 입금 가이드</div>
+      <h1>원화로 코인 사고<br>해외거래소로 보내기</h1>
+      <p>복잡한 설명 없이, 화면을 보면서 순서대로 따라가면 됩니다.</p>
+      <div class="notice">이미 BingX 또는 Bitget 계정이 있고 KYC 인증까지 끝났다면 <b>3번부터 시작하세요.</b></div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">내가 사용하는 국내거래소 선택</h2>
+      <div class="choose">
+        <article class="route">
+          <span class="tag">업비트 사용자</span>
+          <strong>업비트 <span class="arrow">→</span> BingX</strong>
+          <p>업비트에서 XRP를 구매해 BingX로 전송합니다.</p>
+          <div class="btns">
+            <a class="btn" href="https://bingxdao.com/invite/IOTZA1/" target="_blank" rel="noopener">BingX 가입하기</a>
+            <a class="btn secondary" href="https://upbit.com/" target="_blank" rel="noopener">업비트 열기</a>
+          </div>
+        </article>
+
+        <article class="route">
+          <span class="tag">빗썸 사용자</span>
+          <strong>빗썸 <span class="arrow">→</span> Bitget</strong>
+          <p>빗썸에서 XRP를 구매해 Bitget으로 전송합니다.</p>
+          <div class="btns">
+            <a class="btn" href="https://www.bitget.com/register" target="_blank" rel="noopener">Bitget 가입하기</a>
+            <a class="btn secondary" href="https://www.bithumb.com/" target="_blank" rel="noopener">빗썸 열기</a>
+          </div>
+          <div class="codebox">
+            <div class="code">초대코드&nbsp; BA53PFV9</div>
+            <button class="btn green" onclick="copyCode()">코드 복사</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">1. 해외거래소 가입</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">1</div>
+          <div>
+            <h3>업비트 사용자 → BingX 가입</h3>
+            <p>아래 버튼으로 가입하고 이메일 또는 휴대폰 인증까지 완료합니다.</p>
+            <div class="btns" style="margin-top:12px"><a class="btn" href="https://bingxdao.com/invite/IOTZA1/" target="_blank" rel="noopener">BingX 가입 링크</a></div>
+          </div>
+        </article>
+        <article class="step">
+          <div class="num">1</div>
+          <div>
+            <h3>빗썸 사용자 → Bitget 가입</h3>
+            <p>회원가입할 때 초대코드 <b>BA53PFV9</b>를 확인합니다.</p>
+            <div class="btns" style="margin-top:12px"><a class="btn" href="https://www.bitget.com/register" target="_blank" rel="noopener">Bitget 가입 페이지</a></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">2. KYC 본인인증</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">2</div>
+          <div>
+            <h3>신분증 + 얼굴 인증 완료</h3>
+            <p>BingX 또는 Bitget 로그인 → 프로필 → <b>Identity Verification</b>에서 본인인증을 진행합니다.</p>
+            <div class="mini">가입만 하고 끝내지 말고, 상태가 <b>Verified / 인증 완료</b>인지 확인하세요.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">3. 해외거래소에서 XRP 입금주소 확인</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">3</div>
+          <div>
+            <h3>Assets → Deposit → XRP</h3>
+            <p>BingX 또는 Bitget에서 XRP 입금을 선택하고 아래 3가지를 확인합니다.</p>
+            <div class="mini"><b>① XRP Address &nbsp; ② Network &nbsp; ③ Destination Tag / Memo</b></div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">4. 국내거래소에서 XRP 구매</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">4</div>
+          <div>
+            <h3>원화 입금 → XRP/KRW 매수</h3>
+            <p>업비트 또는 빗썸에 원화를 입금하고 <b>XRP/KRW</b>에서 원하는 금액만큼 XRP를 구매합니다.</p>
+            <div class="btns" style="margin-top:12px">
+              <a class="btn secondary" href="https://upbit.com/" target="_blank" rel="noopener">업비트 열기</a>
+              <a class="btn secondary" href="https://www.bithumb.com/" target="_blank" rel="noopener">빗썸 열기</a>
+            </div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">5. XRP 출금</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">5</div>
+          <div>
+            <h3>받는 거래소 선택</h3>
+            <p><b>업비트는 BingX</b>, <b>빗썸은 Bitget</b>을 선택합니다.</p>
+          </div>
+        </article>
+        <article class="step">
+          <div class="num">5</div>
+          <div>
+            <h3>Address + Tag 입력</h3>
+            <p>해외거래소에서 복사한 XRP Address와 Destination Tag / Memo를 정확히 붙여넣습니다.</p>
+            <div class="mini">직접 타이핑하지 말고 반드시 <b>복사 → 붙여넣기</b>를 권장합니다.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">6. 처음이면 소액 테스트</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">6</div>
+          <div>
+            <h3>작은 금액 먼저 보내기</h3>
+            <p>처음부터 전액을 보내지 말고 소액 XRP를 먼저 전송합니다.</p>
+            <div class="mini">소액 전송 → 해외거래소 입금 확인 → 정상 확인 후 나머지 전송</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2 class="section-title">7. XRP를 USDT로 변경</h2>
+      <div class="steps">
+        <article class="step">
+          <div class="num">7</div>
+          <div>
+            <h3>XRP/USDT에서 XRP 매도</h3>
+            <p>해외거래소에 XRP가 정상 입금되면 <b>XRP/USDT</b> 거래에서 XRP를 매도합니다.</p>
+            <div class="mini"><b>XRP → USDT</b> 변경이 완료되면 해외거래소에서 사용할 USDT 준비가 끝납니다.</div>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="warning">
+      <strong>⚠️ 출금 전 꼭 확인하세요</strong>
+      <ul>
+        <li>XRP를 보낼 때는 반드시 XRP 입금주소를 사용하세요.</li>
+        <li>보내는 쪽과 받는 쪽의 네트워크가 같은지 확인하세요.</li>
+        <li>XRP는 Destination Tag / Memo가 표시되면 반드시 함께 입력하세요.</li>
+        <li>본인 명의 국내거래소 → 본인 명의 해외거래소 전송을 기준으로 합니다.</li>
+        <li>거래소 정책은 변경될 수 있으므로 실제 출금 화면에서 대상 거래소가 정상 선택되는지 마지막으로 확인하세요.</li>
+      </ul>
+    </section>
+
+    <section class="summary">
+      <b>딱 이것만 기억하세요</b>
+      <div class="flow">업비트 → XRP → BingX → USDT<br>빗썸 → XRP → Bitget → USDT</div>
+    </section>
+
+    <div class="footer">초보자용 안내 페이지 · 출금 전 주소 / Tag / 네트워크를 반드시 다시 확인하세요.</div>
+  </main>
+
+  <script>
+    function copyCode(){
+      navigator.clipboard.writeText('BA53PFV9').then(()=>{
+        const btn = event.currentTarget;
+        const old = btn.textContent;
+        btn.textContent = '복사 완료';
+        setTimeout(()=>btn.textContent=old,1400);
+      });
+    }
+  </script>
+</body>
+</html>
