@@ -4,11 +4,11 @@ import {createHmac} from 'node:crypto';
 import fs from 'node:fs';
 import {createDashboardSessions,reserveLoginAttempt} from '../../supabase/functions/_shared/dashboard_sessions.mjs';
 import {allHistoryPages} from '../../supabase/functions/_shared/history_pages.mjs';
-test('same password root cannot cross A/B session domains; old tokens rejected',()=>{
- const a=createDashboardSessions('A'),b=createDashboardSessions('B'),key='offline-test-key',now=1788170000000;
- const at=a.issue(key,now),bt=b.issue(key,now);
- assert.equal(a.valid(at,key,now),true);assert.equal(b.valid(bt,key,now),true);
- assert.equal(a.valid(bt,key,now),false);assert.equal(b.valid(at,key,now),false);
+test('same password root cannot cross A/B/managed session domains; old tokens rejected',()=>{
+ const a=createDashboardSessions('A'),b=createDashboardSessions('B'),m=createDashboardSessions('M'),key='offline-test-key',now=1788170000000;
+ const at=a.issue(key,now),bt=b.issue(key,now),mt=m.issue(key,now);
+ assert.equal(a.valid(at,key,now),true);assert.equal(b.valid(bt,key,now),true);assert.equal(m.valid(mt,key,now),true);
+ assert.equal(a.valid(bt,key,now),false);assert.equal(b.valid(at,key,now),false);assert.equal(m.valid(at,key,now),false);assert.equal(a.valid(mt,key,now),false);
  const p=Buffer.from(JSON.stringify({plan:'B',exp:now+60000})).toString('base64url');const old=p+'.'+createHmac('sha256',key).update(p).digest('base64url');
  assert.equal(a.valid(old,key,now),false);assert.equal(b.valid(old,key,now),false);
  assert.equal(a.valid(at,key,now+14400000),false);assert.equal(a.valid(at+'.extra',key,now),false);
@@ -17,9 +17,16 @@ test('same password root cannot cross A/B session domains; old tokens rejected',
 test('login limit buckets isolate plans and never contain raw client IP',async()=>{
  const inputs=[],req=new Request('https://example.test',{headers:{'x-forwarded-for':'192.0.2.1'}});
  const rpc=async p=>{inputs.push(p);return {allowed:false,retry_after:900}};
- for(const plan of ['A','B'])assert.equal((await reserveLoginAttempt(req,plan,'fixture',rpc)).allowed,false);
+ for(const plan of ['A','B','M'])assert.equal((await reserveLoginAttempt(req,plan,'fixture',rpc)).allowed,false);
  assert.notEqual(inputs[0].p_key,inputs[1].p_key);assert.match(inputs[0].p_key,/^[a-f0-9]{64}$/);
  await assert.rejects(()=>reserveLoginAttempt(req,'B','fixture',async()=>{throw Error('database unavailable')}));
+});
+test('managed account endpoint is owner-only and never returns credential fields',()=>{
+ const s=fs.readFileSync('supabase/functions/managed-account-read/index.ts','utf8');
+ assert.ok(s.includes('createDashboardSessions("M")'));assert.ok(s.includes('reserveLoginAttempt(req,"M"'));
+ assert.ok(s.includes('managed_bingx_accounts'));assert.ok(s.includes('managed_bingx_trades'));
+ const overview=s.match(/if\(body\.action==="overview"\)[\s\S]*?if\(body\.action==="trades"\)/)?.[0]||'';
+ assert.ok(!overview.includes('api_key_secret_id'));assert.ok(!overview.includes('secret_key_secret_id'));
 });
 test('both entrypoints use DB login protection and scoped sessions',()=>{
  for(const [name,plan] of [['bingx-account-read','A'],['plan-b-account-read','B']]){

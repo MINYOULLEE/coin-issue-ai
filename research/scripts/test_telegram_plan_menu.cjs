@@ -2,10 +2,11 @@ const test=require('node:test'),assert=require('node:assert/strict'),fs=require(
 const {stripTypeScriptTypes}=require('node:module');
 const webhook=fs.readFileSync('supabase/functions/telegram-bot-webhook/index.ts','utf8');
 const notify=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
-test('webhook and notification share the same six-button keyboard',()=>{
+test('webhook and notification share the same A/B/managed-account keyboard',()=>{
  const extract=s=>s.match(/const keyboard=(\{keyboard:.*?\});/)[1];
  // Webhook declares sb and keyboard on one line, but keyboard remains a const.
  assert.equal(extract(webhook),extract(notify));
+ assert.match(extract(webhook),/타인 API 연동/);
 });
 test('A/B overview routes read isolated account/state and return actual status',async()=>{
  const sent=[],tables=[];
