@@ -1,10 +1,13 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import {createClient} from "https://esm.sh/@supabase/supabase-js@2.49.8";
+import postgres from "https://deno.land/x/postgresjs@v3.4.5/mod.js";
+import {createHmac} from "node:crypto";
 import {createDashboardSessions,reserveLoginAttempt} from "../_shared/dashboard_sessions.mjs";
 
 const URL=Deno.env.get("SUPABASE_URL")!;
 const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const sb=createClient(URL,SERVICE,{auth:{persistSession:false}});
+const sql=postgres(Deno.env.get("SUPABASE_DB_URL")!,{prepare:false,max:1});
 const sessions=createDashboardSessions("M");
 const CORS={
   "Access-Control-Allow-Origin":"https://minyoullee.github.io",
@@ -18,6 +21,16 @@ function unb64(s:string){const p=s.replace(/-/g,"+").replace(/_/g,"/")+"===".sli
 function same(a:string,b:string){if(a.length!==b.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^b.charCodeAt(i);return d===0}
 async function dashboardAuth(){const{data,error}=await sb.from("private_runtime_secrets").select("secret_value").eq("id","bingx_dashboard_auth").single();if(error)throw error;return data.secret_value}
 async function passwordHash(password:string,a:any){const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]),bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:unb64(a.password_salt),iterations:210000,hash:"SHA-256"},k,256);return b64u(new Uint8Array(bits))}
+function cleanName(value:unknown){return String(value||"").replace(/[\r\n\t]/g," ").trim()}
+async function bingxRead(apiKey:string,secret:string,path:string,params:Record<string,string|number>={}){
+  const all={...params,recvWindow:5000,timestamp:Date.now()},query=Object.keys(all).sort().map(k=>k+"="+encodeURIComponent(String(all[k]))).join("&");
+  const signature=createHmac("sha256",secret).update(query).digest("hex");
+  const response=await fetch("https://open-api.bingx.com"+path+"?"+query+"&signature="+signature,{headers:{"X-BX-APIKEY":apiKey},signal:AbortSignal.timeout(8000)});
+  const json=await response.json().catch(()=>({}));
+  if(!response.ok||Number(json.code)!==0)throw Error("BingX 연결 확인 실패: "+String(json.code??response.status)+" "+String(json.msg??json.message??"").slice(0,100));
+  return json.data;
+}
+function positivePositions(raw:any){const rows=Array.isArray(raw)?raw:raw?.positions;if(!Array.isArray(rows))throw Error("BingX 포지션 응답 형식 오류");return rows.filter((p:any)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error("BingX 포지션 수량 오류");return Math.abs(q)>0})}
 
 Deno.serve(async req=>{
   if(req.method==="OPTIONS")return new Response("ok",{headers:CORS});
@@ -37,6 +50,35 @@ Deno.serve(async req=>{
   let auth:any;
   try{auth=await dashboardAuth()}catch{return Response.json({ok:false,error:"인증 설정 오류"},{status:503,headers:CORS})}
   if(!sessions.valid(req.headers.get("x-dashboard-session")||"",auth.session_secret))return Response.json({ok:false,locked:true,error:"잠금 해제가 필요합니다."},{status:401,headers:CORS});
+
+  if(body.action==="register"){
+    const displayName=cleanName(body.display_name),plan=String(body.assigned_plan||"").toUpperCase(),start=Number(body.starting_equity_usdt),apiKey=String(body.api_key||"").trim(),secretKey=String(body.secret_key||"").trim();
+    if(displayName.length<1||displayName.length>60)return Response.json({ok:false,error:"이름은 1~60자로 입력하세요."},{status:400,headers:CORS});
+    if(!["A","B"].includes(plan))return Response.json({ok:false,error:"A 또는 B 플랜을 선택하세요."},{status:400,headers:CORS});
+    if(!Number.isFinite(start)||start<=0||start>100000000)return Response.json({ok:false,error:"시작금액을 정확히 입력하세요."},{status:400,headers:CORS});
+    if(apiKey.length<16||apiKey.length>256||secretKey.length<16||secretKey.length>256)return Response.json({ok:false,error:"BingX API Key와 Secret Key 형식을 확인하세요."},{status:400,headers:CORS});
+    try{
+      const [balanceRaw,mode,positions]=await Promise.all([
+        bingxRead(apiKey,secretKey,"/openApi/swap/v3/user/balance"),
+        bingxRead(apiKey,secretKey,"/openApi/swap/v1/positionSide/dual"),
+        bingxRead(apiKey,secretKey,"/openApi/swap/v2/user/positions")
+      ]);
+      if(String(mode?.dualSidePosition)!=="true")return Response.json({ok:false,error:"BingX 선물 계정이 헤지 모드가 아닙니다. 헤지 모드로 바꾼 뒤 다시 연결하세요."},{status:409,headers:CORS});
+      const open=positivePositions(positions);
+      if(open.length)return Response.json({ok:false,error:"기존 선물 포지션이 있어 자동 실행 연결을 막았습니다. 포지션 정리 후 다시 연결하세요."},{status:409,headers:CORS});
+      const balances=Array.isArray(balanceRaw)?balanceRaw:Array.isArray(balanceRaw?.balance)?balanceRaw.balance:[balanceRaw?.balance||balanceRaw],usdt=balances.find((b:any)=>b?.asset==="USDT");
+      const equity=Number(usdt?.equity),available=Number(usdt?.availableMargin);
+      if(!Number.isFinite(equity)||equity<0||!Number.isFinite(available)||available<0)throw Error("BingX USDT 선물 잔고를 확인할 수 없습니다.");
+      const accountId=crypto.randomUUID();
+      await sql.begin(async tx=>{
+        const apiRows=await tx`select vault.create_secret(${apiKey}, ${"managed_"+accountId+"_api"}, ${"Managed BingX API key"}) as id`;
+        const secretRows=await tx`select vault.create_secret(${secretKey}, ${"managed_"+accountId+"_secret"}, ${"Managed BingX secret key"}) as id`;
+        await tx`insert into public.managed_bingx_accounts(id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,api_key_secret_id,secret_key_secret_id,last_synced_at,last_error)
+          values(${accountId}::uuid,${displayName},${plan},${start},${equity},'connected',false,false,${apiRows[0].id}::uuid,${secretRows[0].id}::uuid,now(),null)`;
+      });
+      return Response.json({ok:true,account:{id:accountId,display_name:displayName,assigned_plan:plan,starting_equity_usdt:start,current_equity_usdt:equity,status:"connected",live_enabled:false},preflight:{bingx_authenticated:true,hedge_mode:true,open_positions:0,available_margin_usdt:available},execution:"locked_until_account_scoped_executor"},{headers:CORS});
+    }catch(e){return Response.json({ok:false,error:String(e instanceof Error?e.message:e).slice(0,300)},{status:502,headers:CORS});}
+  }
 
   if(body.action==="overview"){
     const{data,error}=await sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,last_synced_at").order("display_name");
