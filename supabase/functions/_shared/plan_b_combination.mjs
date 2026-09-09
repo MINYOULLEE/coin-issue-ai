@@ -1,4 +1,4 @@
-// Stage66 adopted signals and coordination. Imported by the atomic signal cycle.
+// Stage93 adopted signals and coordination. Imported by the atomic signal cycle.
 // Persistence/atomic reservation is mandatory: these pure functions do not reserve funds.
 import standard from './plan_b_combination_standard.json' with {type:'json'};
 import {decidePlanB} from './plan_b_signals.mjs';
@@ -38,7 +38,15 @@ export function combinationDecision(symbol,rows,now) {
   shortChecks={shock:meta.move > rule.shock,wick:upper>rule.wick};
   long=longChecks.shock&&longChecks.wick;
   short=shortChecks.shock&&shortChecks.wick;
- }else{
+ }else if(rule.kind==='session_reversal'){
+  const hour=((last.t/H)%24+24)%24;
+  meta.move=last.c/last.o-1;meta.utc_hour=hour;
+  thresholds={utc_hours:rule.hours,absolute_move_min:rule.shock};
+  longChecks={session:rule.hours.includes(hour),shock:meta.move < -rule.shock};
+  shortChecks={session:rule.hours.includes(hour),shock:meta.move > rule.shock};
+  long=longChecks.session&&longChecks.shock;
+  short=shortChecks.session&&shortChecks.shock;
+ }else if(rule.kind==='sweep'){
   const prior=x.slice(-1-rule.window,-1);
   meta.prior_low=Math.min(...prior.map(r=>r.l));meta.prior_high=Math.max(...prior.map(r=>r.h));
   thresholds={sweep_excess_min:rule.excess,wick_min:rule.wick,volume_ratio_min:rule.volume};
@@ -46,12 +54,12 @@ export function combinationDecision(symbol,rows,now) {
   shortChecks={sweep:last.h>meta.prior_high*(1+rule.excess),reclaim:last.c<meta.prior_high,wick:upper>rule.wick};
   long=longChecks.sweep&&longChecks.reclaim&&longChecks.wick;
   short=shortChecks.sweep&&shortChecks.reclaim&&shortChecks.wick;
- }
- const volumeOk=rule.kind==='exhaustion'||last.v>average*rule.volume;
+ }else throw Error('unknown supplement rule');
+ const volumeOk=['exhaustion','session_reversal'].includes(rule.kind)||last.v>average*rule.volume;
  const side=volumeOk?(long?'long':short?'short':null):null;
  const failed=[];
  if(!volumeOk)failed.push('volume_not_met');
- if(!long&&!short)failed.push(rule.kind==='sweep'?'sweep_reclaim_not_met':'reversal_pattern_not_met');
+ if(!long&&!short)failed.push(rule.kind==='sweep'?'sweep_reclaim_not_met':rule.kind==='session_reversal'?'session_shock_not_met':'reversal_pattern_not_met');
  return {side,last,ret:last.c/x.at(-2).c-1,meta,confirmedAt,diagnostic:{kind:rule.kind,matched:!!side,failed,metrics:meta,thresholds,long_checks:longChecks,short_checks:shortChecks}};
 }
 

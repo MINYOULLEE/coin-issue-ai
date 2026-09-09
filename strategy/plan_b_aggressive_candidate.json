@@ -2,8 +2,8 @@
   "plan": "B",
   "status": "superseded_use_canonical",
   "canonical": "strategy/plan_b_standard.json",
-  "strategy_id": "b_profit_lock_stage66",
+  "strategy_id": "b_algo_ada_stage93",
   "enabled": false,
   "test_mode": true,
-  "note": "Pointer only. Stage66 preserves Stage45 entries and adds ICP/BCH/UNI causal profit locks; runtime switches remain owner-controlled and enabled."
+  "note": "Pointer only. Stage93 preserves Stage66, lowers only ALGO volume to 1.0x and adds ADA UTC 06-08 shock reversal; runtime switches remain owner-controlled and enabled."
 }

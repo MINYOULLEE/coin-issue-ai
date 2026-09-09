@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage66_profit_lock_20260907_v1",
+  "execution_version": "stage93_algo_ada_20260909_v1",
   "live_ready": true,
-  "strategy_id": "b_profit_lock_stage66",
-  "note": "Owner-enabled switch preserved. Stage66 keeps Stage45 entries and adds causal completed-close profit locks for ICP/BCH/UNI. Atomic reservations, minute breach checks and verified isolated leverage remain mandatory."
+  "strategy_id": "b_algo_ada_stage93",
+  "note": "Owner-enabled switch preserved. Stage93 keeps Stage66 profit locks, relaxes only ALGO volume to 1.0x, and adds ADA UTC 06-08 shock reversal at 3x/25% target margin. Atomic reservations, minute breach checks and verified isolated leverage remain mandatory."
 }

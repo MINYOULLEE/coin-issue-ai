@@ -31,7 +31,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
   if(method==='GET'&&!reads.has(path))throw Error('unsupported B read endpoint');
   if(method!=='GET'){
    const coin=String(params.symbol||'').replace(/-USDT$/,'');
-   const approvedLive=liveConfigurationSymbols.includes(coin)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB'].includes(coin)&&standard.symbols[coin]?.group==='supplement'&&params.leverage===3&&['LONG','SHORT'].includes(params.side);
+   const approvedLive=liveConfigurationSymbols.includes(coin)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB','ADA'].includes(coin)&&standard.symbols[coin]?.group==='supplement'&&params.leverage===3&&['LONG','SHORT'].includes(params.side);
    const config=path==='/openApi/swap/v2/trade/leverage' && method==='POST' && (!runtime.live_ready||approvedLive) && await configurationAuthorized();
    const order=path==='/openApi/swap/v2/trade/order' && (closing?await exitAuthorized():runtime.live_ready&&await liveAuthorized());
    if(!config&&!order)throw Error('B live transport locked');
@@ -65,7 +65,7 @@ export function createBExchange({apiKey,secret,parse=JSON.parse,fetcher=fetch,li
   },
   async alignLeverage(symbol){
    const expected=standard.symbols[symbol]?.leverage,pair=symbol+'-USDT';
-   const approvedLive=liveConfigurationSymbols.includes(symbol)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB'].includes(symbol)&&standard.symbols[symbol]?.group==='supplement'&&expected===3;
+   const approvedLive=liveConfigurationSymbols.includes(symbol)&&['ALGO','ETH','VET','LINK','DOT','LTC','BNB','ADA'].includes(symbol)&&standard.symbols[symbol]?.group==='supplement'&&expected===3;
    if(!expected||(runtime.live_ready&&!approvedLive)||!await configurationAuthorized())throw Error('B configuration locked');
    const mode=await request('GET','/openApi/swap/v1/positionSide/dual');
    const margin=await request('GET','/openApi/swap/v2/trade/marginType',{symbol:pair});

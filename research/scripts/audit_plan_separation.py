@@ -32,25 +32,25 @@ def main():
         'state_persistence_required': True,
     }
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
-    assert b['strategy_id'] == 'b_profit_lock_stage66'
+    assert b['strategy_id'] == 'b_algo_ada_stage93'
     assert b == read('strategy/plan_b_combination_standard.json')
     assert b == read('supabase/functions/_shared/plan_b_combination_standard.json')
     assert not b['acceptance']['live_validation']
     runtime = read('supabase/functions/_shared/plan_b_runtime.json')
     assert runtime['strategy_id'] == b['strategy_id']
     assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
-    assert b['acceptance']['user_adopted_on'] == '2026-09-07'
+    assert b['acceptance']['user_adopted_on'] == '2026-09-09'
     assert b['live_account']['starting_capital_usd'] == 650
     assert b['live_account']['public_trade_history'] is True
     assert b['reference']['start_usd'] == 100
     assert set(a['assets']).intersection(b['symbols']) == {'ETH'}
     assert b['isolation']['api_key_env'] == 'PLAN_B_BINGX_API_KEY'
     assert b['isolation']['secret_key_env'] == 'PLAN_B_BINGX_SECRET_KEY'
-    assert b['isolation']['client_order_prefix'] == 'pb66'
+    assert b['isolation']['client_order_prefix'] == 'pb93'
     assert {s: (v['actual_hold_hours'], v['leverage']) for s,v in b['symbols'].items()} == {
         'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2),
         'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3), 'LINK': (1,3), 'DOT': (1,3),
-        'LTC': (1,3), 'BNB': (1,3)}
+        'LTC': (1,3), 'BNB': (1,3), 'ADA': (7,3)}
     old = read('strategy/archive/plan_b_stage16_v1.json')
     for symbol,rule in old['symbols'].items():
         for key,value in rule.items(): assert b['symbols'][symbol][key] == value
@@ -60,16 +60,21 @@ def main():
     for symbol,fraction in {'DOT': .075, 'BNB': .125}.items():
         assert b['symbols'][symbol]['opportunity_cooldown_hours'] == 2
         assert b['symbols'][symbol]['target_margin_fraction'] == fraction
+    assert b['symbols']['ALGO']['volume'] == 1.0
+    assert b['symbols']['ADA']['hours'] == [6, 7, 8]
+    assert b['symbols']['ADA']['shock'] == .03
+    assert b['symbols']['ADA']['opportunity_cooldown_hours'] == 8
+    assert b['symbols']['ADA']['target_margin_fraction'] == .25
     assert read('strategy/plan_b_aggressive_candidate.json')['canonical'] == 'strategy/plan_b_standard.json'
     evidence = read(b['reference']['file'])
-    result = next(r for r in evidence['results'] if set(r['symbols']) == {'ICP','BCH','UNI'})
-    assert result['strict_pass'] and result['changed_exits'] == 26
+    result = next(r for r in evidence['results'] if r['ada_target_margin_fraction'] == .25)
+    assert result['pass'] and result['changed_profit_lock_exits'] == 26
     result = result['full']
     for key in ('start_usd','end_usd','return_pct','closed_trade_mdd_pct','hourly_mark_mdd_pct','trades','win_rate_pct'):
         assert abs(result[key] - b['reference'][key]) < 1e-8, key
-    fills = read('research/results/profit_lock_fills_stage65/RESULTS.json')
-    assert fills['orders_submitted'] == 0 and fills['complete_windows'] == 26 and fills['errors'] == []
-    assert all(item['mean_improvement_pp'] > 0 for item in fills['summaries'])
+    fills = read('research/results/b_algo_ada_futures_stage92/results.json')
+    assert fills['orders_submitted'] == 0 and fills['windows'] == 54 and fills['fetch_errors'] == []
+    assert fills['pass_under_live_ttl'] and all(item['return_pct'] > 1_000_000 for item in fills['scenarios'] if item['entry_delay_minutes'] < 5)
     for name in ('plan-b-strategy', 'plan-b-account-read', 'plan-b-executor'):
         source = (ROOT / f'supabase/functions/{name}/index.ts').read_text(encoding='utf-8')
         for forbidden in ('BINGX_API_KEY', 'BINGX_SECRET_KEY', 'trade_signals',
