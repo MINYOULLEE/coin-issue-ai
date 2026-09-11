@@ -3,14 +3,14 @@ export const PLAN_B_STANDARD = standard;
 
 // Pure preflight calculation only. An executor must atomically reserve this
 // budget in B's DB and reconcile actual fills; this is not a reservation itself.
-export function allocatePlanB({ plan, strategyId, balance, equity, reservedMargin, proposals,
+export function allocatePlanB({ plan, strategyId, balance, equity, reservedMargin, currentGross = 0, proposals,
   feeRate = standard.research_costs.fee_each_side,
   fundingHourly = standard.research_costs.funding_hourly }) {
   if (plan !== 'B' || strategyId !== standard.strategy_id) throw Error('B plan/version mismatch');
-  for (const value of [balance, equity, reservedMargin, feeRate, fundingHourly]) {
+  for (const value of [balance, equity, reservedMargin, currentGross, feeRate, fundingHourly]) {
     if (!Number.isFinite(value)) throw Error('nonfinite account value');
   }
-  if (reservedMargin < 0 || feeRate < 0 || fundingHourly < 0) throw Error('negative reserve/cost');
+  if (reservedMargin < 0 || currentGross < 0 || feeRate < 0 || fundingHourly < 0) throw Error('negative reserve/cost');
   const seen = new Set();
   const targetFor = rule => Math.max(equity, 0) * (rule.target_margin_fraction ?? standard.sizing.target_margin_fraction);
   const available = Math.max(0, Math.min(balance - reservedMargin, equity - reservedMargin)
@@ -22,7 +22,11 @@ export function allocatePlanB({ plan, strategyId, balance, equity, reservedMargi
     return targetFor(rule) * (1 + rule.leverage * (2 * feeRate + fundingHourly * rule.actual_hold_hours));
   });
   const total = demands.reduce((a, b) => a + b, 0);
-  const shrink = total > 0 ? Math.min(1, available / total) : 0;
+  const marginShrink = total > 0 ? Math.min(1, available / total) : 0;
+  const requestedGross=proposals.reduce((sum,p,i)=>sum+demands[i]*marginShrink/(1+standard.symbols[p.symbol].leverage*(2*feeRate+fundingHourly*standard.symbols[p.symbol].actual_hold_hours))*standard.symbols[p.symbol].leverage,0);
+  const grossCapacity=Math.max(0,Math.max(equity,0)*standard.risk_overlay.max_entry_gross_equity_ratio-currentGross);
+  const grossShrink=requestedGross>0?Math.min(1,grossCapacity/requestedGross):0;
+  const shrink=marginShrink*grossShrink;
   const orders = proposals.map((p, i) => {
     const rule = standard.symbols[p.symbol];
     const margin = targetFor(rule) * shrink;
@@ -31,5 +35,5 @@ export function allocatePlanB({ plan, strategyId, balance, equity, reservedMargi
       notional: margin * rule.leverage, quantity: margin * rule.leverage / p.entryPrice,
       actualHoldHours: rule.actual_hold_hours, rejected: margin < 1e-9 };
   });
-  return { available, shrink, orders };
+  return { available, grossCapacity, shrink, orders };
 }

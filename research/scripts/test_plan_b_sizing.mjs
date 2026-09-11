@@ -26,3 +26,8 @@ test('150 dollars scales quantities but not percentage allocation',()=>{
   const a=allocatePlanB(args),b=allocatePlanB({...args,balance:150,equity:150});
   assert(Math.abs(b.orders[0].quantity/a.orders[0].quantity-1.5)<1e-12);
 });
+test('new entries respect the 3.75x total gross/equity cap',()=>{
+  const r=allocatePlanB({...args,currentGross:360,proposals:[{symbol:'ICP',entryPrice:10}]});
+  assert(r.orders[0].notional<=15+1e-9);
+  assert(r.orders[0].notional+360<=375+1e-9);
+});

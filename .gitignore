@@ -10,3 +10,6 @@ Thumbs.db
 venv/
 research/data/
 research/archives/
+research/data_7y/
+research/data_7y_futures/
+supabase/.temp/

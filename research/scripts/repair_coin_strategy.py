@@ -87,8 +87,18 @@ def main():
     full_direction, full_confidence = base.probabilities(full_model, x)
     full_in_sample = simulate(times, realized, full_direction, full_confidence, chosen["low"], chosen["high"], chosen["exposures"], chosen["side_mode"])
     return_to_mdd = holdout["return_pct"] / abs(holdout["mdd_pct"]) if holdout["mdd_pct"] else 0
-    gate = bool(chosen["worst_fold_return_pct"] > 0 and chosen["worst_fold_mdd_pct"] >= -25 and holdout["return_pct"] >= 5 and holdout["mdd_pct"] >= -20 and return_to_mdd >= .5)
-    output = {"symbol": symbol, "generated_at": datetime.now(timezone.utc).isoformat(), "samples": n, "boundaries": boundaries, "selected_without_holdout": chosen, "full_in_sample_reference": full_in_sample, "holdout": holdout, "holdout_return_to_mdd": return_to_mdd, "repair_gate": gate, "tree": {"nodes": int(model.tree_.node_count), "depth": int(model.tree_.max_depth), "leaves": int(model.tree_.n_leaves)}, "top_20": records[:20]}
+    # Hard adoption gate: the candidate must beat the legacy strategy's
+    # minimum five-year compounded-return floor, while also surviving
+    # walk-forward and untouched holdout checks.  A high in-sample result
+    # alone is never sufficient.
+    five_year_return_floor_pct = 1_000_000.0
+    gate = bool(full_in_sample["return_pct"] > five_year_return_floor_pct and
+                chosen["worst_fold_return_pct"] > 0 and
+                chosen["worst_fold_mdd_pct"] >= -25 and
+                holdout["return_pct"] >= 5 and
+                holdout["mdd_pct"] >= -20 and
+                return_to_mdd >= .5)
+    output = {"symbol": symbol, "generated_at": datetime.now(timezone.utc).isoformat(), "samples": n, "boundaries": boundaries, "selected_without_holdout": chosen, "full_in_sample_reference": full_in_sample, "five_year_return_floor_pct": five_year_return_floor_pct, "holdout": holdout, "holdout_return_to_mdd": return_to_mdd, "repair_gate": gate, "tree": {"nodes": int(model.tree_.node_count), "depth": int(model.tree_.max_depth), "leaves": int(model.tree_.n_leaves)}, "top_20": records[:20]}
     core.RESULT_DIR.mkdir(parents=True, exist_ok=True)
     (core.RESULT_DIR / f"{symbol.lower()}_repair.json").write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(output, ensure_ascii=False, indent=2))

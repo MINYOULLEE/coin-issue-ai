@@ -1,9 +1,9 @@
 {
   "plan": "B",
   "profile": "aggressive",
-  "standard_version": "b_algo_ada_stage93_v1",
-  "strategy_id": "b_algo_ada_stage93",
-  "adoption_status": "user_adopted_20260909",
+  "standard_version": "b_regime_guard_stage112_v1",
+  "strategy_id": "b_regime_guard_stage112",
+  "adoption_status": "user_adopted_20260910",
   "live_ready": true,
   "live_account": {
     "starting_capital_usd": 650,
@@ -13,7 +13,7 @@
     "order_sizing_basis": "actual_exchange_equity_and_available_margin"
   },
   "acceptance": {
-    "user_adopted_on": "2026-09-09",
+    "user_adopted_on": "2026-09-10",
     "base_cost_return_floor_pct": 1000000,
     "closed_trade_mdd_limit_pct": 70,
     "independent_validation": false,
@@ -184,6 +184,11 @@
     "quantity_fixed_until_exit": true,
     "portfolio_return_multiplier": null
   },
+  "risk_overlay": {
+    "max_entry_gross_equity_ratio": 3.75,
+    "account_drawdown": {"trigger_fraction": 0.25, "pause_hours": 168, "scope": "new_entries_only", "peak_reset": "current_equity_after_pause_expiry"},
+    "btc_regime": {"lookback_completed_hours": 72, "return_threshold": -0.06, "protected_symbols": ["BCH", "ICP", "LINK", "UNI"], "missing_data": "block_protected_new_entries_only"}
+  },
   "research_costs": {
     "fee_each_side": 0.0005,
     "slippage_each_side": 0.0002,
@@ -197,20 +202,20 @@
     "exit": "entry boundary + actual_hold_hours"
   },
   "reference": {
-    "file": "research/results/b_algo_ada_combo_stage91/results.json",
+    "file": "research/results/ab_7y_extension/B_STAGE111_CAUSALITY_REPRODUCIBILITY_AUDIT.json",
     "selector": {
       "patterns": [
         "ALGO:capitulation_n3_move0.08_vol1.0_wick0.5:1.15","ETH:sweep_n24_excess0.015_vol1.5:1.15","VET:sweep_n24_excess0.03_vol3.0:1.15","LINK:exhaust_n3_move0.05:1.15","DOT:capitulation_n12_move0.05_vol3.0_wick0.5:0.075","LTC:exhaust_n5_move0.05:1.15","BNB:capitulation_n1_move0.03_vol3.0_wick0.25:0.125","ADA:session_reversal_hours6-8_shock0.03_hold7:0.25"
       ]
     },
     "start_usd": 100,
-    "end_usd": 6858952.969656158,"return_pct": 6858852.969656158,"closed_trade_mdd_pct": -46.657990124757,"hourly_mark_mdd_pct": -54.64800441993866,"hourly_adverse_bound_pct": -62.0535773702686,"trades": 995,"win_rate_pct": 55.678391959798994,"margin_clipped": 884,
-    "rejected": 21,
+    "end_usd": 5151963.105411222,"return_pct": 5151863.105411222,"closed_trade_mdd_pct": -46.23838185241136,"hourly_mark_mdd_pct": -46.8130982464546,"hourly_adverse_bound_pct": -53.736487509257614,"trades": 820,"win_rate_pct": 56.09756097560975,"margin_clipped": 820,
+    "rejected": 9,
     "liquidation_proxy_count": 0,
     "max_reserved_equity_ratio": 1.6222373018844491,
-    "max_gross_equity_ratio": 6.322542232335289,
-    "extra_trades": 339,
-    "disclaimer": "Binance spot OHLC leveraged simulation; ALGO/ADA windows checked with Binance USD-M 1-minute bars; not an independent holdout or BingX live validation"
+    "max_gross_equity_ratio": 4.8667119056533465,
+    "extended_7y": {"end_usd": 16049336.139160201, "return_pct": 16049236.1391602, "hourly_mark_mdd_pct": -50.36535995546848, "trades": 888},
+    "disclaimer": "Historical Binance simulation with causal completed-candle filters; not an independent future holdout or BingX live validation"
   },
   "isolation": {
     "api_key_env": "PLAN_B_BINGX_API_KEY",
@@ -218,13 +223,13 @@
     "state_table": "plan_b_trading_state",
     "signals_table": "plan_b_signals",
     "trades_table": "plan_b_real_trades",
-    "client_order_prefix": "pb93"
+    "client_order_prefix": "pb112"
   },
   "remaining_work": [
     "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
-  "display_name": "B 공격형 · Stage93 Stage66 + ALGO 개선 + ADA 시간대 반전",
+  "display_name": "B 공격형 · Stage112 Stage93 + 노출·낙폭·BTC 구간 보호",
   "coordination": {
     "priority": "core",
     "same_account_groups_mutually_exclusive": true,
@@ -248,5 +253,5 @@
     "research/results/b_idle_stage34/REPORT.md",
     "research/results/b_idle_stage35/results.json","research/results/b_combo_stage43/results.json","research/results/b_combo_stage44/results.json","research/results/b_signal_strength_stage86/results.json","research/results/b_algo_ada_combo_stage91/results.json","research/results/b_algo_ada_futures_stage92/results.json"
   ],
-  "implementation_status": "stage93_deployed_live_pending_natural_bingx_fill_20260909"
+  "implementation_status": "stage112_fully_deployed_live_pending_natural_fill_validation_20260910"
 }

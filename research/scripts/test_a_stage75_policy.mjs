@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {A_STAGE75,nextDrawdownGuard,stage75Target,stage75StopPrice,rebalanceDelta,transitionCapacity} from '../../supabase/functions/_shared/a_stage75_policy.mjs';
+import {A_STAGE75,nextDrawdownGuard,stage75Target,stage75StopPrice,rebalanceDelta,selectiveResizeHold,transitionCapacity} from '../../supabase/functions/_shared/a_stage75_policy.mjs';
 
 test('guard activates at 35 percent and recovers only at 17.5 percent',()=>{
  assert.equal(nextDrawdownGuard({equity:65,peak:100}).active,true);
@@ -23,6 +23,14 @@ test('2.24x gross at 3x uses 74.67 percent initial margin',()=>{
  const x=transitionCapacity({equity:100,currentGross:160,targetGross:224});
  assert.ok(Math.abs(x.targetMarginRatio-.7466666666666667)<1e-12);assert.equal(x.withinEntryCap,true);
 });
-test('policy constants match adopted Stage75',()=>{
+test('selective resize holds only small SOL-long and BTC-short decreases',()=>{
+ assert.equal(selectiveResizeHold({symbol:'SOL',side:'long',actualQuantity:1,targetQuantity:.99,price:100,equity:100}).hold,true);
+ assert.equal(selectiveResizeHold({symbol:'BTC',side:'short',actualQuantity:1,targetQuantity:.99,price:100,equity:100}).hold,true);
+ assert.equal(selectiveResizeHold({symbol:'SOL',side:'short',actualQuantity:1,targetQuantity:.99,price:100,equity:100}).hold,false);
+ assert.equal(selectiveResizeHold({symbol:'BTC',side:'short',actualQuantity:1,targetQuantity:.98,price:100,equity:100}).hold,false);
+ assert.equal(selectiveResizeHold({symbol:'SOL',side:'long',actualQuantity:1,targetQuantity:1.01,price:100,equity:100}).hold,false);
+});
+test('policy constants match adopted selective-resize A',()=>{
  assert.equal(A_STAGE75.leverage,3);assert.equal(A_STAGE75.normalScale,1.4);assert.equal(A_STAGE75.maxGross,2.24);
+ assert.equal(A_STAGE75.version,'mdd30_selective_resize_stage126_v1');assert.equal(A_STAGE75.selectiveResizeThreshold,.0125);
 });

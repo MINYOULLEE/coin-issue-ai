@@ -1,6 +1,6 @@
 # Altcoin walk-forward summary
 
-Generated: 2026-08-28T07:27:14.054367+00:00
+Generated: 2026-08-29T16:12:09.313963+00:00
 
 Tested: 17; minimum gate: 4; portfolio candidates: 0
 

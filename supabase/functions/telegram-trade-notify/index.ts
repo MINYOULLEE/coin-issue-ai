@@ -1,6 +1,7 @@
 import {healthProblems,healthTransitions,transportErrorDisposition} from "../_shared/operational_health.mjs";
 import {stableHealthAlerts} from "../_shared/news_alert_stability.mjs";
 import {webhookSecret} from "../_shared/telegram_webhook_auth.mjs";
+import {errorText} from "../_shared/error_text.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
@@ -33,6 +34,7 @@ async function schedulerAuthorized(req:Request){
 Deno.serve(async req=>{
  if(req.method!=="POST")return Response.json({ok:false,error:"POST required"},{status:405});
  if(!await schedulerAuthorized(req))return Response.json({ok:false,error:"scheduler authorization required"},{status:401});
+ let stage="request";
  try{
   const body=await req.json().catch(()=>({}));
   if(body.action==="webhook_status"){
@@ -49,6 +51,7 @@ Deno.serve(async req=>{
    const result=await r.json();return Response.json({ok:r.ok&&result.ok===true,plan:body.plan,overview_test:result});
   }
   if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n🔵 A플랜 · 기존 실거래 시스템\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 08:00 태국시간 재판정\n\n🟣 B플랜 · 별도 계정 · 주문 ON/OFF와 신호 상태는 시스템 메뉴에서 확인`);return Response.json({ok:true,test_sent:true})}
+  stage="notify-state-read";
   const {data:rows,error:stateReadError}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);if(stateReadError)throw stateReadError;const st=rows?.[0]||{};
   if(st.test_action==="show_history_menu")await send("✅ 실거래 기록 메뉴가 추가됐습니다.\n아래의 🔵 A 기록 / 🟣 B 기록 버튼을 누르면 최신 성과를 확인할 수 있습니다.");
   let lastId=Number(st.last_trade_id||0),lastClosed=st.last_closed_at||"1970-01-01T00:00:00Z",lastError=Number(st.last_error_id||0);
@@ -56,24 +59,31 @@ Deno.serve(async req=>{
   let lastSystemErrorFingerprint=String(st.last_system_error_fingerprint||''),lastSystemErrorAlertedAt=st.last_system_error_alerted_at||null;
 
   // ---- A플랜 (real_trades) ----
+  stage="a-entry-delivery";
   const {data:newRows,error:e1}=await sb.from("real_trades").select("id,symbol,side,signal_type,status,margin_usd,leverage,notional_usd,entry_price,reject_reason,strategy_config,bingx_order_id").or("and(status.in.(open,closing,closed),telegram_entry_notified_at.is.null),and(status.eq.rejected,telegram_rejection_notified_at.is.null)").order("id",{ascending:true});if(e1)throw e1;
   for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(["open","closing","closed"].includes(x.status)&&x.bingx_order_id&&Number(x.entry_price)>0){const exposure=x.strategy_config?.exposure_multiplier;await send(`🔵 A플랜 · 신규 진입 🚀\n${x.symbol} ${side(x.side)}\n${x.signal_type==="answer_mdd30"?`${MDD30_STANDARD}\n`:""}진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x${exposure==null?"":`\n목표 실질 노출: ${num(exposure,3)}x`}\n포지션 규모: ${num(x.notional_usd)} USDT${x.signal_type==="answer_mdd30"?"\n총 실질 노출 한도: 1.6x":""}`);await markDelivered("real_trades",x.id,"telegram_entry_notified_at")}else if(x.status==="rejected"){await send(`🔵 A플랜 · 주문 거절/실패 ⚠️\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`);await markDelivered("real_trades",x.id,"telegram_rejection_notified_at")}}
+  stage="a-close-delivery";
   // Do not notify from the executor's provisional close values. Wait until
   // BingX positionHistory has supplied the actual close price, fees and PnL.
   const {data:closed,error:e2}=await sb.from("real_trades").select("id,symbol,side,entry_price,close_price,last_mark_price,net_pnl_usd,margin_usd,closed_at,close_reason").eq("status","closed").eq("close_reason","BingX positionHistory 주문별 동기화").not("net_pnl_usd","is",null).not("close_price","is",null).is("telegram_close_notified_at",null).order("closed_at",{ascending:true});if(e2)throw e2;
   for(const x of closed||[]){if(x.net_pnl_usd==null||!Number.isFinite(Number(x.net_pnl_usd))||!(Number(x.close_price)>0))continue;if(x.closed_at>lastClosed)lastClosed=x.closed_at;const pnl=Number(x.net_pnl_usd);const roe=Number(x.margin_usd)>0&&Number.isFinite(pnl)?pnl/Number(x.margin_usd)*100:null;await send(`🔵 A플랜 · ${pnl>=0?"포지션 청산 ✅":"포지션 청산 🔻"} (거래소 정산)\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n청산가: ${price(x.close_price??x.last_mark_price)}\n실현손익: ${pnl>=0?"+":""}${num(pnl)} USDT${roe==null?"":`\n담보수익률: ${roe>=0?"+":""}${num(roe)}%`}\n사유: ${x.close_reason||"전략/거래소 종료"}`);await markDelivered("real_trades",x.id,"telegram_close_notified_at")}
 
   // ---- B플랜 (plan_b_real_trades) ----
+  stage="b-entry-delivery";
   // B settlement is asynchronous. Notify only verified settlement; track each trade independently.
   const {data:newPbRows,error:eb1}=await sb.from("plan_b_real_trades").select("id,symbol,side,status,margin_usd,leverage,entry_price,reject_reason,bingx_order_id").or("and(status.in.(open,closing,closed),telegram_entry_notified_at.is.null),and(status.eq.rejected,telegram_rejection_notified_at.is.null)").order("id",{ascending:true});if(eb1)throw eb1;
   for(const x of newPbRows||[]){lastPbId=Math.max(lastPbId,Number(x.id));if(["open","closing","closed"].includes(x.status)&&x.bingx_order_id&&Number(x.entry_price)>0){const notional=Number(x.margin_usd)*Number(x.leverage);await send(`🟣 B플랜 · ${['ALGO','ETH','VET','LINK','DOT','LTC','BNB','ADA'].includes(x.symbol)?'공백 반전 보조':'기본 패턴'} 신규 진입 🚀\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x\n포지션 규모: ${num(notional)} USDT`);await markDelivered("plan_b_real_trades",x.id,"telegram_entry_notified_at")}else if(x.status==="rejected"){await send(`🟣 B플랜 · 주문 거절/실패 ⚠️\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`);await markDelivered("plan_b_real_trades",x.id,"telegram_rejection_notified_at")}}
+  stage="b-close-delivery";
   const {data:closedPb,error:eb2}=await sb.from("plan_b_real_trades").select("id,symbol,side,entry_price,close_price,net_pnl_usd,margin_usd,closed_at").eq("status","closed").not("net_pnl_usd","is",null).not("close_price","is",null).not("bingx_order_id","is",null).is("telegram_close_notified_at",null).order("closed_at",{ascending:true});if(eb2)throw eb2;
   for(const x of closedPb||[]){if(x.net_pnl_usd==null||!Number.isFinite(Number(x.net_pnl_usd))||!(Number(x.close_price)>0))continue;const pnl=Number(x.net_pnl_usd);const roe=Number(x.margin_usd)>0&&Number.isFinite(pnl)?pnl/Number(x.margin_usd)*100:null;await send(`🟣 B플랜 · ${['ALGO','ETH','VET','LINK','DOT','LTC','BNB','ADA'].includes(x.symbol)?'공백 반전 보조':'기본 패턴'} · ${pnl>=0?"포지션 청산 ✅":"포지션 청산 🔻"}\n${x.symbol} ${side(x.side)}\n진입가: ${price(x.entry_price)}\n청산가: ${price(x.close_price)}\n실현손익: ${pnl>=0?"+":""}${num(pnl)} USDT${roe==null?"":`\n담보수익률: ${roe>=0?"+":""}${num(roe)}%`}`);const {error:sentError}=await sb.from("plan_b_real_trades").update({telegram_close_notified_at:new Date().toISOString()}).eq("id",x.id);if(sentError)throw sentError;}
 
+  stage="health-snapshot";
   const {data:snap,error:snapshotError}=await sb.from("coin_snapshots").select("updated_at,payload").eq("id","live").limit(1);if(snapshotError)throw snapshotError;const hb=snap?.[0]?.updated_at?Date.parse(snap[0].updated_at):0,stale=!hb||Date.now()-hb>180000,was=!!st.collector_stale;if(stale&&!was)await send(`🚨 시스템 경고\nCoin Collector heartbeat가 3분 이상 멈챰습니다.\n마지막 heartbeat: ${snap?.[0]?.updated_at||"없음"}`);if(!stale&&was)await send("✅ 시스템 복구\nCoin Collector heartbeat가 정상으로 돌아왔습니다.");
+  stage="runtime-health-read";
   const [{data:bHealth,error:bHealthError},{data:bState,error:bStateError}]=await Promise.all([sb.from("plan_b_runtime_health").select("*"),sb.from("plan_b_trading_state").select("enabled,test_mode").eq("id","singleton").single()]);
   if(bHealthError||bStateError)throw bHealthError||bStateError;
   const pendingById=new Map((Array.isArray(st.pending_transport_errors)?st.pending_transport_errors:[]).map((e:any)=>[Number(e.id),e]));
+  stage="system-error-read";
   const {data:errs,error:e3}=await sb.from("system_errors").select("id,source,status_code,message,created_at").gt("id",lastError).order("id",{ascending:true}).limit(20);if(e3)throw e3;
   for(const e of errs||[]){
    lastError=Math.max(lastError,Number(e.id));
@@ -96,8 +106,9 @@ Deno.serve(async req=>{
   const transitions=healthTransitions(stable.previous,stable.active);
   if(transitions.opened.length)await send("⚠️ 보조 기능 오류 감지\n"+transitions.opened.map(([,v])=>v).join("\n").slice(0,3000)+"\n실거래 ON/OFF는 변경하지 않았습니다.");
   if(transitions.resolved.length)await send("✅ 보조 기능 복구\n"+transitions.resolved.join("\n"));
+  stage="notify-state-write";
   const {error:stateWriteError}=await sb.from("telegram_notify_state").upsert({id:"singleton",health_alerts:stable.stored,pending_transport_errors:pendingTransportErrors,last_trade_id:lastId,last_closed_at:lastClosed,last_pb_trade_id:lastPbId,last_pb_closed_at:lastPbClosed,collector_stale:stale,last_error_id:lastError,last_system_error_fingerprint:lastSystemErrorFingerprint||null,last_system_error_alerted_at:lastSystemErrorAlertedAt,test_action:null,updated_at:new Date().toISOString()});
   if(stateWriteError)throw stateWriteError;
   return Response.json({ok:true,last_trade_id:lastId,last_pb_trade_id:lastPbId,last_error_id:lastError,collector_stale:stale});
- }catch(e){console.error(e);try{await send(`🚨 Telegram 자동 알림 엔진 오류\n${e instanceof Error?e.message:String(e)}`)}catch{}return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:500})}
+ }catch(e){const detail=errorText(e);console.error("telegram notify failed",stage,detail);try{await send(`🚨 Telegram 자동 알림 엔진 오류\n단계: ${stage}\n내용: ${detail}`)}catch{}return Response.json({ok:false,stage,error:detail},{status:500})}
 });

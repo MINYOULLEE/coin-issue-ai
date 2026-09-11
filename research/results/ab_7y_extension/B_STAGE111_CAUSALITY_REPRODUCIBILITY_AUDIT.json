@@ -1,0 +1,82 @@
+{
+  "id": "B-STAGE111-CAUSALITY-REPRODUCIBILITY-AUDIT",
+  "generated_at": "2026-09-10T08:49:37.020089+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "candidate": {
+    "gross_cap": 3.75,
+    "drawdown_trigger_pct": 25,
+    "cooldown_hours": 168,
+    "btc_lookback_completed_hours": 72,
+    "btc_threshold_pct": -6,
+    "blocked_symbols": [
+      "BCH",
+      "ICP",
+      "LINK",
+      "UNI"
+    ]
+  },
+  "causality": {
+    "eligible_entries": 938,
+    "blocked_entries": 213,
+    "missing_btc_history_entries": 0,
+    "future_training_violations": 0,
+    "blocked_by_symbol": {
+      "ICP": 36,
+      "UNI": 73,
+      "BCH": 58,
+      "LINK": 46
+    }
+  },
+  "reproduction": {
+    "five_return_exact": true,
+    "five_mdd_exact": true,
+    "seven_return_exact": true,
+    "seven_mdd_exact": true
+  },
+  "five_year": {
+    "start_usd": 100.0,
+    "end_usd": 5151963.105411222,
+    "return_pct": 5151863.105411222,
+    "closed_trade_mdd_pct": -46.23838185241136,
+    "hourly_mark_mdd_pct": -46.8130982464546,
+    "hourly_adverse_bound_pct": -53.736487509257614,
+    "trades": 820,
+    "win_rate_pct": 56.09756097560975,
+    "margin_clipped": 820,
+    "rejected": 9,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844491,
+    "max_gross_equity_ratio": 4.8667119056533465,
+    "pause_events": 13,
+    "gross_cap_events": 212
+  },
+  "extended": {
+    "start_usd": 100.0,
+    "end_usd": 16049336.139160201,
+    "return_pct": 16049236.1391602,
+    "closed_trade_mdd_pct": -46.23838185241139,
+    "hourly_mark_mdd_pct": -50.36535995546848,
+    "hourly_adverse_bound_pct": -53.736487509257614,
+    "trades": 888,
+    "win_rate_pct": 55.85585585585586,
+    "margin_clipped": 888,
+    "rejected": 13,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.622237301884449,
+    "max_gross_equity_ratio": 4.8667119056533465,
+    "pause_events": 15,
+    "gross_cap_events": 220
+  },
+  "live_requirements": [
+    "Use only the close of the candle ending one hour before entry and the close 72 hours before it.",
+    "Block only new BCH/ICP/LINK/UNI proposals; never block exits or other symbols.",
+    "Persist account equity peak and pause_until across invocations.",
+    "On missing/stale BTC history, fail closed for protected-symbol new entries and alert diagnostics.",
+    "Preserve order preflight, reserved margin, fixed entry quantity, and A/B account isolation."
+  ],
+  "limitations": [
+    "Exact reproduction is historical, not independent future validation.",
+    "Actual BingX slippage and future regime remain unknown."
+  ]
+}

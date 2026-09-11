@@ -1,7 +1,7 @@
 {
-  "standard_version": "mdd30_drawdown_guard_stage75_v1",
+  "standard_version": "mdd30_selective_resize_stage126_v1",
   "strategy_id": "answer_mdd30",
-  "display_name": "A 낙폭방어형 · Stage75",
+  "display_name": "A 선택적 리사이즈 · Stage126",
   "assets": ["BTC", "ETH", "XRP", "TRX", "SOL"],
   "independent_tree_count": 5,
   "decision_hour_utc": 0,
@@ -26,18 +26,39 @@
     "evaluation": "before_next_daily_rebalance",
     "state_persistence_required": true
   },
+  "sol_short_regime_guard": {
+    "enabled": true,
+    "action": "set_SOL_target_to_cash_only_when_all_conditions_hold",
+    "btc_completed_168h_return_min_pct": 3.5,
+    "sol_completed_168h_return_min_pct": 12,
+    "positive_168h_breadth_min_of_5": 3,
+    "applies_only_to": "new_or_existing_SOL_short_target_at_daily_boundary"
+  },
+  "selective_resize": {
+    "threshold_pct_of_current_actual_equity": 1.25,
+    "hold_existing_quantity_when_below_threshold": [
+      {"symbol": "SOL", "side": "long", "resize": "decrease"},
+      {"symbol": "BTC", "side": "short", "resize": "decrease"}
+    ],
+    "never_delay": ["new_entry", "full_exit", "direction_reversal", "all_other_resize_groups"],
+    "comparison_operator": "strictly_less_than"
+  },
   "answer_trees_sha256": "9A483FD33C540F6601B01901143313B81C89E8C3A9CCD257141F86694F34E31B",
   "current_replay": {
-    "generated_at": "2026-09-08T00:00:00+00:00",
-    "range": ["2021-08-28", "2026-08-29"],
-    "method": "Binance USD-M hourly futures/funding, current BingX quantity grid, daily equity rebalance, 15% stop and causal drawdown guard",
+    "generated_at": "2026-09-10T00:00:00+00:00",
+    "range": ["2019-08-30", "2026-08-30"],
+    "method": "Stage117 SOL-short regime guard plus 1.25% selective SOL-long/BTC-short decrease hold; Binance USD-M hourly futures/funding, current BingX quantity grid, daily equity rebalance, 15% stop and causal drawdown guard",
     "decision_hour_utc": 0,
     "fee_per_turnover": 0.0004,
-    "compound_return_pct": 2143508.58,
-    "max_drawdown_pct": -47.32,
-    "hourly_adverse_max_drawdown_pct": -48.36,
-    "double_cost_return_pct": 1033997.04,
-    "verification_status": "deployed_live_stage75_20260908; future performance not guaranteed"
+    "five_year_compound_return_pct": 5028269.99,
+    "seven_year_compound_return_pct": 5715948.26,
+    "max_drawdown_pct": -51.22,
+    "hourly_adverse_max_drawdown_pct": -52.01,
+    "double_cost_return_pct": 2379742.80,
+    "triple_cost_return_pct": 1076691.27,
+    "total_order_events_7y": 9458,
+    "one_hour_delay_triple_cost_return_pct": 862789.21,
+    "verification_status": "user_adopted_20260910_after_disclosed_strict_delay_stress_failure; historical_research_not_future_or_live_proof"
   },
   "reference_replay": {
     "years": 5,

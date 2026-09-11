@@ -1,0 +1,593 @@
+{
+  "id": "B-STAGE93-7Y-FAILURE-ANALYSIS",
+  "generated_at": "2026-09-09T16:22:20.203542+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "baseline": {
+    "start_usd": 100.0,
+    "end_usd": 952701.1845698411,
+    "return_pct": 952601.1845698411,
+    "closed_trade_mdd_pct": -95.36074283246349,
+    "hourly_mark_mdd_pct": -97.24662789861429,
+    "hourly_adverse_bound_pct": -97.39236422450404,
+    "trades": 1121,
+    "win_rate_pct": 54.32649420160571,
+    "margin_clipped": 997,
+    "rejected": 22,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.6222373018844496,
+    "max_gross_equity_ratio": 6.322542232335291
+  },
+  "ledger_drawdown_approximation": {
+    "drawdown_pct": -95.3607428324635,
+    "peak_balance": 131.77110891409907,
+    "trough_balance": 6.113200615039654,
+    "peak_at": 1621436400000,
+    "trough_at": 1624543200000,
+    "trough_symbol": "ADA"
+  },
+  "symbol_totals": {
+    "AVAX": {
+      "trades": 53,
+      "net_pnl": -122708.49862368993,
+      "wins": 35
+    },
+    "UNI": {
+      "trades": 239,
+      "net_pnl": -18332.79758077183,
+      "wins": 128
+    },
+    "DOT": {
+      "trades": 91,
+      "net_pnl": -2108.824962370498,
+      "wins": 46
+    },
+    "ALGO": {
+      "trades": 26,
+      "net_pnl": 4696.882653168783,
+      "wins": 15
+    },
+    "BNB": {
+      "trades": 25,
+      "net_pnl": 5016.606083899537,
+      "wins": 15
+    },
+    "ETH": {
+      "trades": 53,
+      "net_pnl": 13878.093882701807,
+      "wins": 30
+    },
+    "ADA": {
+      "trades": 35,
+      "net_pnl": 34433.69109454824,
+      "wins": 20
+    },
+    "LTC": {
+      "trades": 65,
+      "net_pnl": 46741.6985782166,
+      "wins": 30
+    },
+    "VET": {
+      "trades": 16,
+      "net_pnl": 46928.840478782986,
+      "wins": 10
+    },
+    "LINK": {
+      "trades": 84,
+      "net_pnl": 54204.66607821592,
+      "wins": 38
+    },
+    "DOGE": {
+      "trades": 66,
+      "net_pnl": 213502.03996733256,
+      "wins": 33
+    },
+    "ICP": {
+      "trades": 203,
+      "net_pnl": 312283.6355508092,
+      "wins": 115
+    },
+    "BCH": {
+      "trades": 165,
+      "net_pnl": 364065.15136899805,
+      "wins": 94
+    }
+  },
+  "worst_months": {
+    "2026-03": {
+      "trades": 14,
+      "net_pnl": -105523.991126457,
+      "wins": 8
+    },
+    "2025-05": {
+      "trades": 21,
+      "net_pnl": -72208.73019707677,
+      "wins": 7
+    },
+    "2026-04": {
+      "trades": 15,
+      "net_pnl": -37960.862162988444,
+      "wins": 10
+    },
+    "2026-06": {
+      "trades": 17,
+      "net_pnl": -20963.806352766664,
+      "wins": 8
+    },
+    "2024-12": {
+      "trades": 40,
+      "net_pnl": -13615.737472512978,
+      "wins": 18
+    },
+    "2024-10": {
+      "trades": 20,
+      "net_pnl": -13433.362768152194,
+      "wins": 5
+    },
+    "2026-07": {
+      "trades": 5,
+      "net_pnl": -11323.931581132987,
+      "wins": 1
+    },
+    "2024-08": {
+      "trades": 20,
+      "net_pnl": -7148.692041806667,
+      "wins": 11
+    },
+    "2024-06": {
+      "trades": 12,
+      "net_pnl": -6415.308561660741,
+      "wins": 6
+    },
+    "2023-10": {
+      "trades": 12,
+      "net_pnl": -247.33045797322927,
+      "wins": 5
+    },
+    "2021-05": {
+      "trades": 54,
+      "net_pnl": -90.62669408199412,
+      "wins": 19
+    },
+    "2023-05": {
+      "trades": 10,
+      "net_pnl": -56.875679249319866,
+      "wins": 5
+    },
+    "2022-09": {
+      "trades": 12,
+      "net_pnl": -48.32391111266059,
+      "wins": 3
+    },
+    "2021-11": {
+      "trades": 25,
+      "net_pnl": -3.1683512098643822,
+      "wins": 8
+    },
+    "2021-06": {
+      "trades": 35,
+      "net_pnl": -2.8291912651496918,
+      "wins": 15
+    },
+    "2021-10": {
+      "trades": 16,
+      "net_pnl": -1.758584365002089,
+      "wins": 9
+    },
+    "2021-08": {
+      "trades": 13,
+      "net_pnl": 2.490427115105858,
+      "wins": 8
+    },
+    "2022-01": {
+      "trades": 24,
+      "net_pnl": 4.567296361105052,
+      "wins": 10
+    }
+  },
+  "single_family_ablations": [
+    {
+      "removed": "UNI",
+      "start_usd": 100.0,
+      "end_usd": 495143.43906523293,
+      "return_pct": 495043.43906523293,
+      "closed_trade_mdd_pct": -85.6716247500061,
+      "hourly_mark_mdd_pct": -90.67541801798316,
+      "hourly_adverse_bound_pct": -91.5961266826627,
+      "trades": 883,
+      "win_rate_pct": 54.699886749716875,
+      "margin_clipped": 759,
+      "rejected": 15,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844496,
+      "max_gross_equity_ratio": 6.322542232335289
+    },
+    {
+      "removed": "BCH",
+      "start_usd": 100.0,
+      "end_usd": 440975.5007884374,
+      "return_pct": 440875.50078843744,
+      "closed_trade_mdd_pct": -90.42510720940514,
+      "hourly_mark_mdd_pct": -94.33338810925459,
+      "hourly_adverse_bound_pct": -94.55011967884545,
+      "trades": 959,
+      "win_rate_pct": 54.01459854014598,
+      "margin_clipped": 835,
+      "rejected": 17,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844485,
+      "max_gross_equity_ratio": 6.322542232335289
+    },
+    {
+      "removed": "LINK",
+      "start_usd": 100.0,
+      "end_usd": 1594276.2928179186,
+      "return_pct": 1594176.2928179186,
+      "closed_trade_mdd_pct": -90.00329884802913,
+      "hourly_mark_mdd_pct": -94.37600836355992,
+      "hourly_adverse_bound_pct": -94.67333056087408,
+      "trades": 1037,
+      "win_rate_pct": 55.06268081002893,
+      "margin_clipped": 910,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.622237301884449,
+      "max_gross_equity_ratio": 6.32254223233529
+    },
+    {
+      "removed": "LTC",
+      "start_usd": 100.0,
+      "end_usd": 950262.3466280077,
+      "return_pct": 950162.3466280078,
+      "closed_trade_mdd_pct": -94.05627086432061,
+      "hourly_mark_mdd_pct": -96.47243138516006,
+      "hourly_adverse_bound_pct": -96.65936952989546,
+      "trades": 1056,
+      "win_rate_pct": 54.82954545454545,
+      "margin_clipped": 930,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844496,
+      "max_gross_equity_ratio": 6.322542232335287
+    },
+    {
+      "removed": "ICP",
+      "start_usd": 100.0,
+      "end_usd": 281757.87328715256,
+      "return_pct": 281657.87328715256,
+      "closed_trade_mdd_pct": -94.52194798798746,
+      "hourly_mark_mdd_pct": -96.64008221784056,
+      "hourly_adverse_bound_pct": -96.81792308163702,
+      "trades": 917,
+      "win_rate_pct": 53.9803707742639,
+      "margin_clipped": 793,
+      "rejected": 15,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844491,
+      "max_gross_equity_ratio": 6.293105129522176
+    },
+    {
+      "removed": "DOGE",
+      "start_usd": 100.0,
+      "end_usd": 77905.75152993403,
+      "return_pct": 77805.75152993403,
+      "closed_trade_mdd_pct": -96.75739440413774,
+      "hourly_mark_mdd_pct": -97.0618620966328,
+      "hourly_adverse_bound_pct": -97.21737809927502,
+      "trades": 1058,
+      "win_rate_pct": 54.63137996219282,
+      "margin_clipped": 934,
+      "rejected": 18,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844483,
+      "max_gross_equity_ratio": 6.322542232335288
+    },
+    {
+      "removed": "VET",
+      "start_usd": 100.0,
+      "end_usd": 760105.9272820934,
+      "return_pct": 760005.9272820934,
+      "closed_trade_mdd_pct": -95.22170814492844,
+      "hourly_mark_mdd_pct": -97.1641116215554,
+      "hourly_adverse_bound_pct": -97.31421554419627,
+      "trades": 1105,
+      "win_rate_pct": 54.20814479638009,
+      "margin_clipped": 981,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844496,
+      "max_gross_equity_ratio": 6.32254223233529
+    },
+    {
+      "removed": "BNB",
+      "start_usd": 100.0,
+      "end_usd": 943929.0019166776,
+      "return_pct": 943829.0019166776,
+      "closed_trade_mdd_pct": -95.27997595706111,
+      "hourly_mark_mdd_pct": -97.19869322859748,
+      "hourly_adverse_bound_pct": -97.34696674250023,
+      "trades": 1096,
+      "win_rate_pct": 54.197080291970806,
+      "margin_clipped": 993,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.622237301884449,
+      "max_gross_equity_ratio": 6.322542232335289
+    },
+    {
+      "removed": "ALGO",
+      "start_usd": 100.0,
+      "end_usd": 535580.7936860385,
+      "return_pct": 535480.7936860385,
+      "closed_trade_mdd_pct": -95.28623500309115,
+      "hourly_mark_mdd_pct": -97.20240793595212,
+      "hourly_adverse_bound_pct": -97.35048482993514,
+      "trades": 1095,
+      "win_rate_pct": 54.24657534246575,
+      "margin_clipped": 971,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844496,
+      "max_gross_equity_ratio": 6.322542232335287
+    },
+    {
+      "removed": "DOT",
+      "start_usd": 100.0,
+      "end_usd": 950087.6495562275,
+      "return_pct": 949987.6495562275,
+      "closed_trade_mdd_pct": -95.30225242815479,
+      "hourly_mark_mdd_pct": -97.21191418441254,
+      "hourly_adverse_bound_pct": -97.3594879114887,
+      "trades": 1030,
+      "win_rate_pct": 54.66019417475728,
+      "margin_clipped": 974,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844491,
+      "max_gross_equity_ratio": 6.322542232335287
+    },
+    {
+      "removed": "AVAX",
+      "start_usd": 100.0,
+      "end_usd": 261464.23830556267,
+      "return_pct": 261364.2383055627,
+      "closed_trade_mdd_pct": -95.36074283246349,
+      "hourly_mark_mdd_pct": -97.24662789861429,
+      "hourly_adverse_bound_pct": -97.39236422450404,
+      "trades": 1076,
+      "win_rate_pct": 53.90334572490706,
+      "margin_clipped": 952,
+      "rejected": 9,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.5482724263151268,
+      "max_gross_equity_ratio": 6.322542232335288
+    },
+    {
+      "removed": "NONE",
+      "start_usd": 100.0,
+      "end_usd": 952701.1845698411,
+      "return_pct": 952601.1845698411,
+      "closed_trade_mdd_pct": -95.36074283246349,
+      "hourly_mark_mdd_pct": -97.24662789861429,
+      "hourly_adverse_bound_pct": -97.39236422450404,
+      "trades": 1121,
+      "win_rate_pct": 54.32649420160571,
+      "margin_clipped": 997,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844496,
+      "max_gross_equity_ratio": 6.322542232335291
+    },
+    {
+      "removed": "ETH",
+      "start_usd": 100.0,
+      "end_usd": 692687.006540591,
+      "return_pct": 692587.006540591,
+      "closed_trade_mdd_pct": -95.67756240295822,
+      "hourly_mark_mdd_pct": -97.43465846796434,
+      "hourly_adverse_bound_pct": -97.57044231256097,
+      "trades": 1068,
+      "win_rate_pct": 54.21348314606742,
+      "margin_clipped": 936,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.6222373018844491,
+      "max_gross_equity_ratio": 6.322542232335287
+    },
+    {
+      "removed": "ADA",
+      "start_usd": 100.0,
+      "end_usd": 623005.5438384296,
+      "return_pct": 622905.5438384296,
+      "closed_trade_mdd_pct": -95.72144181808305,
+      "hourly_mark_mdd_pct": -97.4714564844655,
+      "hourly_adverse_bound_pct": -97.6052926054972,
+      "trades": 1086,
+      "win_rate_pct": 54.23572744014733,
+      "margin_clipped": 997,
+      "rejected": 22,
+      "liquidation_proxy_count": 0,
+      "max_reserved_equity_ratio": 1.622237301884449,
+      "max_gross_equity_ratio": 6.322542232335287
+    }
+  ],
+  "uniform_exposure_screens": [
+    {
+      "factor": 0.25,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 5892.889349697412,
+        "return_pct": 5792.889349697412,
+        "closed_trade_mdd_pct": -60.05236783517256,
+        "hourly_mark_mdd_pct": -67.33299936014798,
+        "hourly_adverse_bound_pct": -70.2751088139077,
+        "trades": 1143,
+        "win_rate_pct": 54.76815398075241,
+        "margin_clipped": 0,
+        "rejected": 0,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 0.9120472889116064,
+        "max_gross_equity_ratio": 3.8462286720239054
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 1467.6140336298388,
+        "return_pct": 1367.6140336298388,
+        "closed_trade_mdd_pct": -62.90469554475333,
+        "hourly_mark_mdd_pct": -69.95141009842712,
+        "hourly_adverse_bound_pct": -72.38066442404498,
+        "trades": 1143,
+        "win_rate_pct": 51.70603674540683,
+        "margin_clipped": 0,
+        "rejected": 0,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 0.9143338396329035,
+        "max_gross_equity_ratio": 3.854444501811201
+      }
+    },
+    {
+      "factor": 0.4,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 50314.176028697366,
+        "return_pct": 50214.176028697366,
+        "closed_trade_mdd_pct": -74.5319058516762,
+        "hourly_mark_mdd_pct": -81.70039831824403,
+        "hourly_adverse_bound_pct": -82.37059684939013,
+        "trades": 1143,
+        "win_rate_pct": 54.76815398075241,
+        "margin_clipped": 66,
+        "rejected": 0,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.0592472776400614,
+        "max_gross_equity_ratio": 4.692122951960748
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 5543.977964268299,
+        "return_pct": 5443.977964268299,
+        "closed_trade_mdd_pct": -77.14545855944434,
+        "hourly_mark_mdd_pct": -83.4835416217123,
+        "hourly_adverse_bound_pct": -84.00143498659548,
+        "trades": 1143,
+        "win_rate_pct": 51.70603674540683,
+        "margin_clipped": 69,
+        "rejected": 0,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.0587983400012864,
+        "max_gross_equity_ratio": 4.696226167229163
+      }
+    },
+    {
+      "factor": 0.55,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 165790.4254820335,
+        "return_pct": 165690.4254820335,
+        "closed_trade_mdd_pct": -85.54603514610659,
+        "hourly_mark_mdd_pct": -90.3920131996672,
+        "hourly_adverse_bound_pct": -90.80118326966225,
+        "trades": 1142,
+        "win_rate_pct": 54.81611208406305,
+        "margin_clipped": 118,
+        "rejected": 1,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.069796216214169,
+        "max_gross_equity_ratio": 4.741847841153866
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 8763.65777437903,
+        "return_pct": 8663.65777437903,
+        "closed_trade_mdd_pct": -87.51779811434929,
+        "hourly_mark_mdd_pct": -91.63571290947033,
+        "hourly_adverse_bound_pct": -91.9419215436895,
+        "trades": 1143,
+        "win_rate_pct": 51.70603674540683,
+        "margin_clipped": 119,
+        "rejected": 0,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.0703066917243171,
+        "max_gross_equity_ratio": 4.733881310361605
+      }
+    },
+    {
+      "factor": 0.7,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 427527.15613430715,
+        "return_pct": 427427.1561343072,
+        "closed_trade_mdd_pct": -92.12844297309579,
+        "hourly_mark_mdd_pct": -95.10209019503766,
+        "hourly_adverse_bound_pct": -95.33821490115531,
+        "trades": 1139,
+        "win_rate_pct": 54.69710272168569,
+        "margin_clipped": 129,
+        "rejected": 4,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.2463139963377805,
+        "max_gross_equity_ratio": 5.128042923115971
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 10926.332935933275,
+        "return_pct": 10826.332935933275,
+        "closed_trade_mdd_pct": -93.46198450859967,
+        "hourly_mark_mdd_pct": -95.88935512822955,
+        "hourly_adverse_bound_pct": -96.0608061949154,
+        "trades": 1140,
+        "win_rate_pct": 51.578947368421055,
+        "margin_clipped": 131,
+        "rejected": 3,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.249620830868692,
+        "max_gross_equity_ratio": 5.147130981928305
+      }
+    },
+    {
+      "factor": 0.85,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 894980.6895411134,
+        "return_pct": 894880.6895411134,
+        "closed_trade_mdd_pct": -95.39405645861747,
+        "hourly_mark_mdd_pct": -97.26814244518025,
+        "hourly_adverse_bound_pct": -97.41274000345913,
+        "trades": 1121,
+        "win_rate_pct": 54.32649420160571,
+        "margin_clipped": 997,
+        "rejected": 22,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844483,
+        "max_gross_equity_ratio": 6.322542232335291
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 12554.388469467438,
+        "return_pct": 12454.388469467438,
+        "closed_trade_mdd_pct": -96.25286557096253,
+        "hourly_mark_mdd_pct": -97.74701984195964,
+        "hourly_adverse_bound_pct": -97.85004425744175,
+        "trades": 1123,
+        "win_rate_pct": 51.20213713268032,
+        "margin_clipped": 999,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.61817429483231,
+        "max_gross_equity_ratio": 6.30835241269222
+      }
+    }
+  ],
+  "core_symbols": [
+    "AVAX",
+    "BCH",
+    "DOGE",
+    "ICP",
+    "UNI"
+  ],
+  "limitations": [
+    "Ledger drawdown excludes temporary unrealized marks; authoritative MDD remains the replay hourly mark.",
+    "Ablations and exposure reductions are diagnosis screens on already observed history, not adopted changes.",
+    "No live state, orders, switches, or standards were changed."
+  ]
+}

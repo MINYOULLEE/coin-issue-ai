@@ -63,9 +63,15 @@ def request_klines(symbol: str, start_ms: int, end_ms: int) -> list[list]:
         return json.load(response)
 
 
-def download(symbol: str, start_ms: int, end_ms: int) -> Path:
-    DATA_DIR.mkdir(parents=True, exist_ok=True)
-    path = DATA_DIR / f"{symbol}USDT_1h.csv"
+def download(
+    symbol: str,
+    start_ms: int,
+    end_ms: int,
+    data_dir: Path = DATA_DIR,
+    local_only: bool = False,
+) -> Path:
+    data_dir.mkdir(parents=True, exist_ok=True)
+    path = data_dir / f"{symbol}USDT_1h.csv"
     existing: dict[int, list[str]] = {}
     if path.exists():
         with path.open(newline="", encoding="utf-8") as handle:
@@ -74,19 +80,27 @@ def download(symbol: str, start_ms: int, end_ms: int) -> Path:
                     "open_time", "open", "high", "low", "close", "volume",
                     "close_time", "quote_volume",
                 )]
-    cursor = max(existing, default=start_ms - 3_600_000) + 3_600_000
-    cursor = max(cursor, start_ms)
-    while cursor <= end_ms:
-        rows = request_klines(symbol, cursor, end_ms)
-        if not rows:
-            break
-        for row in rows:
-            existing[int(row[0])] = [str(row[i]) for i in range(8)]
-        next_cursor = int(rows[-1][0]) + 3_600_000
-        if next_cursor <= cursor:
-            break
-        cursor = next_cursor
-        time.sleep(.05)
+    def fetch_range(cursor: int, stop_ms: int) -> None:
+        while cursor <= stop_ms:
+            rows = request_klines(symbol, cursor, stop_ms)
+            if not rows:
+                break
+            for row in rows:
+                existing[int(row[0])] = [str(row[i]) for i in range(8)]
+            next_cursor = int(rows[-1][0]) + 3_600_000
+            if next_cursor <= cursor:
+                break
+            cursor = next_cursor
+            time.sleep(.05)
+
+    if existing and not local_only:
+        first, last = min(existing), max(existing)
+        if start_ms < first:
+            fetch_range(start_ms, min(end_ms, first - 3_600_000))
+        if last < end_ms:
+            fetch_range(max(start_ms, last + 3_600_000), end_ms)
+    elif not existing and not local_only:
+        fetch_range(start_ms, end_ms)
     with path.open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(["open_time", "open", "high", "low", "close", "volume", "close_time", "quote_volume"])
@@ -229,11 +243,13 @@ def main() -> None:
     parser.add_argument("--symbols", nargs="+", default=["BTC", "ETH", "XRP", "TRX", "SOL", "BNB"])
     parser.add_argument("--start", default="2021-08-28")
     parser.add_argument("--end", default=datetime.now(timezone.utc).strftime("%Y-%m-%d"))
+    parser.add_argument("--data-dir", type=Path, default=DATA_DIR)
+    parser.add_argument("--local-only", action="store_true", help="Only crop/deduplicate existing CSV files; do not call the exchange API")
     parser.add_argument("--download-only", action="store_true")
     args = parser.parse_args()
     start_ms = int(datetime.fromisoformat(args.start).replace(tzinfo=timezone.utc).timestamp() * 1000)
     end_ms = int(datetime.fromisoformat(args.end).replace(tzinfo=timezone.utc).timestamp() * 1000) + 86_399_999
-    paths = {s: download(s, start_ms, end_ms) for s in args.symbols}
+    paths = {s: download(s, start_ms, end_ms, args.data_dir, args.local_only) for s in args.symbols}
     if args.download_only:
         print(json.dumps({"downloaded": args.symbols, "paths": {s: str(p) for s, p in paths.items()}}, ensure_ascii=False, indent=2))
         return

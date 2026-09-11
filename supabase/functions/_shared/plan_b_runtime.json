@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage93_algo_ada_20260909_v1",
+  "execution_version": "stage112_regime_guard_20260910_v1",
   "live_ready": true,
-  "strategy_id": "b_algo_ada_stage93",
-  "note": "Owner-enabled switch preserved. Stage93 keeps Stage66 profit locks, relaxes only ALGO volume to 1.0x, and adds ADA UTC 06-08 shock reversal at 3x/25% target margin. Atomic reservations, minute breach checks and verified isolated leverage remain mandatory."
+  "strategy_id": "b_regime_guard_stage112",
+  "note": "Owner-enabled switch preserved. Stage112 keeps Stage93 signals and Stage66 exits, caps new-entry gross/equity at 3.75x, pauses only new entries for 168h after a 25% account drawdown, and blocks BCH/ICP/LINK/UNI entries during a completed BTC 72h return of -6% or worse."
 }

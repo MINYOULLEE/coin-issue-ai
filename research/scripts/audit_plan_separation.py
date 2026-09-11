@@ -17,7 +17,7 @@ def main():
     b = read('strategy/plan_b_standard.json')
     assert a['strategy_id'] == 'answer_mdd30'
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
-    assert a['standard_version'] == 'mdd30_drawdown_guard_stage75_v1'
+    assert a['standard_version'] == 'mdd30_selective_resize_stage126_v1'
     assert a['exchange_leverage'] == 3
     assert a['base_exposure_scale'] == 1.4
     assert a['max_gross_exposure'] == 2.24
@@ -31,22 +31,34 @@ def main():
         'evaluation': 'before_next_daily_rebalance',
         'state_persistence_required': True,
     }
+    assert a['sol_short_regime_guard'] == {
+        'enabled': True,
+        'action': 'set_SOL_target_to_cash_only_when_all_conditions_hold',
+        'btc_completed_168h_return_min_pct': 3.5,
+        'sol_completed_168h_return_min_pct': 12,
+        'positive_168h_breadth_min_of_5': 3,
+        'applies_only_to': 'new_or_existing_SOL_short_target_at_daily_boundary',
+    }
+    assert a['selective_resize']['threshold_pct_of_current_actual_equity'] == 1.25
+    assert [(x['symbol'], x['side'], x['resize']) for x in a['selective_resize']['hold_existing_quantity_when_below_threshold']] == [
+        ('SOL', 'long', 'decrease'), ('BTC', 'short', 'decrease')]
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
-    assert b['strategy_id'] == 'b_algo_ada_stage93'
+    assert b['strategy_id'] == 'b_regime_guard_stage112'
     assert b == read('strategy/plan_b_combination_standard.json')
     assert b == read('supabase/functions/_shared/plan_b_combination_standard.json')
     assert not b['acceptance']['live_validation']
     runtime = read('supabase/functions/_shared/plan_b_runtime.json')
     assert runtime['strategy_id'] == b['strategy_id']
     assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
-    assert b['acceptance']['user_adopted_on'] == '2026-09-09'
+    assert b['acceptance']['user_adopted_on'] == '2026-09-10'
     assert b['live_account']['starting_capital_usd'] == 650
     assert b['live_account']['public_trade_history'] is True
     assert b['reference']['start_usd'] == 100
     assert set(a['assets']).intersection(b['symbols']) == {'ETH'}
     assert b['isolation']['api_key_env'] == 'PLAN_B_BINGX_API_KEY'
     assert b['isolation']['secret_key_env'] == 'PLAN_B_BINGX_SECRET_KEY'
-    assert b['isolation']['client_order_prefix'] == 'pb93'
+    assert b['isolation']['client_order_prefix'] == 'pb112'
+    assert b['risk_overlay']['max_entry_gross_equity_ratio'] == 3.75
     assert {s: (v['actual_hold_hours'], v['leverage']) for s,v in b['symbols'].items()} == {
         'AVAX': (13,3), 'ICP': (2,5), 'BCH': (4,3), 'DOGE': (13,5), 'UNI': (7,2),
         'ALGO': (1,3), 'ETH': (1,3), 'VET': (1,3), 'LINK': (1,3), 'DOT': (1,3),
@@ -67,9 +79,9 @@ def main():
     assert b['symbols']['ADA']['target_margin_fraction'] == .25
     assert read('strategy/plan_b_aggressive_candidate.json')['canonical'] == 'strategy/plan_b_standard.json'
     evidence = read(b['reference']['file'])
-    result = next(r for r in evidence['results'] if r['ada_target_margin_fraction'] == .25)
-    assert result['pass'] and result['changed_profit_lock_exits'] == 26
-    result = result['full']
+    assert evidence['reproduction'] == {'five_return_exact': True, 'five_mdd_exact': True, 'seven_return_exact': True, 'seven_mdd_exact': True}
+    assert evidence['causality']['future_training_violations'] == 0
+    result = evidence['five_year']
     for key in ('start_usd','end_usd','return_pct','closed_trade_mdd_pct','hourly_mark_mdd_pct','trades','win_rate_pct'):
         assert abs(result[key] - b['reference'][key]) < 1e-8, key
     fills = read('research/results/b_algo_ada_futures_stage92/results.json')

@@ -1,6 +1,6 @@
 {
   "symbol": "LINK",
-  "generated_at": "2026-08-28T07:59:29.892298+00:00",
+  "generated_at": "2026-08-30T11:27:42.493943+00:00",
   "gate": "five-year >=10000%; MDD <=50%; independent test positive and MDD <=50%",
   "passing_count": 0,
   "best_passing": null,

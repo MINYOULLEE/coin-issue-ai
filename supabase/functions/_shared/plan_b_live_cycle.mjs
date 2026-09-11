@@ -51,6 +51,12 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  const intents=await checked(sb.from('plan_b_execution_intents').select('*').not('status','in','(closed,rejected,expired)'))||[];
  // All uncertain submissions must be reconciled before allocating additional funds.
  if(intents.some(i=>['submitted','unknown','partial','closing'].includes(i.status)))return {mode:'reconciliation_required',processed:0};
+ const balanceRaw=await bx.read('/openApi/swap/v3/user/balance',{}),balances=Array.isArray(balanceRaw)?balanceRaw:Array.isArray(balanceRaw?.balance)?balanceRaw.balance:[balanceRaw?.balance||balanceRaw];
+ const account=balances.find(b=>b.asset==='USDT');if(!account)throw Error('USDT unavailable');
+ const balance=Number(account.balance),equity=Number(account.equity),free=Number(account.availableMargin);
+ if(![balance,equity,free].every(Number.isFinite))throw Error('invalid balance');
+ const risk=await checked(sb.rpc('plan_b_update_risk_guard',{p_equity:equity,p_now:new Date(now()).toISOString()}));
+ if(!risk?.entry_allowed)return {mode:'risk_pause',processed:0,risk};
  const pending=await checked(sb.from('plan_b_signals').select('*').eq('status','active').is('dispatched_at',null).gt('entry_deadline',new Date(now()).toISOString()).order('id'))||[];
  const occupied=new Set(intents.map(i=>i.symbol)),seen=new Set();
  const signals=selectExecutionGroup(pending.filter(s=>{if(!eligible(s,now())||occupied.has(s.symbol)||seen.has(s.symbol))return false;seen.add(s.symbol);return true;}),intents);
@@ -71,12 +77,9 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  }
  if(!proposals.length)return {mode:'live',processed:0};
  const snapshot=new Date(now()).toISOString();
- const balanceRaw=await bx.read('/openApi/swap/v3/user/balance',{}),balances=Array.isArray(balanceRaw)?balanceRaw:Array.isArray(balanceRaw?.balance)?balanceRaw.balance:[balanceRaw?.balance||balanceRaw];
- const account=balances.find(b=>b.asset==='USDT');if(!account)throw Error('USDT unavailable');
- const balance=Number(account.balance),equity=Number(account.equity),free=Number(account.availableMargin);
- if(![balance,equity,free].every(Number.isFinite))throw Error('invalid balance');
  const held=intents.reduce((s,i)=>s+Number(i.reserved_usd),0);
- const allocation=allocatePlanB({plan:'B',strategyId:STANDARD.strategy_id,balance,equity,reservedMargin:held,proposals});
+ const currentGross=liveRows.reduce((sum,p)=>{const q=Math.abs(Number(p.positionAmt??p.positionAmount));const mark=Number(p.markPrice??p.avgPrice??p.entryPrice);return sum+(Number.isFinite(q)&&Number.isFinite(mark)?q*mark:0);},0);
+ const allocation=allocatePlanB({plan:'B',strategyId:STANDARD.strategy_id,balance,equity,reservedMargin:held,currentGross,proposals});
  const required=allocation.orders.reduce((s,o)=>s+o.requiredReservation,0),ratio=required>0?Math.min(1,Math.max(0,free-equity*.05)/required):0;
  if(ratio<=0)return {mode:'insufficient_free_margin',processed:0};
  const orders=allocation.orders.map((order,i)=>{

@@ -1,0 +1,210 @@
+{
+  "id": "B-STAGE99-SEVEN-YEAR-FUTURES-MINUTE-EXECUTION-VALIDATION",
+  "generated_at": "2026-09-10T04:31:22.346542+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "orders_submitted": 0,
+  "candidate": {
+    "max_entry_gross_equity_ratio": 3.5,
+    "drawdown_trigger_pct": 30,
+    "new_entry_cooldown_hours": 240
+  },
+  "source": "Binance USD-M perpetual public 1-minute klines for ALGO/ADA candidate windows",
+  "windows": 104,
+  "downloaded": 0,
+  "unavailable_futures_opportunities": [
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1569362400000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1569740400000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1584090000000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1579060800000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1584097200000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ALGO",
+      "entry_ts": 1589076000000,
+      "reason": "USD-M perpetual minute window unavailable"
+    },
+    {
+      "symbol": "ADA",
+      "entry_ts": 1580194800000,
+      "reason": "USD-M perpetual minute window unavailable"
+    }
+  ],
+  "fetch_errors": [],
+  "scenarios": [
+    {
+      "entry_delay_minutes": 0,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 1422150.8250091171,
+        "return_pct": 1422050.8250091171,
+        "closed_trade_mdd_pct": -58.44172254219793,
+        "hourly_mark_mdd_pct": -62.90626070027847,
+        "hourly_adverse_bound_pct": -65.25237807913771,
+        "trades": 945,
+        "win_rate_pct": 55.87301587301587,
+        "margin_clipped": 945,
+        "rejected": 24,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.5482724263151264,
+        "max_gross_equity_ratio": 4.4543704624265,
+        "pause_events": 14,
+        "gross_cap_events": 243
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 26730.61840128005,
+        "return_pct": 26630.618401280048,
+        "closed_trade_mdd_pct": -60.78486784697116,
+        "hourly_mark_mdd_pct": -64.94442066644459,
+        "hourly_adverse_bound_pct": -67.15640370866379,
+        "trades": 898,
+        "win_rate_pct": 52.67260579064588,
+        "margin_clipped": 898,
+        "rejected": 16,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.546225477869126,
+        "max_gross_equity_ratio": 4.44625219322987,
+        "pause_events": 17,
+        "gross_cap_events": 236
+      }
+    },
+    {
+      "entry_delay_minutes": 1,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 927798.3337812602,
+        "return_pct": 927698.3337812602,
+        "closed_trade_mdd_pct": -58.35599634986244,
+        "hourly_mark_mdd_pct": -62.75181012269866,
+        "hourly_adverse_bound_pct": -65.10434036050474,
+        "trades": 930,
+        "win_rate_pct": 55.59139784946237,
+        "margin_clipped": 930,
+        "rejected": 24,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.5482724263151264,
+        "max_gross_equity_ratio": 4.454370462426497,
+        "pause_events": 15,
+        "gross_cap_events": 242
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 27151.719768276533,
+        "return_pct": 27051.71976827653,
+        "closed_trade_mdd_pct": -60.628713210853036,
+        "hourly_mark_mdd_pct": -64.79839253975416,
+        "hourly_adverse_bound_pct": -67.01643049688046,
+        "trades": 897,
+        "win_rate_pct": 52.73132664437012,
+        "margin_clipped": 897,
+        "rejected": 16,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.546225477869126,
+        "max_gross_equity_ratio": 4.446252193229867,
+        "pause_events": 17,
+        "gross_cap_events": 236
+      }
+    },
+    {
+      "entry_delay_minutes": 3,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 839347.8706516903,
+        "return_pct": 839247.8706516902,
+        "closed_trade_mdd_pct": -57.59491456281998,
+        "hourly_mark_mdd_pct": -62.41147936194433,
+        "hourly_adverse_bound_pct": -64.8101996287891,
+        "trades": 929,
+        "win_rate_pct": 55.97416576964478,
+        "margin_clipped": 929,
+        "rejected": 23,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.5482724263151264,
+        "max_gross_equity_ratio": 4.454370462426498,
+        "pause_events": 15,
+        "gross_cap_events": 243
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 28620.586387358726,
+        "return_pct": 28520.586387358726,
+        "closed_trade_mdd_pct": -61.44129045677833,
+        "hourly_mark_mdd_pct": -64.46453168731415,
+        "hourly_adverse_bound_pct": -66.72622383713227,
+        "trades": 894,
+        "win_rate_pct": 53.24384787472036,
+        "margin_clipped": 894,
+        "rejected": 19,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.546225477869126,
+        "max_gross_equity_ratio": 4.4462521932298715,
+        "pause_events": 17,
+        "gross_cap_events": 235
+      }
+    },
+    {
+      "entry_delay_minutes": 5,
+      "base": {
+        "start_usd": 100.0,
+        "end_usd": 644689.8547564464,
+        "return_pct": 644589.8547564464,
+        "closed_trade_mdd_pct": -58.6192715415452,
+        "hourly_mark_mdd_pct": -63.39916022478036,
+        "hourly_adverse_bound_pct": -65.77353565951,
+        "trades": 915,
+        "win_rate_pct": 55.73770491803279,
+        "margin_clipped": 915,
+        "rejected": 24,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.5482724263151264,
+        "max_gross_equity_ratio": 4.4543704624265,
+        "pause_events": 17,
+        "gross_cap_events": 237
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 23201.709149999413,
+        "return_pct": 23101.709149999413,
+        "closed_trade_mdd_pct": -61.16526960817716,
+        "hourly_mark_mdd_pct": -65.397166253163,
+        "hourly_adverse_bound_pct": -67.6358940060802,
+        "trades": 885,
+        "win_rate_pct": 52.88135593220339,
+        "margin_clipped": 885,
+        "rejected": 19,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.546225477869126,
+        "max_gross_equity_ratio": 4.4462521932298715,
+        "pause_events": 18,
+        "gross_cap_events": 230
+      }
+    }
+  ],
+  "pass_live_ttl": false,
+  "limitations": [
+    "Minute substitution covers ALGO/ADA candidate windows; other Stage93 families remain hourly.",
+    "Binance USD-M is an execution proxy, not actual BingX fills or order-book depth.",
+    "Five-minute delay is a boundary stress and does not relax the production TTL below five minutes.",
+    "No live state, orders, switches, or adopted standards changed."
+  ]
+}

@@ -1,0 +1,123 @@
+{
+  "id": "AB-ADOPTED-SEVEN-YEAR-EXTENSION",
+  "generated_at": "2026-09-09T16:16:37.352894+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "plans": [
+    {
+      "plan": "A",
+      "strategy_id": "answer_mdd30",
+      "version": "mdd30_drawdown_guard_stage75_v1",
+      "requested_range": [
+        "2019-08-28",
+        "2026-08-29"
+      ],
+      "effective_range": [
+        "2020-09-14T07:00:00+00:00",
+        "2026-08-30T00:00:00+00:00"
+      ],
+      "late_start_reason": "SOL USD-M perpetual begins after the requested start; exact five-symbol A cannot run before all inputs exist.",
+      "base_cost": {
+        "start_usd": 100,
+        "end_usd": 2214927.3047070066,
+        "return_pct": 2214827.3047070066,
+        "close_mark_mdd_pct": -62.78444540509527,
+        "hourly_adverse_bound_mdd_pct": -63.13002050178459,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9539,
+        "total_order_events": 9704,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 139,
+        "turnover_usd": 495083369.3570296,
+        "funding_paid_usd": -2394.3508748485024,
+        "max_open_gross_equity_ratio": 2.567688003971602,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558960013238673,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8779210854823348,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1925
+        }
+      },
+      "double_cost_and_stop_slippage": {
+        "start_usd": 100,
+        "end_usd": 847545.8818244324,
+        "return_pct": 847445.8818244324,
+        "close_mark_mdd_pct": -65.71923137959624,
+        "hourly_adverse_bound_mdd_pct": -66.0381058331285,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9429,
+        "total_order_events": 9594,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 154,
+        "turnover_usd": 206837410.86795294,
+        "funding_paid_usd": -692.167121178716,
+        "max_open_gross_equity_ratio": 2.5729679896919726,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8576559965639908,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8811354417555921,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 3,
+          "guarded_symbol_decisions": 2185
+        }
+      }
+    },
+    {
+      "plan": "B",
+      "strategy_id": "b_algo_ada_stage93",
+      "version": "b_algo_ada_stage93_v1",
+      "requested_range": [
+        "2019-08-28",
+        "2026-08-29"
+      ],
+      "effective_range": [
+        "2021-05-11T01:00:00+00:00",
+        "2026-08-30T00:00:00+00:00"
+      ],
+      "late_start_reason": "The five-symbol B core requires ICP; exact Stage93 cannot run before ICP spot history exists.",
+      "algo_opportunities": 43,
+      "ada_opportunities": 68,
+      "profit_lock_exits": 36,
+      "base_cost": {
+        "start_usd": 100.0,
+        "end_usd": 952701.1845698411,
+        "return_pct": 952601.1845698411,
+        "closed_trade_mdd_pct": -95.36074283246349,
+        "hourly_mark_mdd_pct": -97.24662789861429,
+        "hourly_adverse_bound_pct": -97.39236422450404,
+        "trades": 1121,
+        "win_rate_pct": 54.32649420160571,
+        "margin_clipped": 997,
+        "rejected": 22,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6222373018844496,
+        "max_gross_equity_ratio": 6.322542232335291
+      },
+      "double_cost": {
+        "start_usd": 100.0,
+        "end_usd": 13255.47544196811,
+        "return_pct": 13155.47544196811,
+        "closed_trade_mdd_pct": -96.2275338773568,
+        "hourly_mark_mdd_pct": -97.72995736298297,
+        "hourly_adverse_bound_pct": -97.833762012555,
+        "trades": 1123,
+        "win_rate_pct": 51.20213713268032,
+        "margin_clipped": 999,
+        "rejected": 20,
+        "liquidation_proxy_count": 0,
+        "max_reserved_equity_ratio": 1.6181742948323095,
+        "max_gross_equity_ratio": 6.308352412692221
+      }
+    }
+  ],
+  "limitations": [
+    "The requested calendar is seven years, but exact plan replays begin only when every required core market exists.",
+    "A uses Binance USD-M hourly/funding; B retains its adopted Binance spot-hourly execution proxy.",
+    "These strategy rules were selected using the later five-year sample, so the added earlier period is useful backward validation but not a future holdout.",
+    "Historical results are not guaranteed future returns or exact BingX fills."
+  ]
+}

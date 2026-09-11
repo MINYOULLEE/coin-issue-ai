@@ -1,0 +1,324 @@
+{
+  "id": "B-STAGE103-EXTENSION-REGIME-DIAGNOSIS",
+  "generated_at": "2026-09-10T04:52:09.394726+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "range": [
+    "2021-05-11T01:00:00+00:00",
+    "2021-08-28T00:00:00+00:00"
+  ],
+  "candidate": {
+    "start_usd": 100.0,
+    "end_usd": 106.12399640449345,
+    "return_pct": 6.123996404493459,
+    "closed_trade_mdd_pct": -54.33288251948532,
+    "hourly_mark_mdd_pct": -55.57638015668096,
+    "hourly_adverse_bound_pct": -56.053986073265214,
+    "trades": 64,
+    "win_rate_pct": 51.5625,
+    "margin_clipped": 64,
+    "rejected": 1,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.3928107035420594,
+    "max_gross_equity_ratio": 4.320795985925174,
+    "pause_events": 4,
+    "gross_cap_events": 8
+  },
+  "candidate_double_cost": {
+    "start_usd": 100.0,
+    "end_usd": 84.68932962722971,
+    "return_pct": -15.310670372770286,
+    "closed_trade_mdd_pct": -58.82042509695988,
+    "hourly_mark_mdd_pct": -59.38399601485642,
+    "hourly_adverse_bound_pct": -59.99089734649643,
+    "trades": 65,
+    "win_rate_pct": 50.76923076923077,
+    "margin_clipped": 65,
+    "rejected": 0,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.3903981113582722,
+    "max_gross_equity_ratio": 4.3340069129288885,
+    "pause_events": 4,
+    "gross_cap_events": 8
+  },
+  "uncapped_stage93_proxy": {
+    "start_usd": 100.0,
+    "end_usd": 16.808940116759644,
+    "return_pct": -83.19105988324036,
+    "closed_trade_mdd_pct": -95.02632321285039,
+    "hourly_mark_mdd_pct": -96.99846913386924,
+    "hourly_adverse_bound_pct": -97.15734053387159,
+    "trades": 115,
+    "win_rate_pct": 44.34782608695652,
+    "margin_clipped": 115,
+    "rejected": 5,
+    "liquidation_proxy_count": 0,
+    "max_reserved_equity_ratio": 1.5482724263151264,
+    "max_gross_equity_ratio": 5.669659533230171,
+    "pause_events": 0,
+    "gross_cap_events": 0
+  },
+  "candidate_trade_diagnostics": {
+    "by_symbol": {
+      "BCH": {
+        "trades": 10,
+        "wins": 3,
+        "net_pnl_usd": -29.094277128525654
+      },
+      "LINK": {
+        "trades": 8,
+        "wins": 3,
+        "net_pnl_usd": -19.14290575776914
+      },
+      "ADA": {
+        "trades": 1,
+        "wins": 1,
+        "net_pnl_usd": 0.26681022074152105
+      },
+      "DOT": {
+        "trades": 2,
+        "wins": 1,
+        "net_pnl_usd": 0.8107313235660465
+      },
+      "UNI": {
+        "trades": 21,
+        "wins": 12,
+        "net_pnl_usd": 1.5035054221243263
+      },
+      "LTC": {
+        "trades": 5,
+        "wins": 2,
+        "net_pnl_usd": 2.5584228196429963
+      },
+      "ICP": {
+        "trades": 6,
+        "wins": 4,
+        "net_pnl_usd": 5.811431765278545
+      },
+      "DOGE": {
+        "trades": 4,
+        "wins": 2,
+        "net_pnl_usd": 10.350170354432205
+      },
+      "ETH": {
+        "trades": 6,
+        "wins": 4,
+        "net_pnl_usd": 12.803548384044955
+      },
+      "AVAX": {
+        "trades": 1,
+        "wins": 1,
+        "net_pnl_usd": 20.256559000957598
+      }
+    },
+    "by_month": {
+      "2021-05": {
+        "trades": 15,
+        "wins": 7,
+        "net_pnl_usd": -36.5252683114358
+      },
+      "2021-06": {
+        "trades": 19,
+        "wins": 9,
+        "net_pnl_usd": -13.279184339967916
+      },
+      "2021-07": {
+        "trades": 22,
+        "wins": 12,
+        "net_pnl_usd": 33.40806357061472
+      },
+      "2021-08": {
+        "trades": 8,
+        "wins": 5,
+        "net_pnl_usd": 22.520385485282375
+      }
+    },
+    "largest_losses": [
+      {
+        "symbol": "BCH",
+        "entry_ts": 1620860400000,
+        "exit_ts": 1620874800000,
+        "margin": 100.44402450319609,
+        "quantity": 0.21637494552110026,
+        "net_pnl": -18.63328574700627,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1622278800000,
+        "exit_ts": 1622304000000,
+        "margin": 75.543243215608,
+        "quantity": 5.82082675720322,
+        "net_pnl": -15.080342095898256,
+        "proxy": false
+      },
+      {
+        "symbol": "LINK",
+        "entry_ts": 1621494000000,
+        "exit_ts": 1621497600000,
+        "margin": 82.80727462405464,
+        "quantity": 8.635879263721643,
+        "net_pnl": -10.850905189418228,
+        "proxy": false
+      },
+      {
+        "symbol": "LINK",
+        "entry_ts": 1622350800000,
+        "exit_ts": 1622354400000,
+        "margin": 69.78738355554523,
+        "quantity": 8.184000917377196,
+        "net_pnl": -10.475618251224866,
+        "proxy": false
+      },
+      {
+        "symbol": "ICP",
+        "entry_ts": 1623348000000,
+        "exit_ts": 1623355200000,
+        "margin": 46.78398422564577,
+        "quantity": 3.350138182193512,
+        "net_pnl": -9.87437955921564,
+        "proxy": false
+      },
+      {
+        "symbol": "BCH",
+        "entry_ts": 1623099600000,
+        "exit_ts": 1623114000000,
+        "margin": 60.111643427339885,
+        "quantity": 0.2894507473236765,
+        "net_pnl": -7.908967023541144,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1621497600000,
+        "exit_ts": 1621522800000,
+        "margin": 72.59255298802894,
+        "quantity": 5.553334689885618,
+        "net_pnl": -7.190551749430184,
+        "proxy": false
+      },
+      {
+        "symbol": "BCH",
+        "entry_ts": 1627333200000,
+        "exit_ts": 1627347600000,
+        "margin": 85.15267351704561,
+        "quantity": 0.5163491411194084,
+        "net_pnl": -6.696169715319084,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1628503200000,
+        "exit_ts": 1628528400000,
+        "margin": 80.76941203833397,
+        "quantity": 5.912292824368004,
+        "net_pnl": -6.660010349415203,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1626256800000,
+        "exit_ts": 1626282000000,
+        "margin": 68.32305332696771,
+        "quantity": 7.925395264842207,
+        "net_pnl": -5.9931717971951155,
+        "proxy": false
+      },
+      {
+        "symbol": "BCH",
+        "entry_ts": 1628888400000,
+        "exit_ts": 1628902800000,
+        "margin": 74.38376681211474,
+        "quantity": 0.3464645684237579,
+        "net_pnl": -5.867534015925093,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1625043600000,
+        "exit_ts": 1625068800000,
+        "margin": 52.96527486627234,
+        "quantity": 5.928979894697021,
+        "net_pnl": -3.724301232187288,
+        "proxy": false
+      },
+      {
+        "symbol": "BCH",
+        "entry_ts": 1621548000000,
+        "exit_ts": 1621562400000,
+        "margin": 65.71242349481058,
+        "quantity": 0.23919922581715453,
+        "net_pnl": -3.550910890029685,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1624010400000,
+        "exit_ts": 1624035600000,
+        "margin": 49.13079366949709,
+        "quantity": 4.62184507674087,
+        "net_pnl": -3.3929182295577194,
+        "proxy": false
+      },
+      {
+        "symbol": "LTC",
+        "entry_ts": 1623182400000,
+        "exit_ts": 1623186000000,
+        "margin": 55.92505382754423,
+        "quantity": 1.0548037163069843,
+        "net_pnl": -2.8125527514671207,
+        "proxy": false
+      },
+      {
+        "symbol": "LINK",
+        "entry_ts": 1627088400000,
+        "exit_ts": 1627092000000,
+        "margin": 71.96711670349035,
+        "quantity": 12.995398629010934,
+        "net_pnl": -2.3987456312854305,
+        "proxy": false
+      },
+      {
+        "symbol": "DOT",
+        "entry_ts": 1627268400000,
+        "exit_ts": 1627272000000,
+        "margin": 78.47362429903853,
+        "quantity": 15.98777610608458,
+        "net_pnl": -2.108484078110877,
+        "proxy": false
+      },
+      {
+        "symbol": "ETH",
+        "entry_ts": 1625086800000,
+        "exit_ts": 1625090400000,
+        "margin": 49.39235887843531,
+        "quantity": 0.06625274050348982,
+        "net_pnl": -1.9543349340653071,
+        "proxy": false
+      },
+      {
+        "symbol": "ETH",
+        "entry_ts": 1625745600000,
+        "exit_ts": 1625749200000,
+        "margin": 61.03852721634436,
+        "quantity": 0.08442304255569837,
+        "net_pnl": -0.9250742827302915,
+        "proxy": false
+      },
+      {
+        "symbol": "UNI",
+        "entry_ts": 1627635600000,
+        "exit_ts": 1627660800000,
+        "margin": 80.3622030928676,
+        "quantity": 8.124798651642672,
+        "net_pnl": -0.9128184538283266,
+        "proxy": false
+      }
+    ]
+  },
+  "limitations": [
+    "This is diagnosis of an observed historical regime, not a deployable date filter.",
+    "Dollar PnL attribution depends on the compounded path and should not be treated as standalone symbol expectancy.",
+    "No live state, orders, switches, or adopted standards changed."
+  ]
+}

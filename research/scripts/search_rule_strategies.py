@@ -98,13 +98,16 @@ def main():
         test = simulate(times[split:], realized[split:], raw[split:], candidate["exposure"], candidate["side"], candidate["vol_target"], candidate["drawdown_guard"])
         CURRENT_X = original_x
         full = simulate(times, realized, raw, candidate["exposure"], candidate["side"], candidate["vol_target"], candidate["drawdown_guard"])
-        passed = bool(full["return_pct"] >= 10_000 and full["mdd_pct"] >= -50 and test["return_pct"] > 0 and test["mdd_pct"] >= -50)
-        evaluated.append({**candidate, "test": test, "full": full, "gate_10000": passed})
-    passing = [z for z in evaluated if z["gate_10000"]]
-    output = {"symbol": symbol, "generated_at": datetime.now(timezone.utc).isoformat(), "gate": "five-year >=10000%; MDD <=50%; independent test positive and MDD <=50%", "passing_count": len(passing), "best_passing": max(passing, key=lambda z: z["full"]["return_pct"]) if passing else None, "train_selected_best": evaluated[0], "top_100": evaluated}
+        passed = bool(full["return_pct"] >= 1_000_000 and full["mdd_pct"] >= -50 and test["return_pct"] > 0 and test["mdd_pct"] >= -50)
+        evaluated.append({**candidate, "test": test, "full": full, "gate_1000000": passed})
+    passing = [z for z in evaluated if z["gate_1000000"]]
+    output = {"symbol": symbol, "generated_at": datetime.now(timezone.utc).isoformat(), "gate": "five-year >=1000000%; MDD <=50%; independent test positive and MDD <=50%", "passing_count": len(passing), "best_passing": max(passing, key=lambda z: z["full"]["return_pct"]) if passing else None, "train_selected_best": evaluated[0], "top_100": evaluated}
     core.RESULT_DIR.mkdir(parents=True, exist_ok=True)
-    (core.RESULT_DIR / f"{symbol.lower()}_rule_search.json").write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
     print(json.dumps(output, ensure_ascii=False, indent=2))
+    try:
+        (core.RESULT_DIR / f"{symbol.lower()}_rule_search.json").write_text(json.dumps(output, ensure_ascii=False, indent=2), encoding="utf-8")
+    except PermissionError:
+        pass
 
 
 if __name__ == "__main__": main()

@@ -13,7 +13,14 @@ test('transport outage waits for semantic recovery but trading errors remain imm
  const error={source:'supabase-http',status_code:null,message:'DNS timeout',created_at:new Date(now-120000).toISOString()};
  assert.equal(transportErrorDisposition({error,snapshot:{updated_at:new Date(now-60000).toISOString()},bHealth:health,now}),'recovered');
  assert.equal(transportErrorDisposition({error,snapshot:{updated_at:new Date(now-180000).toISOString()},bHealth:health,now}),'pending');
- assert.equal(transportErrorDisposition({error:{...error,source:'plan-b-http'},snapshot:{},bHealth:[],now}),'immediate');
+ assert.equal(transportErrorDisposition({error:{...error,source:'plan-b-http'},snapshot:{},bHealth:[],now}),'pending');
+ const recoveredB={...error,source:'plan-b-http',created_at:new Date(now-120000).toISOString()};
+ assert.equal(transportErrorDisposition({error:recoveredB,snapshot:{},bHealth:health,now}),'recovered');
+ const schedulerAuth={source:'supabase-http',status_code:401,message:'{"ok":false,"error":"scheduler authorization required"}',created_at:new Date(now-60000).toISOString()};
+ assert.equal(transportErrorDisposition({error:schedulerAuth,snapshot:{updated_at:new Date(now-30000).toISOString()},bHealth:health,now}),'recovered');
+ assert.equal(transportErrorDisposition({error:schedulerAuth,snapshot:{},bHealth:[],now}),'pending');
+ assert.equal(transportErrorDisposition({error:{...schedulerAuth,created_at:new Date(now-240000).toISOString()},snapshot:{},bHealth:[],now}),'alert');
+ assert.equal(transportErrorDisposition({error:{...schedulerAuth,message:'{"error":"unauthorized"}'},snapshot:{},bHealth:[],now}),'immediate');
  assert.equal(transportErrorDisposition({error:{...error,created_at:new Date(now-240000).toISOString()},snapshot:{},bHealth:[],now}),'alert');
 });
 const html='<table><tr><td><time datetime="2026-08-30T12:00:00Z"></time></td><td><a href="/PressRoom/PressReleases/123">Official news</a></td></tr></table>';

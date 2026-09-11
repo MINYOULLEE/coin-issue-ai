@@ -1,0 +1,2526 @@
+{
+  "id": "A-STAGE123-SELECTIVE-RESIZE-COMBINATIONS",
+  "generated_at": "2026-09-10T16:13:44.621943+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "screens": 31,
+  "screen_passing": 11,
+  "ranked": [
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5661161.149602066,
+        "return_pct": 5661061.149602066,
+        "close_mark_mdd_pct": -51.36785859399253,
+        "hourly_adverse_bound_mdd_pct": -52.15634861409866,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8810,
+        "total_order_events": 8969,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 56,
+        "selective_resize_skips": 1125,
+        "turnover_usd": 1204900137.483332,
+        "funding_paid_usd": -6519.120382808254,
+        "max_open_gross_equity_ratio": 2.5686087948548018,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8562029316182672,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8796779119298785,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1495
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1126729.659762352,
+        "return_pct": 1126629.659762352,
+        "close_mark_mdd_pct": -54.19394560238272,
+        "hourly_adverse_bound_mdd_pct": -54.937087571067124,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8704,
+        "total_order_events": 8861,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 76,
+        "selective_resize_skips": 1109,
+        "turnover_usd": 284788781.1860994,
+        "funding_paid_usd": -637.4737190724331,
+        "max_open_gross_equity_ratio": 2.593379199781542,
+        "max_open_required_margin_equity_ratio_at_3x": 0.864459733260514,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8881738814142345,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 5093623.50026394,
+        "return_pct": 5093523.50026394,
+        "close_mark_mdd_pct": -48.004634598740296,
+        "hourly_adverse_bound_mdd_pct": -49.038426641180465,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7645,
+        "total_order_events": 7707,
+        "emergency_stop_exits": 62,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 988,
+        "turnover_usd": 1084081450.5530262,
+        "funding_paid_usd": -5859.958389830151,
+        "max_open_gross_equity_ratio": 2.608966557352537,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8696555191175125,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8934926966842515,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2459349.372508682,
+        "return_pct": 2459249.372508682,
+        "close_mark_mdd_pct": -52.80036553088614,
+        "hourly_adverse_bound_mdd_pct": -53.51236547415918,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8775,
+        "total_order_events": 8934,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 68,
+        "selective_resize_skips": 1108,
+        "turnover_usd": 568927488.4107195,
+        "funding_paid_usd": -2179.256654152423,
+        "max_open_gross_equity_ratio": 2.6069991979812905,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8689997326604302,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8928257027641191,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5884494.740379012,
+        "return_pct": 5884394.740379012,
+        "close_mark_mdd_pct": -51.491480600485694,
+        "hourly_adverse_bound_mdd_pct": -52.171564380329706,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9107,
+        "total_order_events": 9264,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 46,
+        "selective_resize_skips": 678,
+        "turnover_usd": 1253534871.5793297,
+        "funding_paid_usd": -6639.789000851831,
+        "max_open_gross_equity_ratio": 2.5676998475569235,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558999491856412,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8784796400568925,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1480
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1122128.1847597384,
+        "return_pct": 1122028.1847597384,
+        "close_mark_mdd_pct": -54.36039130749043,
+        "hourly_adverse_bound_mdd_pct": -55.10140953402857,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8997,
+        "total_order_events": 9152,
+        "emergency_stop_exits": 155,
+        "minimum_order_skips": 76,
+        "selective_resize_skips": 658,
+        "turnover_usd": 283941910.72934127,
+        "funding_paid_usd": -601.0638268519517,
+        "max_open_gross_equity_ratio": 2.5929187861346095,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8643062620448699,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8880128986790486,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1715
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 5151547.941675011,
+        "return_pct": 5151447.941675011,
+        "close_mark_mdd_pct": -47.47978531823637,
+        "hourly_adverse_bound_mdd_pct": -48.52297002727413,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7930,
+        "total_order_events": 7991,
+        "emergency_stop_exits": 61,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 624,
+        "turnover_usd": 1097378166.7572472,
+        "funding_paid_usd": -5807.224545134467,
+        "max_open_gross_equity_ratio": 2.6092395602376968,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8697465200792324,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8935877950068927,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 315
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2416976.156786445,
+        "return_pct": 2416876.156786445,
+        "close_mark_mdd_pct": -53.033004750151555,
+        "hourly_adverse_bound_mdd_pct": -53.74348625143139,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9054,
+        "total_order_events": 9210,
+        "emergency_stop_exits": 156,
+        "minimum_order_skips": 69,
+        "selective_resize_skips": 667,
+        "turnover_usd": 559682373.1088921,
+        "funding_paid_usd": -2078.94791271895,
+        "max_open_gross_equity_ratio": 2.568865894485807,
+        "max_open_required_margin_equity_ratio_at_3x": 0.856288631495269,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8783301415383049,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5847761.351390658,
+        "return_pct": 5847661.351390658,
+        "close_mark_mdd_pct": -51.09967519357963,
+        "hourly_adverse_bound_mdd_pct": -51.88441708557694,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8642,
+        "total_order_events": 8808,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 38,
+        "selective_resize_skips": 1355,
+        "turnover_usd": 1244232721.4614685,
+        "funding_paid_usd": -6719.185137697571,
+        "max_open_gross_equity_ratio": 2.577468647087821,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8591562156959405,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8827126279795673,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1470
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1105967.452087125,
+        "return_pct": 1105867.452087125,
+        "close_mark_mdd_pct": -53.95771704863969,
+        "hourly_adverse_bound_mdd_pct": -54.70336877694753,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8527,
+        "total_order_events": 8688,
+        "emergency_stop_exits": 161,
+        "minimum_order_skips": 73,
+        "selective_resize_skips": 1374,
+        "turnover_usd": 279423005.0718095,
+        "funding_paid_usd": -629.1858763598035,
+        "max_open_gross_equity_ratio": 2.5892874572004128,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8630958190668042,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8867634232798186,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1700
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 4945480.1318060225,
+        "return_pct": 4945380.1318060225,
+        "close_mark_mdd_pct": -48.0396572021147,
+        "hourly_adverse_bound_mdd_pct": -49.06831622775505,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7472,
+        "total_order_events": 7538,
+        "emergency_stop_exits": 66,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 1183,
+        "turnover_usd": 1052229942.3717858,
+        "funding_paid_usd": -5675.89380494973,
+        "max_open_gross_equity_ratio": 2.6030663412196464,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8676887804065488,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8914696199137689,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2628075.7782426425,
+        "return_pct": 2627975.7782426425,
+        "close_mark_mdd_pct": -53.257678286049526,
+        "hourly_adverse_bound_mdd_pct": -53.96757779369401,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8619,
+        "total_order_events": 8784,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 42,
+        "selective_resize_skips": 1372,
+        "turnover_usd": 607728855.6916738,
+        "funding_paid_usd": -2336.446850047942,
+        "max_open_gross_equity_ratio": 2.591926756084928,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8639755853616428,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8876686892573397,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1615
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5601852.9238714585,
+        "return_pct": 5601752.9238714585,
+        "close_mark_mdd_pct": -51.12874437846637,
+        "hourly_adverse_bound_mdd_pct": -51.91490801355458,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9000,
+        "total_order_events": 9160,
+        "emergency_stop_exits": 160,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 939,
+        "turnover_usd": 1194629358.701151,
+        "funding_paid_usd": -6372.704528201312,
+        "max_open_gross_equity_ratio": 2.567685697046298,
+        "max_open_required_margin_equity_ratio_at_3x": 0.855895232348766,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8780098801228734,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1465
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1104472.9147845204,
+        "return_pct": 1104372.9147845204,
+        "close_mark_mdd_pct": -53.9999556078556,
+        "hourly_adverse_bound_mdd_pct": -54.744286567112724,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8881,
+        "total_order_events": 9038,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 74,
+        "selective_resize_skips": 944,
+        "turnover_usd": 279817527.4294907,
+        "funding_paid_usd": -606.707646635648,
+        "max_open_gross_equity_ratio": 2.594725980651861,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8649086602172871,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8886261155550325,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1705
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 5030723.098462671,
+        "return_pct": 5030623.098462671,
+        "close_mark_mdd_pct": -48.01245985181178,
+        "hourly_adverse_bound_mdd_pct": -49.046323833120674,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7800,
+        "total_order_events": 7863,
+        "emergency_stop_exits": 63,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 823,
+        "turnover_usd": 1072800680.7475737,
+        "funding_paid_usd": -5715.58352244073,
+        "max_open_gross_equity_ratio": 2.6089296549582497,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8696432183194166,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8934815809641901,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2429242.815781843,
+        "return_pct": 2429142.815781843,
+        "close_mark_mdd_pct": -53.26827747895345,
+        "hourly_adverse_bound_mdd_pct": -53.976343374746016,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8964,
+        "total_order_events": 9122,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 59,
+        "selective_resize_skips": 933,
+        "turnover_usd": 563120895.2101983,
+        "funding_paid_usd": -2120.7055494793153,
+        "max_open_gross_equity_ratio": 2.6062917411651263,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8687639137217088,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8925805294540066,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1615
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5622923.131882051,
+        "return_pct": 5622823.131882051,
+        "close_mark_mdd_pct": -51.36785859399253,
+        "hourly_adverse_bound_mdd_pct": -52.15634861409866,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9046,
+        "total_order_events": 9205,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 56,
+        "selective_resize_skips": 889,
+        "turnover_usd": 1205355078.507971,
+        "funding_paid_usd": -6019.724772433579,
+        "max_open_gross_equity_ratio": 2.5686087948548018,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8562029316182672,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8796779119298785,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1495
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1103447.8010123267,
+        "return_pct": 1103347.8010123267,
+        "close_mark_mdd_pct": -54.19394560238272,
+        "hourly_adverse_bound_mdd_pct": -54.937087571067124,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8913,
+        "total_order_events": 9070,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 76,
+        "selective_resize_skips": 905,
+        "turnover_usd": 281450478.5384853,
+        "funding_paid_usd": -510.3994699289767,
+        "max_open_gross_equity_ratio": 2.593379199781542,
+        "max_open_required_margin_equity_ratio_at_3x": 0.864459733260514,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8881738814142345,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 5020873.830763308,
+        "return_pct": 5020773.830763308,
+        "close_mark_mdd_pct": -48.004634598740296,
+        "hourly_adverse_bound_mdd_pct": -49.038426641180465,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7867,
+        "total_order_events": 7929,
+        "emergency_stop_exits": 62,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 761,
+        "turnover_usd": 1076593317.6157677,
+        "funding_paid_usd": -5357.780143264894,
+        "max_open_gross_equity_ratio": 2.608966557352537,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8696555191175125,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8934926966842515,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2411555.2040614784,
+        "return_pct": 2411455.2040614784,
+        "close_mark_mdd_pct": -52.80036553088614,
+        "hourly_adverse_bound_mdd_pct": -53.51236547415918,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8990,
+        "total_order_events": 9149,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 68,
+        "selective_resize_skips": 893,
+        "turnover_usd": 562577594.2510566,
+        "funding_paid_usd": -1911.8616649404719,
+        "max_open_gross_equity_ratio": 2.6069991979812905,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8689997326604302,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8928257027641191,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5780481.792700071,
+        "return_pct": 5780381.792700071,
+        "close_mark_mdd_pct": -51.491480600485694,
+        "hourly_adverse_bound_mdd_pct": -52.171564380329706,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9346,
+        "total_order_events": 9503,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 46,
+        "selective_resize_skips": 443,
+        "turnover_usd": 1240611382.8657186,
+        "funding_paid_usd": -6039.656288581435,
+        "max_open_gross_equity_ratio": 2.567692072740028,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558973575800093,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8784796400568925,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1480
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1099710.6014600836,
+        "return_pct": 1099610.6014600836,
+        "close_mark_mdd_pct": -54.36039130749043,
+        "hourly_adverse_bound_mdd_pct": -55.10140953402857,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9200,
+        "total_order_events": 9355,
+        "emergency_stop_exits": 155,
+        "minimum_order_skips": 76,
+        "selective_resize_skips": 447,
+        "turnover_usd": 280811584.64863896,
+        "funding_paid_usd": -475.40058657231793,
+        "max_open_gross_equity_ratio": 2.5929187861346095,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8643062620448699,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8880128986790486,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1715
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 5069247.208429479,
+        "return_pct": 5069147.208429479,
+        "close_mark_mdd_pct": -47.47978531823637,
+        "hourly_adverse_bound_mdd_pct": -48.52297002727413,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 8156,
+        "total_order_events": 8217,
+        "emergency_stop_exits": 61,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 391,
+        "turnover_usd": 1087940014.8718596,
+        "funding_paid_usd": -5290.864225198805,
+        "max_open_gross_equity_ratio": 2.6092395602376968,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8697465200792324,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8935877950068927,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 315
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2368319.1678120308,
+        "return_pct": 2368219.1678120308,
+        "close_mark_mdd_pct": -53.033004750151555,
+        "hourly_adverse_bound_mdd_pct": -53.74348625143139,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9276,
+        "total_order_events": 9432,
+        "emergency_stop_exits": 156,
+        "minimum_order_skips": 69,
+        "selective_resize_skips": 446,
+        "turnover_usd": 553046931.2570329,
+        "funding_paid_usd": -1814.844733243007,
+        "max_open_gross_equity_ratio": 2.568873171104542,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8562910570348473,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8783326906375856,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5848077.441638039,
+        "return_pct": 5847977.441638039,
+        "close_mark_mdd_pct": -51.23177445962389,
+        "hourly_adverse_bound_mdd_pct": -52.01580071282612,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8926,
+        "total_order_events": 9090,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 919,
+        "turnover_usd": 1245604412.3081062,
+        "funding_paid_usd": -6585.594538811549,
+        "max_open_gross_equity_ratio": 2.5936372006734145,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8645457335578048,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8882490376434364,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1465
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1099288.802486491,
+        "return_pct": 1099188.802486491,
+        "close_mark_mdd_pct": -54.12527281857439,
+        "hourly_adverse_bound_mdd_pct": -54.868800804736,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8828,
+        "total_order_events": 8989,
+        "emergency_stop_exits": 161,
+        "minimum_order_skips": 74,
+        "selective_resize_skips": 913,
+        "turnover_usd": 278049710.04076487,
+        "funding_paid_usd": -591.8753561455716,
+        "max_open_gross_equity_ratio": 2.5879912899156468,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8626637633052154,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8863186514867206,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1700
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 4936260.4299512105,
+        "return_pct": 4936160.4299512105,
+        "close_mark_mdd_pct": -48.09498733078756,
+        "hourly_adverse_bound_mdd_pct": -49.12424077863066,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 7771,
+        "total_order_events": 7836,
+        "emergency_stop_exits": 65,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 818,
+        "turnover_usd": 1051369934.9161501,
+        "funding_paid_usd": -5553.663547946738,
+        "max_open_gross_equity_ratio": 2.6055102671659403,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8685034223886468,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8923125980094465,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2469351.1289031524,
+        "return_pct": 2469251.1289031524,
+        "close_mark_mdd_pct": -53.4411532916546,
+        "hourly_adverse_bound_mdd_pct": -54.149429300686315,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8841,
+        "total_order_events": 9004,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 55,
+        "selective_resize_skips": 925,
+        "turnover_usd": 571603320.2968817,
+        "funding_paid_usd": -2125.5674643466714,
+        "max_open_gross_equity_ratio": 2.587470308491756,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8624901028305851,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8861502975700831,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1635
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5523070.500331741,
+        "return_pct": 5522970.500331741,
+        "close_mark_mdd_pct": -51.12874437846637,
+        "hourly_adverse_bound_mdd_pct": -51.91490801355458,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9230,
+        "total_order_events": 9390,
+        "emergency_stop_exits": 160,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 701,
+        "turnover_usd": 1186289658.4037974,
+        "funding_paid_usd": -5833.115813596718,
+        "max_open_gross_equity_ratio": 2.567712796763088,
+        "max_open_required_margin_equity_ratio_at_3x": 0.855904265587696,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8780098801228734,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1465
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1084209.8535190225,
+        "return_pct": 1084109.8535190225,
+        "close_mark_mdd_pct": -53.9999556078556,
+        "hourly_adverse_bound_mdd_pct": -54.744286567112724,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9082,
+        "total_order_events": 9239,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 74,
+        "selective_resize_skips": 735,
+        "turnover_usd": 277174980.454709,
+        "funding_paid_usd": -485.8019739996677,
+        "max_open_gross_equity_ratio": 2.594725980651861,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8649086602172871,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8886261155550325,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1705
+        }
+      },
+      "screen_pass": true,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 4946235.977213312,
+        "return_pct": 4946135.977213312,
+        "close_mark_mdd_pct": -48.01245985181178,
+        "hourly_adverse_bound_mdd_pct": -49.046323833120674,
+        "allocation_actions": 9140,
+        "executed_rebalance_orders": 8026,
+        "total_order_events": 8089,
+        "emergency_stop_exits": 63,
+        "minimum_order_skips": 0,
+        "selective_resize_skips": 598,
+        "turnover_usd": 1062626364.1667178,
+        "funding_paid_usd": -5216.31720569974,
+        "max_open_gross_equity_ratio": 2.6089296549582497,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8696432183194166,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8934815809641901,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 1,
+          "guarded_symbol_decisions": 320
+        }
+      },
+      "double": {
+        "start_usd": 100,
+        "end_usd": 2383739.2613603473,
+        "return_pct": 2383639.2613603473,
+        "close_mark_mdd_pct": -53.26827747895345,
+        "hourly_adverse_bound_mdd_pct": -53.976343374746016,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9178,
+        "total_order_events": 9336,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 59,
+        "selective_resize_skips": 717,
+        "turnover_usd": 557234046.9349184,
+        "funding_paid_usd": -1857.1714536529357,
+        "max_open_gross_equity_ratio": 2.6062917411651263,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8687639137217088,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8925805294540066,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1615
+        }
+      },
+      "pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5747634.334307404,
+        "return_pct": 5747534.334307404,
+        "close_mark_mdd_pct": -51.09967519357963,
+        "hourly_adverse_bound_mdd_pct": -51.88441708557694,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8874,
+        "total_order_events": 9040,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 38,
+        "selective_resize_skips": 1119,
+        "turnover_usd": 1231709798.018004,
+        "funding_paid_usd": -6137.720240872345,
+        "max_open_gross_equity_ratio": 2.577468647087821,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8591562156959405,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8827126279795673,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1470
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1083306.0116091121,
+        "return_pct": 1083206.0116091121,
+        "close_mark_mdd_pct": -53.95771704863969,
+        "hourly_adverse_bound_mdd_pct": -54.70336877694753,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8735,
+        "total_order_events": 8896,
+        "emergency_stop_exits": 161,
+        "minimum_order_skips": 73,
+        "selective_resize_skips": 1164,
+        "turnover_usd": 276178571.8134349,
+        "funding_paid_usd": -507.6276197859082,
+        "max_open_gross_equity_ratio": 2.5892874572004128,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8630958190668042,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8867634232798186,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1700
+        }
+      },
+      "screen_pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5746430.099690788,
+        "return_pct": 5746330.099690788,
+        "close_mark_mdd_pct": -51.23177445962389,
+        "hourly_adverse_bound_mdd_pct": -52.01580071282612,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9157,
+        "total_order_events": 9321,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 680,
+        "turnover_usd": 1233118305.0695496,
+        "funding_paid_usd": -5991.243885107062,
+        "max_open_gross_equity_ratio": 2.5936372006734145,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8645457335578048,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8882490376434364,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1465
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1077015.6204282,
+        "return_pct": 1076915.6204282,
+        "close_mark_mdd_pct": -54.12527281857439,
+        "hourly_adverse_bound_mdd_pct": -54.868800804736,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9039,
+        "total_order_events": 9199,
+        "emergency_stop_exits": 160,
+        "minimum_order_skips": 74,
+        "selective_resize_skips": 704,
+        "turnover_usd": 274903754.0458757,
+        "funding_paid_usd": -468.8190159045698,
+        "max_open_gross_equity_ratio": 2.5879912899156468,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8626637633052154,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8863186514867206,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1700
+        }
+      },
+      "screen_pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5801879.6431524195,
+        "return_pct": 5801779.6431524195,
+        "close_mark_mdd_pct": -51.26120553555757,
+        "hourly_adverse_bound_mdd_pct": -52.04665353185073,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9303,
+        "total_order_events": 9461,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 498,
+        "turnover_usd": 1238378732.1322994,
+        "funding_paid_usd": -6464.112888217197,
+        "max_open_gross_equity_ratio": 2.567712821649945,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8559042738833151,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8781350730272726,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1460
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1019535.1613729768,
+        "return_pct": 1019435.1613729768,
+        "close_mark_mdd_pct": -54.16523984106374,
+        "hourly_adverse_bound_mdd_pct": -54.91017251262183,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9145,
+        "total_order_events": 9300,
+        "emergency_stop_exits": 155,
+        "minimum_order_skips": 81,
+        "selective_resize_skips": 478,
+        "turnover_usd": 258585353.99929863,
+        "funding_paid_usd": -530.1900178319275,
+        "max_open_gross_equity_ratio": 2.588492463772133,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8628308212573776,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8864994071213964,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "screen_pass": true
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5715145.315066395,
+        "return_pct": 5715045.315066395,
+        "close_mark_mdd_pct": -51.26120553555757,
+        "hourly_adverse_bound_mdd_pct": -52.04665353185073,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9526,
+        "total_order_events": 9684,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 41,
+        "selective_resize_skips": 263,
+        "turnover_usd": 1229011403.4750986,
+        "funding_paid_usd": -5888.402074531509,
+        "max_open_gross_equity_ratio": 2.5677070851807353,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8559023617269117,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8781350730272726,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1460
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 997831.5704707657,
+        "return_pct": 997731.5704707657,
+        "close_mark_mdd_pct": -54.16523984106374,
+        "hourly_adverse_bound_mdd_pct": -54.91017251262183,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9362,
+        "total_order_events": 9517,
+        "emergency_stop_exits": 155,
+        "minimum_order_skips": 81,
+        "selective_resize_skips": 262,
+        "turnover_usd": 255397674.93879607,
+        "funding_paid_usd": -414.5526347496268,
+        "max_open_gross_equity_ratio": 2.588492463772133,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8628308212573776,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8864994071213964,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1735
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5535249.321574968,
+        "return_pct": 5535149.321574968,
+        "close_mark_mdd_pct": -51.4286942709531,
+        "hourly_adverse_bound_mdd_pct": -52.21723309306143,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8736,
+        "total_order_events": 8902,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 43,
+        "selective_resize_skips": 1101,
+        "turnover_usd": 1176658050.3528492,
+        "funding_paid_usd": -6313.157506293909,
+        "max_open_gross_equity_ratio": 2.567689393123407,
+        "max_open_required_margin_equity_ratio_at_3x": 0.855896464374469,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8783137428190914,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1485
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 841692.3160390772,
+        "return_pct": 841592.3160390772,
+        "close_mark_mdd_pct": -54.33580275355134,
+        "hourly_adverse_bound_mdd_pct": -55.07904556257264,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8536,
+        "total_order_events": 8698,
+        "emergency_stop_exits": 162,
+        "minimum_order_skips": 89,
+        "selective_resize_skips": 1116,
+        "turnover_usd": 212396736.17040506,
+        "funding_paid_usd": -469.1523739560543,
+        "max_open_gross_equity_ratio": 2.5699490393074402,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566496797691467,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.878706155749745,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1785
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5614228.451983025,
+        "return_pct": 5614128.451983025,
+        "close_mark_mdd_pct": -51.29740039125955,
+        "hourly_adverse_bound_mdd_pct": -52.0815527839657,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8454,
+        "total_order_events": 8622,
+        "emergency_stop_exits": 168,
+        "minimum_order_skips": 43,
+        "selective_resize_skips": 1545,
+        "turnover_usd": 1192195118.0538826,
+        "funding_paid_usd": -6529.784966719838,
+        "max_open_gross_equity_ratio": 2.5677127751025757,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8559042583675254,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.878138663421653,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1485
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 836836.3271513119,
+        "return_pct": 836736.3271513119,
+        "close_mark_mdd_pct": -54.170330887323836,
+        "hourly_adverse_bound_mdd_pct": -54.91526355888191,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8277,
+        "total_order_events": 8442,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 89,
+        "selective_resize_skips": 1573,
+        "turnover_usd": 210939180.63961276,
+        "funding_paid_usd": -491.6227186701992,
+        "max_open_gross_equity_ratio": 2.56990663120324,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566355437344133,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786913080304798,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1785
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5504388.738686446,
+        "return_pct": 5504288.738686446,
+        "close_mark_mdd_pct": -51.4286942709531,
+        "hourly_adverse_bound_mdd_pct": -52.21723309306143,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8972,
+        "total_order_events": 9138,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 43,
+        "selective_resize_skips": 865,
+        "turnover_usd": 1178855133.520837,
+        "funding_paid_usd": -5818.954474002521,
+        "max_open_gross_equity_ratio": 2.567708365155438,
+        "max_open_required_margin_equity_ratio_at_3x": 0.855902788385146,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8783137428190914,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1485
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 826131.3481304618,
+        "return_pct": 826031.3481304618,
+        "close_mark_mdd_pct": -54.33580275355134,
+        "hourly_adverse_bound_mdd_pct": -55.07904556257264,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8737,
+        "total_order_events": 8899,
+        "emergency_stop_exits": 162,
+        "minimum_order_skips": 89,
+        "selective_resize_skips": 908,
+        "turnover_usd": 210373509.41150832,
+        "funding_paid_usd": -375.5294631213957,
+        "max_open_gross_equity_ratio": 2.569830131498723,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566100438329076,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786645368132551,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1785
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "long",
+          "decrease"
+        ],
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5516052.56090524,
+        "return_pct": 5515952.56090524,
+        "close_mark_mdd_pct": -51.29740039125955,
+        "hourly_adverse_bound_mdd_pct": -52.0815527839657,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8684,
+        "total_order_events": 8852,
+        "emergency_stop_exits": 168,
+        "minimum_order_skips": 43,
+        "selective_resize_skips": 1312,
+        "turnover_usd": 1179755631.640556,
+        "funding_paid_usd": -5970.13418500197,
+        "max_open_gross_equity_ratio": 2.5677172964114825,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8559057654704941,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.878138663421653,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 6,
+          "guarded_symbol_decisions": 1485
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 822079.5121823873,
+        "return_pct": 821979.5121823873,
+        "close_mark_mdd_pct": -54.170330887323836,
+        "hourly_adverse_bound_mdd_pct": -54.91526355888191,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8467,
+        "total_order_events": 8632,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 89,
+        "selective_resize_skips": 1373,
+        "turnover_usd": 209108322.19656995,
+        "funding_paid_usd": -398.4602200504317,
+        "max_open_gross_equity_ratio": 2.570014190709477,
+        "max_open_required_margin_equity_ratio_at_3x": 0.856671396903159,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787289226211138,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1785
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5072057.660821295,
+        "return_pct": 5071957.660821295,
+        "close_mark_mdd_pct": -51.25554318281673,
+        "hourly_adverse_bound_mdd_pct": -52.040991179109874,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9049,
+        "total_order_events": 9208,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 69,
+        "selective_resize_skips": 847,
+        "turnover_usd": 1106707665.63282,
+        "funding_paid_usd": -4582.856128895968,
+        "max_open_gross_equity_ratio": 2.5689573322886123,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8563191107628708,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.879795515018045,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1645
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 763182.3133436377,
+        "return_pct": 763082.3133436377,
+        "close_mark_mdd_pct": -55.9802589254519,
+        "hourly_adverse_bound_mdd_pct": -56.92193401187924,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8787,
+        "total_order_events": 8945,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 112,
+        "selective_resize_skips": 879,
+        "turnover_usd": 198335648.6148577,
+        "funding_paid_usd": -199.49834161743925,
+        "max_open_gross_equity_ratio": 2.5698975165693825,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566325055231275,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786880960634071,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5306105.216024799,
+        "return_pct": 5306005.216024799,
+        "close_mark_mdd_pct": -51.56895014926812,
+        "hourly_adverse_bound_mdd_pct": -52.24953655640234,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9307,
+        "total_order_events": 9464,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 70,
+        "selective_resize_skips": 415,
+        "turnover_usd": 1158819445.2775853,
+        "funding_paid_usd": -4668.928075988828,
+        "max_open_gross_equity_ratio": 2.5913070487844263,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8637690162614753,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8874534362862606,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1625
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 751417.831878094,
+        "return_pct": 751317.831878094,
+        "close_mark_mdd_pct": -56.012650393738596,
+        "hourly_adverse_bound_mdd_pct": -56.95432548016595,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9086,
+        "total_order_events": 9243,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 113,
+        "selective_resize_skips": 382,
+        "turnover_usd": 195498773.68036076,
+        "funding_paid_usd": -173.49121075663928,
+        "max_open_gross_equity_ratio": 2.5698632229317613,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566210743105871,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786761328012413,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5210027.954534939,
+        "return_pct": 5209927.954534939,
+        "close_mark_mdd_pct": -51.20032634280136,
+        "hourly_adverse_bound_mdd_pct": -51.98653877989175,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8681,
+        "total_order_events": 8845,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 63,
+        "selective_resize_skips": 1276,
+        "turnover_usd": 1134193063.3630443,
+        "funding_paid_usd": -4772.60333531961,
+        "max_open_gross_equity_ratio": 2.586997050635835,
+        "max_open_required_margin_equity_ratio_at_3x": 0.862332350211945,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8859779953977666,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1620
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 748497.8620474009,
+        "return_pct": 748397.8620474009,
+        "close_mark_mdd_pct": -55.689282059417366,
+        "hourly_adverse_bound_mdd_pct": -56.636657034468854,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8440,
+        "total_order_events": 8606,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 118,
+        "selective_resize_skips": 1328,
+        "turnover_usd": 193976606.11910328,
+        "funding_paid_usd": -211.68692348364243,
+        "max_open_gross_equity_ratio": 2.569826061075021,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566086870250069,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786631435860507,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 4995245.87638584,
+        "return_pct": 4995145.87638584,
+        "close_mark_mdd_pct": -51.25554318281673,
+        "hourly_adverse_bound_mdd_pct": -52.040991179109874,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9276,
+        "total_order_events": 9435,
+        "emergency_stop_exits": 159,
+        "minimum_order_skips": 69,
+        "selective_resize_skips": 618,
+        "turnover_usd": 1097988933.0111952,
+        "funding_paid_usd": -4093.4374759236944,
+        "max_open_gross_equity_ratio": 2.5689573322886123,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8563191107628708,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.879795515018045,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1645
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 747820.0157065782,
+        "return_pct": 747720.0157065782,
+        "close_mark_mdd_pct": -55.9802589254519,
+        "hourly_adverse_bound_mdd_pct": -56.92193401187924,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9006,
+        "total_order_events": 9164,
+        "emergency_stop_exits": 158,
+        "minimum_order_skips": 112,
+        "selective_resize_skips": 670,
+        "turnover_usd": 196161377.7294376,
+        "funding_paid_usd": -114.85631192109504,
+        "max_open_gross_equity_ratio": 2.5699617520388327,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566539173462775,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787105239708668,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5182649.425281161,
+        "return_pct": 5182549.425281161,
+        "close_mark_mdd_pct": -51.517174273378494,
+        "hourly_adverse_bound_mdd_pct": -52.19633893742183,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8961,
+        "total_order_events": 9123,
+        "emergency_stop_exits": 162,
+        "minimum_order_skips": 65,
+        "selective_resize_skips": 838,
+        "turnover_usd": 1129429369.032447,
+        "funding_paid_usd": -4626.115274378898,
+        "max_open_gross_equity_ratio": 2.5836575545265905,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8612191848421968,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8848254041457061,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1625
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 746165.5339035578,
+        "return_pct": 746065.5339035578,
+        "close_mark_mdd_pct": -55.659931258480256,
+        "hourly_adverse_bound_mdd_pct": -56.60730623353174,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8718,
+        "total_order_events": 8881,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 118,
+        "selective_resize_skips": 835,
+        "turnover_usd": 193589922.82183823,
+        "funding_paid_usd": -187.98403452071167,
+        "max_open_gross_equity_ratio": 2.570002740751389,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566675802504629,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787248826743389,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5347067.886519826,
+        "return_pct": 5346967.886519826,
+        "close_mark_mdd_pct": -51.339517547648406,
+        "hourly_adverse_bound_mdd_pct": -52.12793023025285,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8835,
+        "total_order_events": 9001,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 50,
+        "selective_resize_skips": 1112,
+        "turnover_usd": 1166268508.42459,
+        "funding_paid_usd": -4828.740180948128,
+        "max_open_gross_equity_ratio": 2.5676887201540244,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558962400513415,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8782215113572658,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1585
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 738145.8135023704,
+        "return_pct": 738045.8135023704,
+        "close_mark_mdd_pct": -53.93596611211804,
+        "hourly_adverse_bound_mdd_pct": -54.68028014738402,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8612,
+        "total_order_events": 8776,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 115,
+        "selective_resize_skips": 1153,
+        "turnover_usd": 191745508.96282724,
+        "funding_paid_usd": -195.90969678745796,
+        "max_open_gross_equity_ratio": 2.608019952883553,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8693399842945176,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8931824715887662,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1935
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5452158.577640915,
+        "return_pct": 5452058.577640915,
+        "close_mark_mdd_pct": -51.38632183823577,
+        "hourly_adverse_bound_mdd_pct": -52.176156263931105,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9210,
+        "total_order_events": 9370,
+        "emergency_stop_exits": 160,
+        "minimum_order_skips": 50,
+        "selective_resize_skips": 684,
+        "turnover_usd": 1191944412.2410908,
+        "funding_paid_usd": -4855.108484819686,
+        "max_open_gross_equity_ratio": 2.567699768915605,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558999229718683,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8784378275038239,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1585
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 737264.6031826165,
+        "return_pct": 737164.6031826165,
+        "close_mark_mdd_pct": -54.1568203792935,
+        "hourly_adverse_bound_mdd_pct": -54.80362202716489,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8977,
+        "total_order_events": 9134,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 111,
+        "selective_resize_skips": 694,
+        "turnover_usd": 192057387.45649582,
+        "funding_paid_usd": -179.2427791168264,
+        "max_open_gross_equity_ratio": 2.569864290113677,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566214300378924,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786765034696331,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1955
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "ETH",
+          "long",
+          "increase"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5213031.225328467,
+        "return_pct": 5212931.225328467,
+        "close_mark_mdd_pct": -51.472979891230494,
+        "hourly_adverse_bound_mdd_pct": -52.15298633357279,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9128,
+        "total_order_events": 9291,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 63,
+        "selective_resize_skips": 661,
+        "turnover_usd": 1138299328.57871,
+        "funding_paid_usd": -4576.184701388866,
+        "max_open_gross_equity_ratio": 2.5842312336406525,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8614104112135509,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8850329450139461,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1620
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 736396.1931073121,
+        "return_pct": 736296.1931073121,
+        "close_mark_mdd_pct": -54.502860150113406,
+        "hourly_adverse_bound_mdd_pct": -55.47375920446483,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8898,
+        "total_order_events": 9061,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 117,
+        "selective_resize_skips": 655,
+        "turnover_usd": 191502403.78272343,
+        "funding_paid_usd": -172.38351610865178,
+        "max_open_gross_equity_ratio": 2.569893150072364,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566310500241213,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786866132645185,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5215673.575550466,
+        "return_pct": 5215573.575550466,
+        "close_mark_mdd_pct": -51.56895014926812,
+        "hourly_adverse_bound_mdd_pct": -52.24953655640234,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9552,
+        "total_order_events": 9709,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 70,
+        "selective_resize_skips": 179,
+        "turnover_usd": 1147828609.4227397,
+        "funding_paid_usd": -4136.22324405601,
+        "max_open_gross_equity_ratio": 2.5913070487844263,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8637690162614753,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8874534362862606,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1625
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 734275.952908899,
+        "return_pct": 734175.952908899,
+        "close_mark_mdd_pct": -56.012650393738596,
+        "hourly_adverse_bound_mdd_pct": -56.95432548016595,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9276,
+        "total_order_events": 9433,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 113,
+        "selective_resize_skips": 183,
+        "turnover_usd": 192831929.23100606,
+        "funding_paid_usd": -89.82580222793915,
+        "max_open_gross_equity_ratio": 2.5699257157065687,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566419052355229,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786980047715808,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5164493.962562221,
+        "return_pct": 5164393.962562221,
+        "close_mark_mdd_pct": -51.20032634280136,
+        "hourly_adverse_bound_mdd_pct": -51.98653877989175,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8908,
+        "total_order_events": 9072,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 63,
+        "selective_resize_skips": 1038,
+        "turnover_usd": 1132906845.002528,
+        "funding_paid_usd": -4285.814871140071,
+        "max_open_gross_equity_ratio": 2.586997050635835,
+        "max_open_required_margin_equity_ratio_at_3x": 0.862332350211945,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8859779953977666,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1620
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 734172.0555637446,
+        "return_pct": 734072.0555637446,
+        "close_mark_mdd_pct": -55.689282059417366,
+        "hourly_adverse_bound_mdd_pct": -56.636657034468854,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8646,
+        "total_order_events": 8811,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 118,
+        "selective_resize_skips": 1122,
+        "turnover_usd": 192043073.7869772,
+        "funding_paid_usd": -128.9466700741841,
+        "max_open_gross_equity_ratio": 2.5698589465237553,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566196488412516,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8786746412957581,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "SOL",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5088319.628713244,
+        "return_pct": 5088219.628713244,
+        "close_mark_mdd_pct": -51.517174273378494,
+        "hourly_adverse_bound_mdd_pct": -52.19633893742183,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9190,
+        "total_order_events": 9352,
+        "emergency_stop_exits": 162,
+        "minimum_order_skips": 65,
+        "selective_resize_skips": 607,
+        "turnover_usd": 1117392984.756798,
+        "funding_paid_usd": -4103.353471019318,
+        "max_open_gross_equity_ratio": 2.5836575545265905,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8612191848421968,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8848254041457061,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1625
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 732769.0867639731,
+        "return_pct": 732669.0867639731,
+        "close_mark_mdd_pct": -55.659931258480256,
+        "hourly_adverse_bound_mdd_pct": -56.60730623353174,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8931,
+        "total_order_events": 9095,
+        "emergency_stop_exits": 164,
+        "minimum_order_skips": 118,
+        "selective_resize_skips": 633,
+        "turnover_usd": 191893715.59833312,
+        "funding_paid_usd": -105.7487916485955,
+        "max_open_gross_equity_ratio": 2.570002533838252,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566675112794174,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787248295535524,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "ETH",
+          "long",
+          "increase"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5031149.618047164,
+        "return_pct": 5031049.618047164,
+        "close_mark_mdd_pct": -51.518881259460535,
+        "hourly_adverse_bound_mdd_pct": -52.19804592350388,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9491,
+        "total_order_events": 9648,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 69,
+        "selective_resize_skips": 230,
+        "turnover_usd": 1100951045.3409395,
+        "funding_paid_usd": -4350.590223633438,
+        "max_open_gross_equity_ratio": 2.572385485446857,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8574618284822856,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.88097781303142,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1645
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 728598.9894891755,
+        "return_pct": 728498.9894891755,
+        "close_mark_mdd_pct": -54.8490994035223,
+        "hourly_adverse_bound_mdd_pct": -55.48821645349731,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9268,
+        "total_order_events": 9424,
+        "emergency_stop_exits": 156,
+        "minimum_order_skips": 112,
+        "selective_resize_skips": 201,
+        "turnover_usd": 190013163.82252023,
+        "funding_paid_usd": -155.14299759536843,
+        "max_open_gross_equity_ratio": 2.569938444159792,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566461480532641,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787023960699081,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1955
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ],
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5269549.435822576,
+        "return_pct": 5269449.435822576,
+        "close_mark_mdd_pct": -51.339517547648406,
+        "hourly_adverse_bound_mdd_pct": -52.12793023025285,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9071,
+        "total_order_events": 9237,
+        "emergency_stop_exits": 166,
+        "minimum_order_skips": 50,
+        "selective_resize_skips": 880,
+        "turnover_usd": 1157834511.511886,
+        "funding_paid_usd": -4316.340729215183,
+        "max_open_gross_equity_ratio": 2.5676994716659007,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8558998238886335,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8782215113572658,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1585
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 726404.4240267968,
+        "return_pct": 726304.4240267968,
+        "close_mark_mdd_pct": -53.93596611211804,
+        "hourly_adverse_bound_mdd_pct": -54.68028014738402,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 8812,
+        "total_order_events": 8977,
+        "emergency_stop_exits": 165,
+        "minimum_order_skips": 115,
+        "selective_resize_skips": 955,
+        "turnover_usd": 190447300.96878138,
+        "funding_paid_usd": -116.6378729942127,
+        "max_open_gross_equity_ratio": 2.608019952883553,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8693399842945176,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8931824715887662,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1935
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "BTC",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5366541.225781803,
+        "return_pct": 5366441.225781803,
+        "close_mark_mdd_pct": -51.38632183823577,
+        "hourly_adverse_bound_mdd_pct": -52.176156263931105,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9445,
+        "total_order_events": 9605,
+        "emergency_stop_exits": 160,
+        "minimum_order_skips": 50,
+        "selective_resize_skips": 446,
+        "turnover_usd": 1182234779.7339487,
+        "funding_paid_usd": -4313.553629586246,
+        "max_open_gross_equity_ratio": 2.5677155288395435,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8559051762798477,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8784378275038239,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1585
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 724061.5281558036,
+        "return_pct": 723961.5281558036,
+        "close_mark_mdd_pct": -54.1568203792935,
+        "hourly_adverse_bound_mdd_pct": -54.80362202716489,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9168,
+        "total_order_events": 9325,
+        "emergency_stop_exits": 157,
+        "minimum_order_skips": 111,
+        "selective_resize_skips": 487,
+        "turnover_usd": 190363552.38582417,
+        "funding_paid_usd": -100.19058427707373,
+        "max_open_gross_equity_ratio": 2.5700074667794834,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566691555931613,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.878726570576116,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 5,
+          "guarded_symbol_decisions": 1955
+        }
+      },
+      "screen_pass": false
+    },
+    {
+      "rules": [
+        [
+          "XRP",
+          "short",
+          "decrease"
+        ]
+      ],
+      "full": {
+        "start_usd": 100,
+        "end_usd": 5137290.244580099,
+        "return_pct": 5137190.244580099,
+        "close_mark_mdd_pct": -51.472979891230494,
+        "hourly_adverse_bound_mdd_pct": -52.15298633357279,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9359,
+        "total_order_events": 9522,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 63,
+        "selective_resize_skips": 427,
+        "turnover_usd": 1130386493.28365,
+        "funding_paid_usd": -4064.4609250437984,
+        "max_open_gross_equity_ratio": 2.5842312336406525,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8614104112135509,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8850329450139461,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1620
+        }
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 721337.0282133089,
+        "return_pct": 721237.0282133089,
+        "close_mark_mdd_pct": -54.502860150113406,
+        "hourly_adverse_bound_mdd_pct": -55.47375920446483,
+        "allocation_actions": 10875,
+        "executed_rebalance_orders": 9111,
+        "total_order_events": 9274,
+        "emergency_stop_exits": 163,
+        "minimum_order_skips": 117,
+        "selective_resize_skips": 453,
+        "turnover_usd": 189346484.42736754,
+        "funding_paid_usd": -90.85561540059226,
+        "max_open_gross_equity_ratio": 2.5699365031413075,
+        "max_open_required_margin_equity_ratio_at_3x": 0.8566455010471025,
+        "max_simultaneous_adverse_margin_equity_ratio_at_3x": 0.8787017376241282,
+        "drawdown_guard": {
+          "trigger": 0.35,
+          "reduced_scale": 0.75,
+          "recovery": 0.175,
+          "activations": 4,
+          "guarded_symbol_decisions": 1950
+        }
+      },
+      "screen_pass": false
+    }
+  ],
+  "limitations": [
+    "Combinations derive from the same historical diagnosis and require delay/synthetic validation."
+  ]
+}

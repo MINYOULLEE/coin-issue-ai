@@ -15,6 +15,7 @@
 
 import { createHmac } from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
+import { selectiveResizeHold } from "../_shared/a_stage75_policy.mjs";
 
 const JSONBigParse = JSONBig({ storeAsString: true });
 
@@ -688,6 +689,11 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     const targetQty = roundDown(equity * baseExposure * scale / mark, qtyPrecision);
     const delta = roundDown(Math.abs(targetQty - currentQty), qtyPrecision);
     const minQty = Number(contract.tradeMinQuantity ?? 0), minUsdt = Number(contract.tradeMinUSDT ?? 2);
+    const selective = selectiveResizeHold({ symbol: String(row.symbol || bxSymbol.replace("-USDT", "")), side: String(row.side), actualQuantity: currentQty, targetQuantity: targetQty, price: mark, equity });
+    if (selective.hold) {
+      await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString() }) });
+      return Response.json({ ok: true, resized: false, skipped: "selective resize hold", current_quantity: currentQty, target_quantity: targetQty, scale, selective_resize: selective });
+    }
     if (!(delta > 0) || delta < minQty || delta * mark < minUsdt) {
       await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString() }) });
       return Response.json({ ok: true, resized: false, skipped: "quantity delta below exchange minimum", current_quantity: currentQty, target_quantity: targetQty, scale });
@@ -715,7 +721,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
       throw Error(`Stage75 stop replacement failed; safety closed: ${e instanceof Error ? e.message : String(e)}`);
     }
     const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
-    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
+    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, stage126_selective_resize: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
     await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: nowIso }) });
     return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, scale, stop_price: stopPrice });
   } catch (e) {

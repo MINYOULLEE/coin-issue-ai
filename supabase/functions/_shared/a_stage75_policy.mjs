@@ -1,8 +1,9 @@
 export const A_STAGE75 = Object.freeze({
-  strategyId: 'answer_mdd30', version: 'mdd30_drawdown_guard_stage75_v1',
+  strategyId: 'answer_mdd30', version: 'mdd30_selective_resize_stage126_v1',
   assets: Object.freeze(['BTC','ETH','XRP','TRX','SOL']), leverage: 3,
   normalScale: 1.4, guardedScale: 1.05, maxGross: 2.24,
   stopFraction: .15, guardTrigger: .35, guardRecovery: .175,
+  selectiveResizeThreshold: .0125,
 });
 
 const finitePositive=(value,name)=>{const x=Number(value);if(!Number.isFinite(x)||x<=0)throw Error(`invalid ${name}`);return x};
@@ -37,6 +38,18 @@ export function rebalanceDelta({actualSignedQuantity,targetSignedQuantity,step,m
   const raw=target-actual,amount=Math.floor((Math.abs(raw)+1e-12)/s)*s;
   if(amount<Number(minQuantity)||amount*p<Number(minNotional))return {action:'hold',quantity:0,reason:'below_minimum_delta'};
   return {action:raw>0?'buy':'sell',quantity:amount,reduceFirst:actual!==0&&Math.sign(raw)!==Math.sign(actual)};
+}
+
+export function selectiveResizeHold({symbol,side,actualQuantity,targetQuantity,price,equity}){
+  const p=finitePositive(price,'A price'),e=finitePositive(equity,'A equity');
+  const actual=Math.abs(Number(actualQuantity)),target=Math.abs(Number(targetQuantity));
+  if(!Number.isFinite(actual)||!Number.isFinite(target))throw Error('invalid A selective resize quantity');
+  const sameDirectionDecrease=actual>0&&target>0&&target<actual;
+  const selected=(symbol==='SOL'&&side==='long')||(symbol==='BTC'&&side==='short');
+  const deltaNotional=(actual-target)*p;
+  const thresholdNotional=e*A_STAGE75.selectiveResizeThreshold;
+  return {hold:sameDirectionDecrease&&selected&&deltaNotional<thresholdNotional,
+    deltaNotional,thresholdNotional,selected,sameDirectionDecrease};
 }
 
 export function transitionCapacity({equity,currentGross,targetGross}){
