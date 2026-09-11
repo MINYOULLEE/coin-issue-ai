@@ -17,7 +17,7 @@ def main():
     b = read('strategy/plan_b_standard.json')
     assert a['strategy_id'] == 'answer_mdd30'
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
-    assert a['standard_version'] == 'mdd30_selective_resize_stage126_v1'
+    assert a['standard_version'] == 'mdd30_intraday_rally_guard_stage135_v1'
     assert a['exchange_leverage'] == 3
     assert a['base_exposure_scale'] == 1.4
     assert a['max_gross_exposure'] == 2.24
@@ -42,6 +42,9 @@ def main():
     assert a['selective_resize']['threshold_pct_of_current_actual_equity'] == 1.25
     assert [(x['symbol'], x['side'], x['resize']) for x in a['selective_resize']['hold_existing_quantity_when_below_threshold']] == [
         ('SOL', 'long', 'decrease'), ('BTC', 'short', 'decrease')]
+    assert a['intraday_rally_guard']['symbols_reduced'] == ['ETH', 'XRP', 'SOL']
+    assert a['intraday_rally_guard']['phase_1']['remaining_quantity_fraction'] == .05
+    assert a['intraday_rally_guard']['phase_2']['remaining_quantity_fraction'] == 0
     assert b == read('supabase/functions/_shared/plan_b_standard.json')
     assert b['strategy_id'] == 'b_regime_guard_stage112'
     assert b == read('strategy/plan_b_combination_standard.json')

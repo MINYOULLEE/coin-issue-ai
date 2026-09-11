@@ -721,12 +721,48 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
       throw Error(`Stage75 stop replacement failed; safety closed: ${e instanceof Error ? e.message : String(e)}`);
     }
     const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
-    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, stage126_selective_resize: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
+    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, stage126_selective_resize: true, stage135_rally_guard: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
     await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: nowIso }) });
     return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, scale, stop_price: stopPrice });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
   }
+}
+
+async function handleMdd30RallyGuard(payload: any): Promise<Response> {
+  try {
+    const targetFraction=Number(payload.target_fraction),phase=Number(payload.phase);
+    if(![0,.05].includes(targetFraction)||![1,2].includes(phase))return Response.json({ok:false,error:"invalid A rally guard request"},{status:400});
+    const rows=await db(`real_trades?signal_id=eq.${Number(payload.id)}&status=eq.open&signal_type=eq.answer_mdd30&select=*&limit=1`),row=rows?.[0];
+    if(!row)return Response.json({ok:false,error:"A open trade not found"},{status:404});
+    if(!["ETH","XRP","SOL"].includes(String(row.symbol))||row.side!=="short")return Response.json({ok:false,error:"A rally guard only supports ETH/XRP/SOL shorts"},{status:400});
+    const state=(await db("real_trading_state?id=eq.singleton&select=enabled,test_mode&limit=1"))?.[0];
+    if(!state?.enabled||state.test_mode)return Response.json({ok:false,error:"A live trading is not enabled"},{status:409});
+    if(targetFraction===0){const response=await handleClose({...payload,reason:`A Stage135 rally guard phase ${phase}`});const body=await response.json();return Response.json({...body,phase,target_fraction:0},{status:response.status})}
+    const bxSymbol=String(row.bingx_symbol),positionSide="SHORT",contract=await getContract(bxSymbol),qtyPrecision=Number(contract.quantityPrecision??3),pricePrecision=Number(contract.pricePrecision??2);
+    const raw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{symbol:bxSymbol,recvWindow:5000}),positions=Array.isArray(raw)?raw:(raw?.positions||[]);
+    const position=positions.find((p:any)=>p.symbol===bxSymbol&&p.positionSide===positionSide),currentQty=Math.abs(Number(position?.positionAmt??position?.positionAmount??0));
+    if(!(currentQty>0))return Response.json({ok:true,closed:true,reason:"exchange already closed"});
+    const mark=Number(position?.markPrice??position?.price??row.entry_price),minQty=Number(contract.tradeMinQuantity??0),minUsdt=Number(contract.tradeMinUSDT??2);
+    const targetQty=roundDown(currentQty*targetFraction,qtyPrecision);
+    if(!(targetQty>=minQty)||targetQty*mark<minUsdt){const response=await handleClose({...payload,reason:`A Stage135 rally guard phase ${phase} dust close`});const body=await response.json();return Response.json({...body,phase,target_fraction:0},{status:response.status})}
+    const delta=roundDown(currentQty-targetQty,qtyPrecision);if(!(delta>0))return Response.json({ok:true,resized:false,skipped:"rally guard delta below precision"});
+    const openOrders=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/openOrders",{symbol:bxSymbol,recvWindow:5000});
+    for(const order of (Array.isArray(openOrders)?openOrders:(openOrders?.orders||[])).filter((o:any)=>String(o.positionSide)===positionSide&&["STOP_MARKET","TAKE_PROFIT_MARKET"].includes(String(o.type))))await fetchSigned(API_KEY,SECRET_KEY,"DELETE","/openApi/swap/v2/trade/order",{symbol:bxSymbol,orderId:order.orderId??order.orderID,recvWindow:5000});
+    await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:delta,recvWindow:5000});
+    await new Promise(resolve=>setTimeout(resolve,500));
+    const afterRaw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{symbol:bxSymbol,recvWindow:5000}),afterRows=Array.isArray(afterRaw)?afterRaw:(afterRaw?.positions||[]),after=afterRows.find((p:any)=>p.symbol===bxSymbol&&p.positionSide===positionSide);
+    const finalQty=Math.abs(Number(after?.positionAmt??after?.positionAmount??0)),avgPrice=Number(after?.avgPrice??after?.entryPrice??row.entry_price);
+    if(!(finalQty>0)){await reconcileOpenTrades();return Response.json({ok:true,closed:true,phase,target_fraction:0,reason:"rally guard exchange fill closed remainder"})}
+    const stopPrice=roundTo(avgPrice*1.15,pricePrecision);
+    try{await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"STOP_MARKET",stopPrice,quantity:finalQty,workingType:"MARK_PRICE",recvWindow:5000})}
+    catch(e){await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:finalQty,recvWindow:5000});throw Error(`rally guard stop replacement failed; safety closed: ${e instanceof Error?e.message:String(e)}`)}
+    const nowIso=new Date().toISOString(),notional=finalQty*avgPrice,config={...(row.strategy_config||{}),stage135_rally_guard:true,rally_guard_phase:phase,rally_guard_before_quantity:currentQty,rally_guard_remaining_fraction:finalQty/currentQty,rally_guard_notification_pending:true};
+    await db(`real_trades?id=eq.${row.id}`,{method:"PATCH",body:JSON.stringify({quantity:finalQty,notional_usd:notional,margin_usd:notional/3,stop_price:stopPrice,stop_order_created_at:nowIso,protective_verified:true,strategy_config:config,telegram_entry_notified_at:null,updated_at:nowIso})});
+    await db(`trade_signals?id=eq.${row.signal_id}`,{method:"PATCH",body:JSON.stringify({notional_usd:notional,margin_usd:notional/3,updated_at:nowIso})});
+    const targetReached=finalQty<=targetQty+Math.pow(10,-qtyPrecision);
+    return Response.json({ok:targetReached,resized:true,phase,target_fraction:targetFraction,before_quantity:currentQty,final_quantity:finalQty,stop_price:stopPrice,...(targetReached?{}:{error:"partial rally guard fill remains above target; protected retry required"})},{status:targetReached?200:409});
+  } catch(e){return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502})}
 }
 
 Deno.serve(async (req: Request) => {
@@ -750,6 +786,7 @@ Deno.serve(async (req: Request) => {
   if (signal?.action === "audit") return await handleAudit();
   if (signal?.action === "repair_mdd30_leverage") return await handleMdd30LeverageRepair();
   if (signal?.action === "resize_mdd30") return await handleMdd30Resize(signal);
+  if (signal?.action === "rally_guard_mdd30") return await handleMdd30RallyGuard(signal);
 
   // 이미 열려있는데 손절/익절이 안 걸려있는 것으로 확인된 실거래에 즉시 조건부 주문을 걸어준다.
   if (signal?.action === "protect") return await handleProtect(signal);

@@ -1,0 +1,592 @@
+{
+  "id": "A-STAGE132-RALLY-GUARD-MDD-REFINEMENT",
+  "generated_at": "2026-09-11T15:08:05.482978+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "acceptance": {
+    "five_year_not_below_current_A": true,
+    "seven_year_not_below_current_A": true,
+    "severe_return_floor_pct": 1000000,
+    "synthetic_paths_profitable": 32,
+    "synthetic_severe_paths_profitable": 32,
+    "worst_synthetic_severe_mdd_floor_pct": -70
+  },
+  "baseline": {
+    "five": {
+      "start_usd": 100,
+      "end_usd": 5028369.99472832,
+      "return_pct": 5028269.99472832,
+      "close_mark_mdd_pct": -47.44296329861547,
+      "hourly_adverse_bound_mdd_pct": -48.55130518206956,
+      "total_order_events": 8142,
+      "overlay_actions": 0,
+      "emergency_stop_exits": 63,
+      "turnover_usd": 1080537050.7952936
+    },
+    "seven": {
+      "start_usd": 100,
+      "end_usd": 5716048.259856021,
+      "return_pct": 5715948.259856021,
+      "close_mark_mdd_pct": -51.22368167335768,
+      "hourly_adverse_bound_mdd_pct": -52.007707926559895,
+      "total_order_events": 9458,
+      "overlay_actions": 0,
+      "emergency_stop_exits": 160,
+      "turnover_usd": 1228339332.9530506
+    }
+  },
+  "screened": 36,
+  "eligible": 24,
+  "finalists": 8,
+  "passing": 5,
+  "ranked": [
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.05,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.0375,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10376650.160443217,
+        "return_pct": 10376550.160443217,
+        "close_mark_mdd_pct": -49.40556663908511,
+        "hourly_adverse_bound_mdd_pct": -50.171282885420965,
+        "total_order_events": 10057,
+        "overlay_actions": 542,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2307337174.9862337
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1259305.5688401714,
+        "return_pct": 1259205.5688401714,
+        "close_mark_mdd_pct": -53.43601108856008,
+        "hourly_adverse_bound_mdd_pct": -54.16868637432839,
+        "total_order_events": 9810,
+        "overlay_actions": 522,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 336783100.9849374
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 798310.4263775201,
+        "return_pct": 798210.4263775201,
+        "close_mark_mdd_pct": -53.8497989742184,
+        "hourly_adverse_bound_mdd_pct": -54.59625367562171,
+        "total_order_events": 9756,
+        "overlay_actions": 518,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 222895047.77375153
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 24,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -69.35571539907708,
+        "worst_severe_mdd": -69.96830998201824
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6329605.348057516,
+        "return_pct": 6329505.348057516,
+        "close_mark_mdd_pct": -46.7506885133931,
+        "hourly_adverse_bound_mdd_pct": -48.00484719979594,
+        "total_order_events": 8534,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 56,
+        "turnover_usd": 1407417053.8019345
+      },
+      "pass": true
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.05,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.035,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10391741.562879628,
+        "return_pct": 10391641.562879628,
+        "close_mark_mdd_pct": -49.40495776935465,
+        "hourly_adverse_bound_mdd_pct": -50.17067401569052,
+        "total_order_events": 10071,
+        "overlay_actions": 557,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2310649717.3974147
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1259378.0750223023,
+        "return_pct": 1259278.0750223023,
+        "close_mark_mdd_pct": -53.426814334779316,
+        "hourly_adverse_bound_mdd_pct": -54.160877381953064,
+        "total_order_events": 9828,
+        "overlay_actions": 534,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 336798171.254197
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 797903.1017668016,
+        "return_pct": 797803.1017668016,
+        "close_mark_mdd_pct": -53.849881795241295,
+        "hourly_adverse_bound_mdd_pct": -54.59633649664462,
+        "total_order_events": 9768,
+        "overlay_actions": 531,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 222784811.948976
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 24,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -69.08412242969342,
+        "worst_severe_mdd": -69.98264886512531
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6342137.633580959,
+        "return_pct": 6342037.633580959,
+        "close_mark_mdd_pct": -46.76780127545875,
+        "hourly_adverse_bound_mdd_pct": -48.02261572021189,
+        "total_order_events": 8544,
+        "overlay_actions": 409,
+        "emergency_stop_exits": 56,
+        "turnover_usd": 1410182663.2020264
+      },
+      "pass": true
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.0,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.0325,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10365631.262737805,
+        "return_pct": 10365531.262737805,
+        "close_mark_mdd_pct": -48.78971184823075,
+        "hourly_adverse_bound_mdd_pct": -49.558943770757466,
+        "total_order_events": 9976,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 2305245674.279664
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1260604.1140568906,
+        "return_pct": 1260504.1140568906,
+        "close_mark_mdd_pct": -53.32354013261145,
+        "hourly_adverse_bound_mdd_pct": -54.05708538382994,
+        "total_order_events": 9733,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 337189532.3131541
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 708673.8422393311,
+        "return_pct": 708573.8422393311,
+        "close_mark_mdd_pct": -53.66283743977975,
+        "hourly_adverse_bound_mdd_pct": -54.4109820037199,
+        "total_order_events": 9667,
+        "overlay_actions": 443,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 197934985.93786755
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 22,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -68.92185883937343,
+        "worst_severe_mdd": -69.9833461784759
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6345409.144253429,
+        "return_pct": 6345309.144253429,
+        "close_mark_mdd_pct": -46.694015744641234,
+        "hourly_adverse_bound_mdd_pct": -47.97164256064104,
+        "total_order_events": 8440,
+        "overlay_actions": 312,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1411150765.3994343
+      },
+      "pass": true
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.0,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.035,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10365631.262737805,
+        "return_pct": 10365531.262737805,
+        "close_mark_mdd_pct": -48.78971184823075,
+        "hourly_adverse_bound_mdd_pct": -49.558943770757466,
+        "total_order_events": 9976,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 2305245674.279664
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1260604.1140568906,
+        "return_pct": 1260504.1140568906,
+        "close_mark_mdd_pct": -53.32354013261145,
+        "hourly_adverse_bound_mdd_pct": -54.05708538382994,
+        "total_order_events": 9733,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 337189532.3131541
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 708673.8422393311,
+        "return_pct": 708573.8422393311,
+        "close_mark_mdd_pct": -53.66283743977975,
+        "hourly_adverse_bound_mdd_pct": -54.4109820037199,
+        "total_order_events": 9667,
+        "overlay_actions": 443,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 197934985.93786755
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 22,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -68.92185883937343,
+        "worst_severe_mdd": -69.9833461784759
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6345409.144253429,
+        "return_pct": 6345309.144253429,
+        "close_mark_mdd_pct": -46.694015744641234,
+        "hourly_adverse_bound_mdd_pct": -47.97164256064104,
+        "total_order_events": 8440,
+        "overlay_actions": 312,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1411150765.3994343
+      },
+      "pass": true
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.0,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.0375,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10365631.262737805,
+        "return_pct": 10365531.262737805,
+        "close_mark_mdd_pct": -48.78971184823075,
+        "hourly_adverse_bound_mdd_pct": -49.558943770757466,
+        "total_order_events": 9976,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 2305245674.279664
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1260604.1140568906,
+        "return_pct": 1260504.1140568906,
+        "close_mark_mdd_pct": -53.32354013261145,
+        "hourly_adverse_bound_mdd_pct": -54.05708538382994,
+        "total_order_events": 9733,
+        "overlay_actions": 444,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 337189532.3131541
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 708673.8422393311,
+        "return_pct": 708573.8422393311,
+        "close_mark_mdd_pct": -53.66283743977975,
+        "hourly_adverse_bound_mdd_pct": -54.4109820037199,
+        "total_order_events": 9667,
+        "overlay_actions": 443,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 197934985.93786755
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 22,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -68.92185883937343,
+        "worst_severe_mdd": -69.9833461784759
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6345409.144253429,
+        "return_pct": 6345309.144253429,
+        "close_mark_mdd_pct": -46.694015744641234,
+        "hourly_adverse_bound_mdd_pct": -47.97164256064104,
+        "total_order_events": 8440,
+        "overlay_actions": 312,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1411150765.3994343
+      },
+      "pass": true
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.05,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.0325,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10364240.34282867,
+        "return_pct": 10364140.34282867,
+        "close_mark_mdd_pct": -49.40495776935465,
+        "hourly_adverse_bound_mdd_pct": -50.17067401569052,
+        "total_order_events": 10084,
+        "overlay_actions": 566,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2304330132.9307904
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1260011.5516578767,
+        "return_pct": 1259911.5516578767,
+        "close_mark_mdd_pct": -53.426814334779316,
+        "hourly_adverse_bound_mdd_pct": -54.160877381953064,
+        "total_order_events": 9830,
+        "overlay_actions": 543,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 336928898.0919365
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 799060.9451954485,
+        "return_pct": 798960.9451954485,
+        "close_mark_mdd_pct": -53.849881795241295,
+        "hourly_adverse_bound_mdd_pct": -54.59633649664462,
+        "total_order_events": 9795,
+        "overlay_actions": 539,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 223087929.05933407
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 24,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -69.08562402612863,
+        "worst_severe_mdd": -70.02013341077145
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6340306.930005449,
+        "return_pct": 6340206.930005449,
+        "close_mark_mdd_pct": -46.764653908206874,
+        "hourly_adverse_bound_mdd_pct": -48.01936045411907,
+        "total_order_events": 8552,
+        "overlay_actions": 418,
+        "emergency_stop_exits": 56,
+        "turnover_usd": 1409643650.0689979
+      },
+      "pass": false
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.1,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.035,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10250502.105263954,
+        "return_pct": 10250402.105263954,
+        "close_mark_mdd_pct": -49.48378052495212,
+        "hourly_adverse_bound_mdd_pct": -50.26532025349002,
+        "total_order_events": 10106,
+        "overlay_actions": 577,
+        "emergency_stop_exits": 137,
+        "turnover_usd": 2278863219.0137196
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1207955.0336283993,
+        "return_pct": 1207855.0336283993,
+        "close_mark_mdd_pct": -54.24657852044839,
+        "hourly_adverse_bound_mdd_pct": -54.99880374759789,
+        "total_order_events": 9825,
+        "overlay_actions": 552,
+        "emergency_stop_exits": 136,
+        "turnover_usd": 322986167.0744377
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 801095.4920550814,
+        "return_pct": 800995.4920550814,
+        "close_mark_mdd_pct": -54.07996921344177,
+        "hourly_adverse_bound_mdd_pct": -54.8248179686541,
+        "total_order_events": 9794,
+        "overlay_actions": 550,
+        "emergency_stop_exits": 136,
+        "turnover_usd": 223615258.77357346
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 22,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -69.31619689500253,
+        "worst_severe_mdd": -70.13274385041284
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6349714.983794306,
+        "return_pct": 6349614.983794306,
+        "close_mark_mdd_pct": -46.837171176158556,
+        "hourly_adverse_bound_mdd_pct": -48.11038127963141,
+        "total_order_events": 8552,
+        "overlay_actions": 416,
+        "emergency_stop_exits": 56,
+        "turnover_usd": 1411621221.1493475
+      },
+      "pass": false
+    },
+    {
+      "config": {
+        "scope": "alts",
+        "btc": 0.005,
+        "asset": 0.0275,
+        "breadth": 3,
+        "mult": 0.15,
+        "confirm": 2,
+        "second_btc": 0.02,
+        "second_asset": 0.0325,
+        "second_breadth": 3,
+        "second_mult": 0,
+        "second_confirm": 2
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10241620.778046105,
+        "return_pct": 10241520.778046105,
+        "close_mark_mdd_pct": -49.960289980032755,
+        "hourly_adverse_bound_mdd_pct": -50.73807657308933,
+        "total_order_events": 10140,
+        "overlay_actions": 599,
+        "emergency_stop_exits": 138,
+        "turnover_usd": 2275857775.9065943
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1257096.2679773802,
+        "return_pct": 1256996.2679773802,
+        "close_mark_mdd_pct": -53.7639961131391,
+        "hourly_adverse_bound_mdd_pct": -54.50993301858722,
+        "total_order_events": 9860,
+        "overlay_actions": 578,
+        "emergency_stop_exits": 136,
+        "turnover_usd": 335955486.6531801
+      },
+      "severe": {
+        "start_usd": 100,
+        "end_usd": 800535.9988090672,
+        "return_pct": 800435.9988090672,
+        "close_mark_mdd_pct": -54.34846542435178,
+        "hourly_adverse_bound_mdd_pct": -55.091775225727744,
+        "total_order_events": 9822,
+        "overlay_actions": 577,
+        "emergency_stop_exits": 137,
+        "turnover_usd": 223326037.2208714
+      },
+      "synthetic": {
+        "paths": 32,
+        "profitable": 32,
+        "outperforms": 22,
+        "severe_profitable": 32,
+        "worst_candidate_mdd": -69.36168834175305,
+        "worst_severe_mdd": -70.1505507630811
+      },
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6315928.488159649,
+        "return_pct": 6315828.488159649,
+        "close_mark_mdd_pct": -47.03033383592777,
+        "hourly_adverse_bound_mdd_pct": -48.28634570667541,
+        "total_order_events": 8565,
+        "overlay_actions": 430,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1403486383.3574007
+      },
+      "pass": false
+    }
+  ],
+  "limitations": [
+    "Ordered synthetic paths are robustness tests, not future data.",
+    "Minute-fill coverage remains insufficient and is not claimed by this stage."
+  ]
+}

@@ -10,7 +10,7 @@ const SERVICE=Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BOT=Deno.env.get("TELEGRAM_BOT_TOKEN")||"";
 const CHAT="6818439075";
 const COIN_ISSUE_URL="https://minyoullee.github.io/coin-issue-ai/";
-const MDD30_STANDARD="MDD30 최종 기준 · 5개 독립 트리";
+const MDD30_STANDARD="A Stage135 · 5개 독립 트리 + 장중 급등 방어";
 const sb=createClient(URL,SERVICE);
 // Kept identical to telegram-bot-webhook's keyboard on purpose -- this function used to
 // carry its own older/different keyboard, so every automated notification it sent would
@@ -50,7 +50,7 @@ Deno.serve(async req=>{
    const r=await fetch(URL+"/functions/v1/telegram-bot-webhook",{method:"POST",headers:{"Content-Type":"application/json","x-telegram-bot-api-secret-token":webhookSecret(BOT,Deno.env.get("TELEGRAM_WEBHOOK_SECRET")||"")},body:JSON.stringify({message:{chat:{id:CHAT},text:body.plan==="B"?"🟣 B 현황":"🔵 A 현황"}}),signal:AbortSignal.timeout(25000)});
    const result=await r.json();return Response.json({ok:r.ok&&result.ok===true,plan:body.plan,overview_test:result});
   }
-  if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n🔵 A플랜 · 기존 실거래 시스템\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 10x\n총 실질 노출 한도: 1.6x\n매일 08:00 태국시간 재판정\n\n🟣 B플랜 · 별도 계정 · 주문 ON/OFF와 신호 상태는 시스템 메뉴에서 확인`);return Response.json({ok:true,test_sent:true})}
+  if(body.action==="test"){await send(`✅ Coin Issue AI · 자동 알림 엔진 정상\n🔵 A플랜 · 기존 실거래 시스템\n${MDD30_STANDARD}\nBTC·ETH·XRP·TRX·SOL · 3x\n총 실질 노출 한도: 2.24x\n매일 08:00 태국시간 재판정 + 완료 시간봉 급등 방어\n\n🟣 B플랜 · 별도 계정 · 주문 ON/OFF와 신호 상태는 시스템 메뉴에서 확인`);return Response.json({ok:true,test_sent:true})}
   stage="notify-state-read";
   const {data:rows,error:stateReadError}=await sb.from("telegram_notify_state").select("*").eq("id","singleton").limit(1);if(stateReadError)throw stateReadError;const st=rows?.[0]||{};
   if(st.test_action==="show_history_menu")await send("✅ 실거래 기록 메뉴가 추가됐습니다.\n아래의 🔵 A 기록 / 🟣 B 기록 버튼을 누르면 최신 성과를 확인할 수 있습니다.");
@@ -61,7 +61,7 @@ Deno.serve(async req=>{
   // ---- A플랜 (real_trades) ----
   stage="a-entry-delivery";
   const {data:newRows,error:e1}=await sb.from("real_trades").select("id,symbol,side,signal_type,status,margin_usd,leverage,notional_usd,entry_price,reject_reason,strategy_config,bingx_order_id").or("and(status.in.(open,closing,closed),telegram_entry_notified_at.is.null),and(status.eq.rejected,telegram_rejection_notified_at.is.null)").order("id",{ascending:true});if(e1)throw e1;
-  for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(["open","closing","closed"].includes(x.status)&&x.bingx_order_id&&Number(x.entry_price)>0){const exposure=x.strategy_config?.exposure_multiplier;await send(`🔵 A플랜 · 신규 진입 🚀\n${x.symbol} ${side(x.side)}\n${x.signal_type==="answer_mdd30"?`${MDD30_STANDARD}\n`:""}진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x${exposure==null?"":`\n목표 실질 노출: ${num(exposure,3)}x`}\n포지션 규모: ${num(x.notional_usd)} USDT${x.signal_type==="answer_mdd30"?"\n총 실질 노출 한도: 1.6x":""}`);await markDelivered("real_trades",x.id,"telegram_entry_notified_at")}else if(x.status==="rejected"){await send(`🔵 A플랜 · 주문 거절/실패 ⚠️\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`);await markDelivered("real_trades",x.id,"telegram_rejection_notified_at")}}
+  for(const x of newRows||[]){lastId=Math.max(lastId,Number(x.id));if(["open","closing","closed"].includes(x.status)&&x.bingx_order_id&&Number(x.entry_price)>0){const exposure=x.strategy_config?.exposure_multiplier;if(x.strategy_config?.rally_guard_notification_pending){await send(`🔵 A플랜 · 장중 급등 방어 부분청산 🛡️\n${x.symbol} ${side(x.side)}\n단계: ${x.strategy_config?.rally_guard_phase||1}\n잔존 수량 비율: ${num(Number(x.strategy_config?.rally_guard_remaining_fraction||0)*100)}%\n잔여 포지션 규모: ${num(x.notional_usd)} USDT\n15% 비상손절 재부착 확인`)}else await send(`🔵 A플랜 · 신규 진입 🚀\n${x.symbol} ${side(x.side)}\n${x.signal_type==="answer_mdd30"?`${MDD30_STANDARD}\n`:""}진입가: ${price(x.entry_price)}\n담보금: ${num(x.margin_usd)} USDT\n레버리지: ${x.leverage}x${exposure==null?"":`\n목표 실질 노출: ${num(exposure,3)}x`}\n포지션 규모: ${num(x.notional_usd)} USDT${x.signal_type==="answer_mdd30"?"\n총 실질 노출 한도: 2.24x":""}`);await markDelivered("real_trades",x.id,"telegram_entry_notified_at")}else if(x.status==="rejected"){await send(`🔵 A플랜 · 주문 거절/실패 ⚠️\n${x.symbol} ${side(x.side)}\n사유: ${String(x.reject_reason||"확인 필요").slice(0,500)}`);await markDelivered("real_trades",x.id,"telegram_rejection_notified_at")}}
   stage="a-close-delivery";
   // Do not notify from the executor's provisional close values. Wait until
   // BingX positionHistory has supplied the actual close price, fees and PnL.

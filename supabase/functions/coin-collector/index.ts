@@ -7,7 +7,7 @@ const COLLECTOR_VERSION = 65;
 const REQUIRED_EXECUTOR_VERSION = 49;
 const STRATEGY_EPOCH = "answer_mdd30_stage75_2026_09_08";
 const IMMEDIATE_START_DATE_UTC = "2026-08-25";
-const SIGNAL_MODEL_VERSION = "answer_mdd30_stage126_v1";
+const SIGNAL_MODEL_VERSION = "answer_mdd30_stage135_v1";
 const STRATEGY_TYPES = ["answer_mdd30"];
 const ANSWER_ASSETS = ["BTC","ETH","XRP","TRX","SOL"];
 const ANSWER_CONFIG = {
@@ -186,7 +186,8 @@ async function fetchMarket(){
     const qBase=dailyQuote.reduce((a,b)=>a+b,0)/(dailyQuote.length||1),returns=hourCloses.map((x,i)=>i?x/hourCloses[i-1]-1:0),rv=(xs)=>{const z=xs.filter(Number.isFinite),mu=z.reduce((a,b)=>a+b,0)/(z.length||1);return Math.sqrt(z.reduce((a,b)=>a+(b-mu)**2,0)/(z.length||1))};
     const rv24=rv(returns.slice(-24)),rvHistory=[];for(let i=Math.max(48,returns.length-24*31);i<=returns.length-24;i+=24)rvHistory.push(rv(returns.slice(i-24,i)));rvHistory.sort((a,b)=>a-b);const rvMedian=rvHistory[Math.floor(rvHistory.length/2)]||rv24;
     const channelUnit=Math.max((priorHigh-priorLow)/4,atr1h,lastClose*.001),breakoutSide=suiteDataValid?(lastClose>priorHigh?"long":lastClose<priorLow?"short":null):null;
-    const suiteSetup={data_valid:suiteDataValid,closed_at:Number(hourRows.at(-1)?.[6]||0),close:lastClose,prior_high:priorHigh,prior_low:priorLow,channel_unit:channelUnit,breakout_side:breakoutSide,low_volatility:suiteDataValid&&rv24<=rvMedian,rv24,rv_median:rvMedian,quote_volume_24h:q24,quote_volume_baseline:qBase,normal_volume:suiteDataValid&&qBase>0&&q24>=qBase,volume_multiple:qBase?q24/qBase:0};
+    const dailyAnchorRow=[...hourRows].reverse().find(x=>new Date(Number(x[0])).getUTCHours()===0);
+    const suiteSetup={data_valid:suiteDataValid,closed_at:Number(hourRows.at(-1)?.[6]||0),close:lastClose,daily_a_anchor_closed_at:Number(dailyAnchorRow?.[6]||0),daily_a_anchor_price:Number(dailyAnchorRow?.[4]||0),prior_high:priorHigh,prior_low:priorLow,channel_unit:channelUnit,breakout_side:breakoutSide,low_volatility:suiteDataValid&&rv24<=rvMedian,rv24,rv_median:rvMedian,quote_volume_24h:q24,quote_volume_baseline:qBase,normal_volume:suiteDataValid&&qBase>0&&q24>=qBase,volume_multiple:qBase?q24/qBase:0};
     return [s,{price,change,quoteVolume:Number(t.quoteVolume),volume_ratio:vr,rsi,recommendation:rec,direction_confidence:confidence,trend_strength:clamp(Math.round(50+direction*15),0,100),trend_4h:trend4h,trend_1d:trend1d,atr_1h:atr1h,atr_1h_pct:price?atr1h/price*100:0,atr_1m:atr1m,atr_1m_pct:price?atr1m/price*100:0,momentum_7d_pct:momentum7dPct,research_features:researchFeatures,answer_mdd30:answer,trend_strength_percentile_90d:trendStrengthPercentile90d,relative_strength_score:relativeStrengthScore,relative_return_12h_pct:ret12h*100,relative_return_24h_pct:ret24h*100,suite_setup:suiteSetup,funding_rate:fundingRaw,funding_rate_pct:fundingRatePct,funding_extreme:fundingExtreme,funding_bias:fundingRatePct>0?"long_crowded":fundingRatePct<0?"short_crowded":"neutral",scenarios24:scenarios(price,change,rsi,vr,1),scenarios7d:scenarios(price,change,rsi,vr,7),momentum_1m:m1,momentum_3m:m3,one_minute_volume_pace:volumePace,buy_sell_ratio:buySell,sell_buy_ratio:sellBuy,orderbook_imbalance:bookImbalance,micro_volatility_pct:microVol,long_pressure:Math.round(longScore),short_pressure:Math.round(shortScore),flow_action:flowAction,flow_confidence:Math.round(flowConfidence),flow_extreme:extreme,flow_reason:flowReason,market_structure:{regime,label:regimeLabel,support,resistance,poc,box_position:boxPosition,box_width_pct:boxWidth,support_touches:supportTouches,resistance_touches:resistanceTouches,false_breakout:falseBreakout,profit_taking_risk:profitTaking,short_covering_risk:shortCovering},micro_scenarios:{long:longProb,short:shortProb,range:rangeProb},risks:[fundingExtreme?(fundingRatePct>0?"롱 펀딩 과열·롱 신규 차단":"숏 펀딩 과열·숏 신규 차단"):profitTaking>=60?"차익실현 압력 높음":shortCovering>=60?"숏커버 반등 위험 높음":falseBreakout!=="none"?"가짜 돌파 감지":regime==="range"?"박스 중앙 추격 금지":"급등락·뉴스 변수"],reasons:[regimeLabel,`4H ${trend4h} / 1D ${trend1d}`,`펀딩 ${fundingRatePct.toFixed(4)}%`,`지지 ${support.toFixed(price<10?4:2)} / 저항 ${resistance.toFixed(price<10?4:2)}`,`1분 거래량 ${volumePace.toFixed(2)}배`],updated:new Date().toISOString()}];
   }));
   const market=Object.fromEntries(entries);
@@ -280,6 +281,13 @@ async function triggerMdd30Resize(signal,baseExposure){
   try{
     const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"resize_mdd30",id:signal.id,base_exposure_multiplier:baseExposure})});
     return await r.json().catch(()=>({ok:false,error:"invalid resize response"}));
+  }catch(e){return {ok:false,error:e instanceof Error?e.message:String(e)}}
+}
+async function triggerMdd30RallyGuard(signal,targetFraction,phase){
+  if(!INTERNAL_TRADE_SECRET)return {ok:false,error:"internal trade secret missing"};
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"rally_guard_mdd30",id:signal.id,target_fraction:targetFraction,phase})});
+    return await r.json().catch(()=>({ok:false,error:"invalid rally guard response"}));
   }catch(e){return {ok:false,error:e instanceof Error?e.message:String(e)}}
 }
 // 신호(trade_signals)가 성공/실패/보합으로 종료될 때마다 호출한다. 새 주문이 없어도 실거래
@@ -434,7 +442,7 @@ async function manageSignals(market,old){
     const referenceEquity=Math.max(0.01,Number(old.paper_account?.equity_usd||old.paper_account?.balance_usd||1000));
     const estimatedNotional=referenceEquity*exposure,estimatedMargin=estimatedNotional/Math.max(1,leverage);
     const plan={leverage,account_equity_usd:referenceEquity,margin_usd:estimatedMargin,notional_usd:estimatedNotional,fee_usd:estimatedNotional*.001,risk_usd:stopPct?estimatedNotional*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
-    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"A Stage126 선택적 리사이즈",market_regime:"answer_mdd30",base_exposure_multiplier:exposure/1.4,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:2.24,fixed_take_profit:false,exit_mode:"daily_answer_rebalance_with_emergency_stop",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:15,selective_resize_threshold_equity_pct:1.25,manual_immediate_rebalance:manualImmediate}},created_at:created,expires_at:expires,updated_at:created});
+    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"A Stage135 장중 급등 방어",market_regime:"answer_mdd30",base_exposure_multiplier:exposure/1.4,exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:2.24,fixed_take_profit:false,exit_mode:"daily_answer_rebalance_with_emergency_stop_and_intraday_rally_guard",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:15,selective_resize_threshold_equity_pct:1.25,intraday_rally_guard:true,manual_immediate_rebalance:manualImmediate}},created_at:created,expires_at:expires,updated_at:created});
     const execution=await triggerRealTrade(s);
     // trade_signals_status_check does not include "rejected". A failed live
     // entry is a terminally invalid signal, so use the schema-supported status
@@ -486,13 +494,44 @@ async function manageSignals(market,old){
         resize=await triggerMdd30Resize(stillOpen,Number(answer.exposure));
         if(!resize?.ok){audit.push({symbol,status:"resize_failed",reason:resize?.error||"Stage75 수량 차이 조정 실패"});continue}
       }
-      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*1.4,3,24,[`${symbol} Stage126 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 정상배율 1.4`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
+      const entered=answer?.side&&!stillOpen?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*1.4,3,24,[`${symbol} Stage135 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 정상배율 1.4`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
       audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
     const completed=!audit.some(x=>["close_failed","resize_failed","entry_failed","entry_pending"].includes(x.status));
     if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
     candidates.hourly_audit={closed_at:closedDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
+    if(completed&&!forceAnswerRebalance)candidates.a_rally_guard={version:"stage135",anchor_closed_at:closedHourAt,anchor_prices:Object.fromEntries(ANSWER_ASSETS.map(x=>[x,Number(market[x]?.suite_setup?.close||0)])),last_evaluated_closed_at:closedHourAt,phase:0,streak:0,updated_at:nowIso};
     if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});
+  }
+  if(candidates.a_rally_guard?.version!=="stage135"){
+    const anchorClosedAt=Math.min(...ANSWER_ASSETS.map(x=>Number(market[x]?.suite_setup?.daily_a_anchor_closed_at||0)));
+    const anchorPrices=Object.fromEntries(ANSWER_ASSETS.map(x=>[x,Number(market[x]?.suite_setup?.daily_a_anchor_price||0)]));
+    if(anchorClosedAt>0&&ANSWER_ASSETS.every(x=>anchorPrices[x]>0))candidates.a_rally_guard={version:"stage135",anchor_closed_at:anchorClosedAt,anchor_prices:anchorPrices,last_evaluated_closed_at:anchorClosedAt,phase:0,streak:0,bootstrapped:true,updated_at:nowIso};
+  }
+  // Stage135: after the daily A anchor, evaluate each newly completed common hour once.
+  // Two consecutive qualifying closes are required. Only A ETH/XRP/SOL shorts are reduced.
+  const rally:any=candidates.a_rally_guard;
+  const commonClosedAt=Math.min(...ANSWER_ASSETS.map(x=>Number(market[x]?.suite_setup?.closed_at||0)));
+  if(rally?.version==="stage135"&&commonClosedAt>Number(rally.anchor_closed_at||0)&&commonClosedAt>Number(rally.last_evaluated_closed_at||0)&&Number(rally.phase||0)<2){
+    const anchors=rally.anchor_prices||{},returns=Object.fromEntries(ANSWER_ASSETS.map(x=>[x,Number(market[x]?.suite_setup?.close||0)/Number(anchors[x]||0)-1]));
+    const phase=Number(rally.phase||0),btcCut=phase===0?.005:.02,assetCut=phase===0?.0275:.0375;
+    const valid=ANSWER_ASSETS.every(x=>Number.isFinite(returns[x])&&Number(anchors[x])>0);
+    const breadth=valid?ANSWER_ASSETS.filter(x=>returns[x]>=assetCut).length:0,raw=valid&&returns.BTC>=btcCut&&breadth>=3;
+    rally.last_evaluated_closed_at=commonClosedAt;rally.streak=raw?Number(rally.streak||0)+1:0;rally.updated_at=nowIso;
+    rally.last_check={closed_at:commonClosedAt,btc_return:returns.BTC,breadth,asset_cut:assetCut,raw_trigger:raw};
+    if(rally.streak>=2){
+      const targetFraction=phase===0?.05:0,results=[];
+      for(const symbol of ["ETH","XRP","SOL"]){
+        const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol&&x.side==="short");
+        if(!current){results.push({symbol,ok:true,skipped:"no A short"});continue}
+        const result=await triggerMdd30RallyGuard(current,targetFraction,phase+1);results.push({symbol,...result});
+        if(result?.closed){const price=Number(market[symbol]?.price||current.entry_price),resultPct=(price/Number(current.entry_price)-1)*-100;await patchSignal(current.id,{status:resultPct>.1?"success":resultPct<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:resultPct,close_reason:`A Stage135 급등 방어 ${phase+1}단계 전량청산`,updated_at:nowIso});delete byId[current.id]}
+      }
+      const complete=results.every((x:any)=>x.ok);
+      rally.last_action={phase:phase+1,target_fraction:targetFraction,closed_at:commonClosedAt,results,completed_at:nowIso};
+      if(complete){rally.phase=phase+1;rally.streak=0;rally.retry_required=false}else{rally.retry_required=true;rally.last_evaluated_closed_at=commonClosedAt-1}
+    }
+    candidates.a_rally_guard=rally;
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   for(const symbol of COINS){const mine=active.filter(x=>x.symbol===symbol);market[symbol].trade_signal=mine[0]||null;market[symbol].tactical_signal=mine[1]||null;if(mine[0])market[symbol].recommendation=`${mine[0].signal_type.toUpperCase()} ${mine[0].side.toUpperCase()} · ${Number(mine[0].entry_metrics?.strategy_config?.exposure_multiplier||0)}x`}

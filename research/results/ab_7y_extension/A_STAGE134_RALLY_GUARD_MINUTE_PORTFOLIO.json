@@ -1,0 +1,210 @@
+{
+  "id": "A-STAGE134-RALLY-GUARD-MINUTE-PORTFOLIO",
+  "generated_at": "2026-09-11T15:12:51.482558+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "candidate": {
+    "scope": "alts",
+    "btc": 0.005,
+    "asset": 0.0275,
+    "breadth": 3,
+    "mult": 0.05,
+    "confirm": 2,
+    "second_btc": 0.02,
+    "second_asset": 0.0375,
+    "second_breadth": 3,
+    "second_mult": 0,
+    "second_confirm": 2
+  },
+  "rows": [
+    {
+      "delay_min": 0,
+      "fill_events": 542,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6329605.348057516,
+        "return_pct": 6329505.348057516,
+        "close_mark_mdd_pct": -46.7506885133931,
+        "hourly_adverse_bound_mdd_pct": -48.00484719979594,
+        "total_order_events": 8534,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 56,
+        "turnover_usd": 1407417053.8019345
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10376650.160443217,
+        "return_pct": 10376550.160443217,
+        "close_mark_mdd_pct": -49.40556663908511,
+        "hourly_adverse_bound_mdd_pct": -50.171282885420965,
+        "total_order_events": 10057,
+        "overlay_actions": 542,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2307337174.9862337
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1259305.5688401714,
+        "return_pct": 1259205.5688401714,
+        "close_mark_mdd_pct": -53.43601108856008,
+        "hourly_adverse_bound_mdd_pct": -54.16868637432839,
+        "total_order_events": 9810,
+        "overlay_actions": 522,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 336783100.9849374
+      }
+    },
+    {
+      "delay_min": 1,
+      "fill_events": 542,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6220672.3412914835,
+        "return_pct": 6220572.3412914835,
+        "close_mark_mdd_pct": -46.67519637646217,
+        "hourly_adverse_bound_mdd_pct": -47.9514092857308,
+        "total_order_events": 8517,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1387821976.4858932
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10181720.45816414,
+        "return_pct": 10181620.45816414,
+        "close_mark_mdd_pct": -49.86660955878133,
+        "hourly_adverse_bound_mdd_pct": -50.64337943203281,
+        "total_order_events": 10051,
+        "overlay_actions": 542,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 2271566748.6772695
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1237450.838713672,
+        "return_pct": 1237350.838713672,
+        "close_mark_mdd_pct": -53.65175106920861,
+        "hourly_adverse_bound_mdd_pct": -54.39989563314875,
+        "total_order_events": 9805,
+        "overlay_actions": 521,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 332234684.52445567
+      }
+    },
+    {
+      "delay_min": 3,
+      "fill_events": 542,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6105718.125571439,
+        "return_pct": 6105618.125571439,
+        "close_mark_mdd_pct": -47.32049497733824,
+        "hourly_adverse_bound_mdd_pct": -48.5652233749301,
+        "total_order_events": 8512,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1364922562.7266564
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10268091.52442373,
+        "return_pct": 10267991.52442373,
+        "close_mark_mdd_pct": -49.8313545992351,
+        "hourly_adverse_bound_mdd_pct": -50.609856831086674,
+        "total_order_events": 10068,
+        "overlay_actions": 543,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2295469566.1339707
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1360338.4627998094,
+        "return_pct": 1360238.4627998094,
+        "close_mark_mdd_pct": -53.09914804241264,
+        "hourly_adverse_bound_mdd_pct": -53.8352030532546,
+        "total_order_events": 9857,
+        "overlay_actions": 523,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 366103178.5657469
+      }
+    },
+    {
+      "delay_min": 5,
+      "fill_events": 542,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6386141.723097196,
+        "return_pct": 6386041.723097196,
+        "close_mark_mdd_pct": -47.49471653866358,
+        "hourly_adverse_bound_mdd_pct": -48.733694544677384,
+        "total_order_events": 8527,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1425724209.783107
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10473631.853933278,
+        "return_pct": 10473531.853933278,
+        "close_mark_mdd_pct": -50.04330994700666,
+        "hourly_adverse_bound_mdd_pct": -50.81941298346532,
+        "total_order_events": 10073,
+        "overlay_actions": 542,
+        "emergency_stop_exits": 136,
+        "turnover_usd": 2338323528.5768642
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1154914.0218074839,
+        "return_pct": 1154814.0218074839,
+        "close_mark_mdd_pct": -53.0135886486516,
+        "hourly_adverse_bound_mdd_pct": -53.74955974314772,
+        "total_order_events": 9804,
+        "overlay_actions": 520,
+        "emergency_stop_exits": 134,
+        "turnover_usd": 310445954.40708494
+      }
+    },
+    {
+      "delay_min": 10,
+      "fill_events": 542,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 6195130.080661762,
+        "return_pct": 6195030.080661762,
+        "close_mark_mdd_pct": -48.09945270189946,
+        "hourly_adverse_bound_mdd_pct": -49.32386842538526,
+        "total_order_events": 8516,
+        "overlay_actions": 395,
+        "emergency_stop_exits": 55,
+        "turnover_usd": 1378170778.2195551
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 10151065.23479736,
+        "return_pct": 10150965.23479736,
+        "close_mark_mdd_pct": -49.04533527719034,
+        "hourly_adverse_bound_mdd_pct": -49.86038314957452,
+        "total_order_events": 10084,
+        "overlay_actions": 543,
+        "emergency_stop_exits": 135,
+        "turnover_usd": 2258243624.493876
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1253145.5933325423,
+        "return_pct": 1253045.5933325423,
+        "close_mark_mdd_pct": -53.47434575248493,
+        "hourly_adverse_bound_mdd_pct": -54.20337350897426,
+        "total_order_events": 9804,
+        "overlay_actions": 522,
+        "emergency_stop_exits": 133,
+        "turnover_usd": 335502631.8013982
+      }
+    }
+  ],
+  "limitations": [
+    "Binance USD-M minute opens, not BingX order-book fills.",
+    "Historical trigger windows are in-sample, not future/live validation."
+  ]
+}

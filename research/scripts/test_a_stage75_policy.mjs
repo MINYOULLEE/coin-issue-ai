@@ -32,5 +32,6 @@ test('selective resize holds only small SOL-long and BTC-short decreases',()=>{
 });
 test('policy constants match adopted selective-resize A',()=>{
  assert.equal(A_STAGE75.leverage,3);assert.equal(A_STAGE75.normalScale,1.4);assert.equal(A_STAGE75.maxGross,2.24);
- assert.equal(A_STAGE75.version,'mdd30_selective_resize_stage126_v1');assert.equal(A_STAGE75.selectiveResizeThreshold,.0125);
+ assert.equal(A_STAGE75.version,'mdd30_intraday_rally_guard_stage135_v1');assert.equal(A_STAGE75.selectiveResizeThreshold,.0125);
+ assert.equal(A_STAGE75.rallyGuard.firstRemainingFraction,.05);assert.equal(A_STAGE75.rallyGuard.secondRemainingFraction,0);
 });

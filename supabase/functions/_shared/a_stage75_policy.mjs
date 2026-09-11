@@ -1,9 +1,12 @@
 export const A_STAGE75 = Object.freeze({
-  strategyId: 'answer_mdd30', version: 'mdd30_selective_resize_stage126_v1',
+  strategyId: 'answer_mdd30', version: 'mdd30_intraday_rally_guard_stage135_v1',
   assets: Object.freeze(['BTC','ETH','XRP','TRX','SOL']), leverage: 3,
   normalScale: 1.4, guardedScale: 1.05, maxGross: 2.24,
   stopFraction: .15, guardTrigger: .35, guardRecovery: .175,
   selectiveResizeThreshold: .0125,
+  rallyGuard: Object.freeze({btcFirst:.005,breadthFirst:.0275,breadthCount:3,confirmHours:2,
+    firstRemainingFraction:.05,btcSecond:.02,breadthSecond:.0375,secondRemainingFraction:0,
+    symbols:Object.freeze(['ETH','XRP','SOL'])}),
 });
 
 const finitePositive=(value,name)=>{const x=Number(value);if(!Number.isFinite(x)||x<=0)throw Error(`invalid ${name}`);return x};
