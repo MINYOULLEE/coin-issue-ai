@@ -314,6 +314,10 @@ async function triggerProtect(){
     }else if(!j.ok)console.error("protect failed:",j.error);
   }catch(e){console.error("triggerProtect failed:",e instanceof Error?e.message:String(e))}
 }
+function triggerManagedAccounts(){
+  if(!INTERNAL_TRADE_SECRET)return;
+  EdgeRuntime.waitUntil(fetch(PROJECT_URL+"/functions/v1/managed-account-executor",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"tick"})}).then(async r=>{if(!r.ok)console.error("managed account executor HTTP",r.status,(await r.text()).slice(0,300))}).catch(e=>console.error("managed account executor failed",e instanceof Error?e.message:String(e))));
+}
 async function triggerMdd30LeverageRepair(){
   if(!INTERNAL_TRADE_SECRET)return;
   try{
@@ -593,6 +597,7 @@ Deno.serve(async req=>{
     const {issues:_issues,status:_status,stats:_stats,hot_themes:_themes,hot_events:_events,...tradingSnapshot}=old;
     const payload={...tradingSnapshot,news_enabled:false,market,active_signals:signalState.active,signal_candidates:signalState.candidates,signal_health:signalState.health,signal_cooldowns:signalState.cooldowns,market_regime:signalState.regime,paper_account:signalState.account,recent_signals:signalState.recent,started:old.started||new Date().toISOString(),heartbeat:new Date().toISOString(),collector:"supabase-cloud"};
     await save(payload);
+    triggerManagedAccounts();
     return Response.json({ok:true,heartbeat:payload.heartbeat,news_enabled:false,markets:Object.keys(market),active_signals:signalState.active.length,candidates:signalState.candidates});
   }catch(e){console.error(e);return Response.json({ok:false,error:String(e)},{status:500})}
 });

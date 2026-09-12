@@ -121,6 +121,27 @@ Deno.serve(async req=>{
     if(!data)return Response.json({ok:false,error:"계정을 찾을 수 없습니다."},{status:404,headers:CORS});
     return Response.json({ok:true,account:data},{headers:CORS});
   }
+  if(body.action==="set_live"){
+    const accountId=validAccountId(body.account_id),enabled=body.enabled===true;
+    if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
+    try{
+      const rows=await sql`select a.id,a.assigned_plan,a.live_enabled,k.decrypted_secret api_key,s.decrypted_secret secret_key from public.managed_bingx_accounts a join vault.decrypted_secrets k on k.id=a.api_key_secret_id join vault.decrypted_secrets s on s.id=a.secret_key_secret_id where a.id=${accountId}::uuid limit 1`,account=rows[0];
+      if(!account)throw Error("계정을 찾을 수 없습니다.");
+      if(account.assigned_plan!=="A")throw Error("현재 타인계정 실거래 실행기는 A플랜만 지원합니다.");
+      const active=await sql`select count(*)::integer count from public.managed_bingx_trades where account_id=${accountId}::uuid and status in ('reserved','open','closing','unknown')`;
+      if(!enabled&&Number(active[0]?.count)>0)throw Error("진행 중 거래를 먼저 정상 청산해야 LIVE를 끌 수 있습니다.");
+      let equity:number|null=null;
+      if(enabled){
+        const[balanceRaw,mode,positionsRaw]=await Promise.all([bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v3/user/balance"),bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v1/positionSide/dual"),bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v2/user/positions")]);
+        if(String(mode?.dualSidePosition)!=="true")throw Error("BingX 선물 계정이 헤지 모드가 아닙니다.");
+        if(positivePositions(positionsRaw).length)throw Error("관리되지 않은 기존 포지션이 있어 LIVE를 켤 수 없습니다.");
+        const balances=Array.isArray(balanceRaw)?balanceRaw:Array.isArray(balanceRaw?.balance)?balanceRaw.balance:[balanceRaw?.balance||balanceRaw],usdt=balances.find((b:any)=>b?.asset==="USDT");equity=Number(usdt?.equity);if(!Number.isFinite(equity)||Number(equity)<0)throw Error("BingX USDT 선물 잔고를 확인할 수 없습니다.");
+      }
+      const now=new Date().toISOString(),update:any={live_enabled:enabled,status:"connected",last_error:null,updated_at:now};if(enabled){update.live_enabled_at=now;update.current_equity_usdt=equity;update.a_equity_peak_usdt=equity;update.a_drawdown_guard_active=false;update.last_synced_at=now}
+      const{error}=await sb.from("managed_bingx_accounts").update(update).eq("id",accountId);if(error)throw Error("LIVE 상태 저장 실패");
+      return Response.json({ok:true,live_enabled:enabled,enabled_at:enabled?now:null},{headers:CORS});
+    }catch(e){return Response.json({ok:false,error:String(e instanceof Error?e.message:e).slice(0,250)},{status:409,headers:CORS})}
+  }
   if(body.action==="disconnect"){
     const accountId=validAccountId(body.account_id);
     if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});

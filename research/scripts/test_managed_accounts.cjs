@@ -38,3 +38,28 @@ test('starting balance edit and disconnect are owner-session guarded',()=>{
  assert.match(ui,/data-ma-action="edit"/);
  assert.match(ui,/data-ma-action="disconnect"/);
 });
+
+test('managed A live execution is account scoped and fail closed',()=>{
+ const executor=fs.readFileSync('supabase/functions/managed-account-executor/index.ts','utf8');
+ const collector=fs.readFileSync('supabase/functions/coin-collector/index.ts','utf8');
+ assert.match(executor,/vault\.decrypted_secrets/);
+ assert.match(executor,/assigned_plan!=="A"/);
+ assert.match(executor,/created_at>=\$\{account\.live_enabled_at\}/);
+ assert.match(executor,/managed_bingx_trades\(account_id,assigned_plan,signal_id/);
+ assert.match(executor,/on conflict do nothing/);
+ assert.match(executor,/order\/test/);
+ assert.match(executor,/marginType:"ISOLATED"/);
+ assert.match(executor,/type:"STOP_MARKET"/);
+ assert.match(executor,/protective stop failed; safety close sent/);
+ assert.doesNotMatch(executor,/BINGX_API_KEY|BINGX_SECRET_KEY/);
+ assert.match(collector,/managed-account-executor/);
+});
+
+test('managed LIVE switch performs fresh preflight',()=>{
+ assert.match(endpoint,/body\.action==="set_live"/);
+ assert.match(endpoint,/positivePositions\(positionsRaw\)\.length/);
+ assert.match(endpoint,/live_enabled_at=now|update\.live_enabled_at=now/);
+ assert.match(endpoint,/현재 타인계정 실거래 실행기는 A플랜만 지원합니다/);
+ assert.match(ui,/LIVE 켜기/);
+ assert.match(ui,/자동매매 OFF/);
+});
