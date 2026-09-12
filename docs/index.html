@@ -175,9 +175,9 @@ async function load(bg){try{if(!C.supabaseUrl||String(C.supabaseUrl).startsWith(
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>{document.querySelectorAll('.tabs button').forEach(x=>x.classList.remove('on'));b.classList.add('on');FILTER=b.dataset.filter;render()});load();setInterval(()=>load(true),Math.max(3,Number(C.refreshSeconds||5))*1000);
 </script>
 <link rel="stylesheet" href="plan-controls.css">
-<link rel="stylesheet" href="managed-accounts.css">
+<link rel="stylesheet" href="managed-accounts.css?v=20260912">
 <link rel="stylesheet" href="mobile-layout.css?v=20260901">
 <script src="plan-controls.js"></script>
-<script src="managed-accounts.js"></script>
+<script src="managed-accounts.js?v=20260912"></script>
 </body>
 </html>

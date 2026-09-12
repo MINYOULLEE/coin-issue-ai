@@ -22,6 +22,7 @@ function same(a:string,b:string){if(a.length!==b.length)return false;let d=0;for
 async function dashboardAuth(){const{data,error}=await sb.from("private_runtime_secrets").select("secret_value").eq("id","bingx_dashboard_auth").single();if(error)throw error;return data.secret_value}
 async function passwordHash(password:string,a:any){const k=await crypto.subtle.importKey("raw",te.encode(password),"PBKDF2",false,["deriveBits"]),bits=await crypto.subtle.deriveBits({name:"PBKDF2",salt:unb64(a.password_salt),iterations:210000,hash:"SHA-256"},k,256);return b64u(new Uint8Array(bits))}
 function cleanName(value:unknown){return String(value||"").replace(/[\r\n\t]/g," ").trim()}
+function validAccountId(value:unknown){const id=String(value||"");return /^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(id)?id:""}
 async function bingxRead(apiKey:string,secret:string,path:string,params:Record<string,string|number>={}){
   const all={...params,recvWindow:5000,timestamp:Date.now()},query=Object.keys(all).sort().map(k=>k+"="+encodeURIComponent(String(all[k]))).join("&");
   const signature=createHmac("sha256",secret).update(query).digest("hex");
@@ -81,13 +82,66 @@ Deno.serve(async req=>{
   }
 
   if(body.action==="overview"){
-    const{data,error}=await sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,last_synced_at").order("display_name");
+    const{data,error}=await sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,last_synced_at,last_error").order("display_name");
     if(error)return Response.json({ok:false,error:"연동 계정 목록 조회 실패"},{status:502,headers:CORS});
     return Response.json({ok:true,accounts:data||[]},{headers:CORS});
   }
+  if(body.action==="verify"){
+    const accountId=validAccountId(body.account_id);
+    if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
+    try{
+      const rows=await sql`select a.id,a.live_enabled,k.decrypted_secret as api_key,s.decrypted_secret as secret_key
+        from public.managed_bingx_accounts a
+        left join vault.decrypted_secrets k on k.id=a.api_key_secret_id
+        left join vault.decrypted_secrets s on s.id=a.secret_key_secret_id
+        where a.id=${accountId}::uuid limit 1`;
+      const account=rows[0];
+      if(!account)return Response.json({ok:false,error:"계정을 찾을 수 없습니다."},{status:404,headers:CORS});
+      if(!account.api_key||!account.secret_key)throw Error("저장된 BingX 키를 찾을 수 없습니다.");
+      const[balanceRaw,mode,positionsRaw]=await Promise.all([
+        bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v3/user/balance"),
+        bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v1/positionSide/dual"),
+        bingxRead(String(account.api_key),String(account.secret_key),"/openApi/swap/v2/user/positions")
+      ]);
+      const balances=Array.isArray(balanceRaw)?balanceRaw:Array.isArray(balanceRaw?.balance)?balanceRaw.balance:[balanceRaw?.balance||balanceRaw],usdt=balances.find((b:any)=>b?.asset==="USDT"),equity=Number(usdt?.equity),available=Number(usdt?.availableMargin),hedge=String(mode?.dualSidePosition)==="true",open=positivePositions(positionsRaw);
+      if(!Number.isFinite(equity)||equity<0||!Number.isFinite(available)||available<0)throw Error("BingX USDT 선물 잔고를 확인할 수 없습니다.");
+      if(!hedge)throw Error("BingX 선물 계정이 헤지 모드가 아닙니다.");
+      const checkedAt=new Date().toISOString();
+      const{error}=await sb.from("managed_bingx_accounts").update({current_equity_usdt:equity,status:"connected",last_synced_at:checkedAt,last_error:null,updated_at:checkedAt}).eq("id",accountId);
+      if(error)throw Error("연결 상태 저장 실패");
+      return Response.json({ok:true,connection:{bingx_authenticated:true,usdt_futures_balance:true,hedge_mode:true,current_equity_usdt:equity,available_margin_usdt:available,open_positions:open.length,live_enabled:!!account.live_enabled,checked_at:checkedAt}},{headers:CORS});
+    }catch(e){const message=String(e instanceof Error?e.message:e).slice(0,200);await sb.from("managed_bingx_accounts").update({status:"error",last_error:message,last_synced_at:new Date().toISOString(),updated_at:new Date().toISOString()}).eq("id",accountId);return Response.json({ok:false,error:message},{status:502,headers:CORS})}
+  }
+  if(body.action==="update_start"){
+    const accountId=validAccountId(body.account_id),start=Number(body.starting_equity_usdt);
+    if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
+    if(!Number.isFinite(start)||start<=0||start>100000000)return Response.json({ok:false,error:"시작금액을 정확히 입력하세요."},{status:400,headers:CORS});
+    const{data,error}=await sb.from("managed_bingx_accounts").update({starting_equity_usdt:start,updated_at:new Date().toISOString()}).eq("id",accountId).select("id,starting_equity_usdt").maybeSingle();
+    if(error)return Response.json({ok:false,error:"시작금액 수정 실패"},{status:502,headers:CORS});
+    if(!data)return Response.json({ok:false,error:"계정을 찾을 수 없습니다."},{status:404,headers:CORS});
+    return Response.json({ok:true,account:data},{headers:CORS});
+  }
+  if(body.action==="disconnect"){
+    const accountId=validAccountId(body.account_id);
+    if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
+    try{
+      await sql.begin(async tx=>{
+        const accounts=await tx`select id,live_enabled,api_key_secret_id,secret_key_secret_id from public.managed_bingx_accounts where id=${accountId}::uuid for update`,account=accounts[0];
+        if(!account)throw Error("계정을 찾을 수 없습니다.");
+        if(account.live_enabled)throw Error("자동매매가 켜진 계정은 연동을 취소할 수 없습니다.");
+        const active=await tx`select count(*)::integer as count from public.managed_bingx_trades where account_id=${accountId}::uuid and status in ('reserved','open','closing','unknown')`;
+        if(Number(active[0]?.count)>0)throw Error("진행 중인 거래가 있어 연동을 취소할 수 없습니다.");
+        const history=await tx`select count(*)::integer as count from public.managed_bingx_trades where account_id=${accountId}::uuid`;
+        if(Number(history[0]?.count)>0)throw Error("거래 기록이 있는 계정은 기록 보존을 위해 삭제할 수 없습니다.");
+        await tx`delete from public.managed_bingx_accounts where id=${accountId}::uuid`;
+        await tx`delete from vault.secrets where id in (${account.api_key_secret_id}::uuid,${account.secret_key_secret_id}::uuid)`;
+      });
+      return Response.json({ok:true,disconnected:true},{headers:CORS});
+    }catch(e){return Response.json({ok:false,error:String(e instanceof Error?e.message:e).slice(0,200)},{status:409,headers:CORS})}
+  }
   if(body.action==="trades"){
-    const accountId=String(body.account_id||"");
-    if(!/^[0-9a-f]{8}-[0-9a-f-]{27}$/i.test(accountId))return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
+    const accountId=validAccountId(body.account_id);
+    if(!accountId)return Response.json({ok:false,error:"invalid account"},{status:400,headers:CORS});
     const page=Math.max(1,Math.floor(Number(body.page)||1)),limit=Math.min(50,Math.max(1,Math.floor(Number(body.limit)||20))),from=(page-1)*limit;
     const[{data:account,error:accountError},{data,count,error}]=await Promise.all([
       sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan").eq("id",accountId).maybeSingle(),
