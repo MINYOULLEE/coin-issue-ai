@@ -51,6 +51,9 @@ test('managed A live execution is account scoped and fail closed',()=>{
  assert.match(executor,/marginType:"ISOLATED"/);
  assert.match(executor,/type:"STOP_MARKET"/);
  assert.match(executor,/protective stop failed; safety close sent/);
+ assert.match(executor,/수동 포지션과 동일 종목·방향 중첩/);
+ assert.match(executor,/owned=Math\.min\(actual,finite\(trade\.quantity\)\)/);
+ assert.match(executor,/if\(trade\.stop_order_id\)/);
  assert.doesNotMatch(executor,/BINGX_API_KEY|BINGX_SECRET_KEY/);
  assert.match(collector,/managed-account-executor/);
 });

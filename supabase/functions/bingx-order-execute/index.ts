@@ -370,6 +370,7 @@ async function handleClose(payload: any): Promise<Response> {
     const matching = beforePositions.filter((p: any) => p.symbol === bxSymbol && p.positionSide === positionSide);
     const remainder = matching.reduce((sum: number, p: any) => { const q=Number(p.positionAmt ?? p.positionAmount); if(!Number.isFinite(q))throw Error("invalid remaining quantity");return sum+Math.abs(q); },0);
     if(remainder===0){await reconcileOpenTrades();return Response.json({ok:true,closed:true,reason:"exchange already closed"});}
+    if(remainder>Number(row.quantity)+1e-10)return Response.json({ok:false,error:"manual position overlap: automatic close blocked"},{status:409});
     const quantity = roundDown(Math.min(Number(row.quantity),remainder), qtyPrecision);
     if(!(quantity>0))throw Error("invalid close quantity");
     const openOrders = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/trade/openOrders", { symbol: bxSymbol, recvWindow: 5000 });
@@ -874,7 +875,7 @@ Deno.serve(async (req: Request) => {
 
     // 6. 현재 열려있는 실거래 포지션 기준으로 위험 한도 계산 (먼저 종료된 포지션 정리)
     await reconcileOpenTrades();
-    const open = await db("real_trades?status=eq.open&select=symbol,side,margin_usd,notional_usd");
+    const open = await db("real_trades?status=eq.open&select=symbol,side,quantity,margin_usd,notional_usd");
     const mdd30 = signal.signal_type === "answer_mdd30";
     const concurrentLimit = mdd30 ? 5 : Number(state.max_concurrent_positions);
     if (open.length >= concurrentLimit) {
@@ -894,6 +895,12 @@ Deno.serve(async (req: Request) => {
       await insertRejected(signal, "동일 종목·방향 포지션 이미 보유 중(평단 섞임 방지)");
       return Response.json({ ok: true, skipped: "already holding same symbol+side position" });
     }
+    const liveBeforeEntryRaw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{symbol:signal.symbol+"-USDT",recvWindow:5000});
+    const liveBeforeEntry=Array.isArray(liveBeforeEntryRaw)?liveBeforeEntryRaw:(liveBeforeEntryRaw?.positions||[]);
+    if(!Array.isArray(liveBeforeEntry))throw Error("invalid position response before entry");
+    const exchangeSameSide=liveBeforeEntry.filter((p:any)=>String(p.symbol)===signal.symbol+"-USDT"&&String(p.positionSide)===signal.side.toUpperCase()).reduce((sum:number,p:any)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error("invalid manual position quantity");return sum+Math.abs(q)},0);
+    const ledgerSameSide=open.filter((x:any)=>x.symbol===signal.symbol&&x.side===signal.side).reduce((sum:number,x:any)=>sum+Math.abs(Number(x.quantity||0)),0);
+    if(exchangeSameSide>ledgerSameSide+1e-10){await insertRejected(signal,"수동 포지션과 동일 종목·방향 중첩 · 자동 진입 차단");return Response.json({ok:true,skipped:"manual position overlap"});}
 
     // 6-1. 실시간 BingX 잔고 조회 — 담보금을 고정 달러가 아니라 "지금 이 순간의 실제 잔고 비율"로 계산한다.
     //      수익이 나서 잔고가 늘면 다음 신호부터 자동으로 담보금도 커진다.

@@ -64,10 +64,13 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  const livePositions=await bx.read('/openApi/swap/v2/user/positions',{});
  const liveRows=Array.isArray(livePositions)?livePositions:livePositions?.positions;
  if(!Array.isArray(liveRows))throw Error('invalid position response');
- for(const p of liveRows){const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');if(Math.abs(q)>0&&!occupied.has(String(p.symbol).replace('-USDT','')))throw Error('untracked B account position');}
+ for(const p of liveRows){const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');}
+ const ledgerOpen=await checked(sb.from('plan_b_real_trades').select('symbol,side,quantity').eq('status','open'))||[];
  const contracts=await bx.read('/openApi/swap/v2/quote/contracts',{});
  const proposals=[];
  for(const signal of signals){
+  const exchangeQty=positionQuantity(liveRows,signal.symbol,signal.side),ownedQty=ledgerOpen.filter(t=>t.symbol===signal.symbol&&t.side===signal.side).reduce((n,t)=>n+Number(t.quantity||0),0);
+  if(exchangeQty>ownedQty+1e-10)continue; // manual same-symbol+side position: never merge ownership
   // Configuration failure aborts the batch. No order may use an unverified leverage.
   const capabilities=await bx.verifyConfiguration(signal.symbol,Number(signal.leverage));
   const marks=await bx.read('/openApi/swap/v2/quote/premiumIndex',{symbol:signal.symbol+'-USDT'}),price=Number((Array.isArray(marks)?marks[0]:marks)?.markPrice);
@@ -167,27 +170,27 @@ export async function closeDue({sb,bx,now=Date.now}){
    const confirmation=await bx.lookup({symbol:trade.symbol,clientOrderId:intent.close_client_order_id});
    if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
   }
-  let quantity=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
+  let quantity=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side),manualRemainder=Number(intent.manual_remainder_qty??Math.max(0,quantity-Number(trade.quantity)));
   if(quantity>0){
-   if(quantity>Number(trade.quantity)+1e-10)throw Error('untracked position quantity; close blocked');
+   quantity=Math.min(quantity,Number(trade.quantity));
    if(!['open','closing'].includes(intent.status)){results.push({id:trade.id,error:'entry reconciliation pending'});continue;}
    if(intent.status==='closing'){
     if(!intent.close_client_order_id)throw Error('legacy close requires reconciliation');
     const prior=await bx.lookup({symbol:trade.symbol,clientOrderId:intent.close_client_order_id});
     if(!prior.terminal&&prior.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
-    quantity=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
-    if(quantity===0)continue; // finalize on the next zero-position observation
-    if(quantity>Number(trade.quantity)+1e-10)throw Error('untracked residual quantity');
+    const observed=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
+    if(observed<=manualRemainder+1e-10)quantity=0;else quantity=Math.min(observed-manualRemainder,Number(trade.quantity));
+    if(quantity===0)continue; // finalize after owned quantity is gone; manual remainder is preserved
    }
    const attempt=Number(intent.close_attempt||0)+1,clientOrderId=trade.client_order_id+'-c'+attempt;
-   const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));
+   const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,manual_remainder_qty:manualRemainder,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));
    if(!claimed?.length)continue;
    await checked(sb.from('plan_b_real_trades').update({exit_reason:trade.exit_reason||exitReason,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
    const order={plan:'B',symbol:trade.symbol,side:trade.side,quantity,clientOrderId,close:true};
    const known=await bx.lookup(order),confirmation=known.status==='not_found'?await bx.submit(order):known;
    if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
    const remaining=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
-   if(remaining>0){results.push({id:trade.id,status:'close_pending',remaining});continue;}
+   if(remaining>manualRemainder+1e-10){results.push({id:trade.id,status:'close_pending',remaining_owned:remaining-manualRemainder});continue;}
   }
   await checked(sb.from('plan_b_real_trades').update({status:'closed',exit_reason:trade.exit_reason||exitReason,net_pnl_usd:null,closed_at:new Date(now()).toISOString(),updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
   await checked(sb.from('plan_b_signals').update({status:'closed'}).eq('id',trade.signal_id));
