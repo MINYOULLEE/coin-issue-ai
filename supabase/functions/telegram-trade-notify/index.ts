@@ -14,8 +14,8 @@ const MDD30_STANDARD="A Stage135 · 5개 독립 트리 + 장중 급등 방어";
 const sb=createClient(URL,SERVICE);
 // Kept identical to telegram-bot-webhook's keyboard on purpose -- this function used to
 // carry its own older/different keyboard, so every automated notification it sent would
-// silently reset the user's menu back to that stale version. Keep all seven buttons aligned.
-const keyboard={keyboard:[["🔵 A 현황","🟣 B 현황"],["🔵 A 기록","🟣 B 기록"],["👥 타인 API 연동"],["🔗 대시보드","❓ 도움말"]],resize_keyboard:true,is_persistent:true};
+// silently reset the user's menu back to that stale version. Keep all eight buttons aligned.
+const keyboard={keyboard:[["🔵 A 현황","🟣 B 현황"],["🔵 A 기록","🟣 B 기록"],["📅 주차 현황"],["👥 타인 API 연동"],["🔗 대시보드","❓ 도움말"]],resize_keyboard:true,is_persistent:true};
 
 async function tg(method:string,body:any={}){if(!BOT)throw new Error("TELEGRAM_BOT_TOKEN missing");const r=await fetch(`https://api.telegram.org/bot${BOT}/${method}`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});const j=await r.json();if(!j.ok)throw new Error(`Telegram ${j.error_code}: ${j.description}`);return j.result}
 async function send(text:string){return tg("sendMessage",{chat_id:CHAT,text,disable_web_page_preview:true,reply_markup:keyboard})}
