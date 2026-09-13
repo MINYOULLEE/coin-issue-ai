@@ -67,18 +67,29 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  for(const p of liveRows){const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');}
  const ledgerOpen=await checked(sb.from('plan_b_real_trades').select('symbol,side,quantity').eq('status','open'))||[];
  const contracts=await bx.read('/openApi/swap/v2/quote/contracts',{});
- const proposals=[];
+ const proposals=[],skipped=[];
  for(const signal of signals){
   const exchangeQty=positionQuantity(liveRows,signal.symbol,signal.side),ownedQty=ledgerOpen.filter(t=>t.symbol===signal.symbol&&t.side===signal.side).reduce((n,t)=>n+Number(t.quantity||0),0);
-  if(exchangeQty>ownedQty+1e-10)continue; // manual same-symbol+side position: never merge ownership
+  if(exchangeQty>ownedQty+1e-10){
+   const reason='manual_same_side_overlap';
+   skipped.push({signal_id:signal.id,symbol:signal.symbol,reason,exchange_quantity:exchangeQty,automatic_quantity:ownedQty});
+   await checked(sb.from('plan_b_signals').update({dispatch_block_reason:reason,dispatch_checked_at:new Date(now()).toISOString()}).eq('id',signal.id));
+   continue; // manual same-symbol+side position: never merge ownership
+  }
   // Configuration failure aborts the batch. No order may use an unverified leverage.
   const capabilities=await bx.verifyConfiguration(signal.symbol,Number(signal.leverage));
   const marks=await bx.read('/openApi/swap/v2/quote/premiumIndex',{symbol:signal.symbol+'-USDT'}),price=Number((Array.isArray(marks)?marks[0]:marks)?.markPrice);
   const adverse=(price/Number(signal.signal_price)-1)*100*(signal.side==='long'?1:-1);
-  if(!Number.isFinite(adverse)||adverse>.35)continue;
+  if(!Number.isFinite(adverse)||adverse>.35){
+   const reason=!Number.isFinite(adverse)?'invalid_mark_price':'adverse_move_over_0_35pct';
+   skipped.push({signal_id:signal.id,symbol:signal.symbol,reason,adverse_move_pct:adverse});
+   await checked(sb.from('plan_b_signals').update({dispatch_block_reason:reason,dispatch_checked_at:new Date(now()).toISOString()}).eq('id',signal.id));
+   continue;
+  }
+  await checked(sb.from('plan_b_signals').update({dispatch_block_reason:null,dispatch_checked_at:new Date(now()).toISOString()}).eq('id',signal.id));
   proposals.push({symbol:signal.symbol,entryPrice:price,signal,capabilities});
  }
- if(!proposals.length)return {mode:'live',processed:0};
+ if(!proposals.length)return {mode:'live',processed:0,skipped};
  const snapshot=new Date(now()).toISOString();
  const held=intents.reduce((s,i)=>s+Number(i.reserved_usd),0);
  const currentGross=liveRows.reduce((sum,p)=>{const q=Math.abs(Number(p.positionAmt??p.positionAmount));const mark=Number(p.markPrice??p.avgPrice??p.entryPrice);return sum+(Number.isFinite(q)&&Number.isFinite(mark)?q*mark:0);},0);
@@ -110,7 +121,7 @@ export async function executeBatch({sb,bx,now=Date.now}) {
    await recordEntry({sb,order,fill,now});results.push({symbol:order.symbol,status:fill.status});
   }catch(error){const status=submissionPossible?'unknown':'expired';await checked(sb.from('plan_b_execution_intents').update({status,updated_at:new Date(now()).toISOString()}).eq('client_order_id',order.clientOrderId));results.push({symbol:order.symbol,status,error:String(error.message)});}
  }
- return {ok:results.every(r=>!r.error),mode:'live',processed:results.length,results};
+ return {ok:results.every(r=>!r.error),mode:'live',processed:results.length,results,skipped};
 }
 export async function recordEntry({sb,order,fill,now=Date.now}) {
  if(!fillValid(fill,Number(order.quantity))){
