@@ -1,8 +1,8 @@
 export const A_STAGE75 = Object.freeze({
-  strategyId: 'answer_mdd30', version: 'mdd30_intraday_rally_guard_stage135_v1',
-  assets: Object.freeze(['BTC','ETH','XRP','TRX','SOL']), leverage: 3,
-  normalScale: 1.4, guardedScale: 1.05, maxGross: 2.24,
-  stopFraction: .15, guardTrigger: .35, guardRecovery: .175,
+  strategyId: 'answer_mdd30', version: 'mdd30_5x_c_controller_stage184_v1',
+  assets: Object.freeze(['BTC','ETH','XRP','TRX','SOL']), leverage: 5,
+  normalScale: 7/3, guardedScale: .77, maxGross: 56/15,
+  stopFraction: .15, guardTrigger: .225, guardRecovery: .10125,
   selectiveResizeThreshold: .0125,
   rallyGuard: Object.freeze({btcFirst:.005,breadthFirst:.0275,breadthCount:3,confirmHours:2,
     firstRemainingFraction:.05,btcSecond:.02,breadthSecond:.0375,secondRemainingFraction:0,

@@ -1,0 +1,40 @@
+{
+  "id": "A-STAGE178-C-COMBINED-PATHS",
+  "generated_at": "2026-09-14T09:07:10.507988+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "policy": "min_freeze_union",
+  "known32": {
+    "profitable": 32,
+    "return": {
+      "min": 3.7832479355207767,
+      "median": 311.0803749356722,
+      "max": 1470.1886209062736
+    },
+    "mdd": {
+      "min": -57.825516530304846,
+      "median": -31.97335770582221,
+      "max": -25.698414636855127
+    },
+    "over70": 0
+  },
+  "fresh32": {
+    "profitable": 32,
+    "return": {
+      "min": 4.5001088521308645,
+      "median": 334.0848851767821,
+      "max": 2375.5014620009856
+    },
+    "mdd": {
+      "min": -54.38207211184574,
+      "median": -33.904133865995576,
+      "max": -25.697231651327314
+    },
+    "over70": 0
+  },
+  "pass": true,
+  "limitations": [
+    "Fresh paths are new transforms of the same historical windows.",
+    "Latency and minute fills remain."
+  ]
+}

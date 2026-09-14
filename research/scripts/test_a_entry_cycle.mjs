@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createAEntryCycle} from '../../supabase/functions/_shared/a_entry_cycle.mjs';
-const p={signal:{id:101,symbol:'BTC',side:'long',signal_type:'answer_mdd30'},symbol:'BTC-USDT',side:'BUY',positionSide:'LONG',leverage:3,stop_pct:.15,price_precision:2,quantity:2,signal_price:100,equity:1000,executor_version:62,max_concurrent_positions:5,max_same_direction:5};
+const p={signal:{id:101,symbol:'BTC',side:'long',signal_type:'answer_mdd30'},symbol:'BTC-USDT',side:'BUY',positionSide:'LONG',leverage:5,stop_pct:.15,price_precision:2,quantity:2,signal_price:100,equity:1000,executor_version:62,max_concurrent_positions:5,max_same_direction:5};
 function fixture(order={orderId:'1234567890123456789',executedQty:2,avgPrice:101,status:'FILLED'},options={}){
  const calls=[],writes=[];let reservation=null,trade=options.closed?{id:9,status:'closed'}:null;
  const db=async(path,init={})=>{const method=init.method||'GET',body=init.body&&JSON.parse(init.body);writes.push({path,method,body});

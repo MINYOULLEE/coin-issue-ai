@@ -7,8 +7,10 @@ const collector=fs.readFileSync('supabase/functions/coin-collector/index.ts','ut
 const executor=fs.readFileSync('supabase/functions/bingx-order-execute/index.ts','utf8');
 const notifier=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
 
-test('A standard freezes Stage135 rally guard and Stage126 selective resize',()=>{
- assert.equal(standard.standard_version,'mdd30_intraday_rally_guard_stage135_v1');
+test('A standard freezes Stage184 C plus Stage135 rally guard and Stage126 selective resize',()=>{
+ assert.equal(standard.standard_version,'mdd30_5x_c_controller_stage184_v1');
+ assert.equal(standard.exchange_leverage,5);
+ assert.equal(standard.c_controller.market_gate.mean_pair_correlation_24h_min,.75);
  assert.equal(standard.sol_short_regime_guard.btc_completed_168h_return_min_pct,3.5);
  assert.equal(standard.sol_short_regime_guard.sol_completed_168h_return_min_pct,12);
  assert.equal(standard.selective_resize.threshold_pct_of_current_actual_equity,1.25);
@@ -27,6 +29,12 @@ test('collector and executor contain isolated Stage135 rally guard path',()=>{
  assert.match(collector,/daily_a_anchor_price/);
  assert.match(executor,/rally_guard_notification_pending:true/);
  assert.match(notifier,/장중 급등 방어 부분청산/);
+});
+test('collector contains the adopted completed-hour C controller and new-entry freeze',()=>{
+ assert.match(collector,/a_c_controller/);
+ assert.match(collector,/volRatio>=1\.8&&meanCorr>=\.75/);
+ assert.match(collector,/Math\.min\(\.\.\.freezes\)/);
+ assert.match(collector,/Date\.now\(\)>=freezeUntil/);
 });
 test('collector preserves same-side positions and applies only the adopted SOL short guard',()=>{
  assert.match(collector,/const solShortBlocked=.*\.035.*\.12.*answerBreadth>=3/);

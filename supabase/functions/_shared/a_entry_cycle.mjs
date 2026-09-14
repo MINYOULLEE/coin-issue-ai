@@ -40,13 +40,13 @@ export function createAEntryCycle({db,signed,now=()=>new Date().toISOString()}) 
  }
  async function submit(p){
   const s=p.signal||{},id=Number(s.id);let reserved=false,possible=false;
-  if(s.signal_type!=='answer_mdd30'||!['BTC','ETH','XRP','TRX','SOL'].includes(s.symbol)||p.symbol!==s.symbol+'-USDT'||!['long','short'].includes(s.side)||p.side!==(s.side==='long'?'BUY':'SELL')||p.positionSide!==s.side.toUpperCase()||Number(p.leverage)!==3||Number(p.stop_pct)!==.15||!Number.isFinite(Number(p.quantity))||Number(p.quantity)<=0||!Number.isSafeInteger(id))throw Error('invalid A Stage75 entry');
+  if(s.signal_type!=='answer_mdd30'||!['BTC','ETH','XRP','TRX','SOL'].includes(s.symbol)||p.symbol!==s.symbol+'-USDT'||!['long','short'].includes(s.side)||p.side!==(s.side==='long'?'BUY':'SELL')||p.positionSide!==s.side.toUpperCase()||Number(p.leverage)!==5||Number(p.stop_pct)!==.15||!Number.isFinite(Number(p.quantity))||Number(p.quantity)<=0||!Number.isSafeInteger(id))throw Error('invalid A Stage184 entry');
   try{
    const slot=await db('rpc/reserve_real_trade_slot',{method:'POST',body:JSON.stringify({p_signal_id:id,p_symbol:s.symbol,p_side:s.side,p_max_concurrent:Number(p.max_concurrent_positions),p_max_same_direction:Number(p.max_same_direction)})});
    if(!slot?.reserved)return {ok:true,pending:true,signal_id:id,reason:slot?.reason};reserved=true;
    const state=(await db('real_trading_state?id=eq.singleton&select=enabled,test_mode'))?.[0];
    if(!state?.enabled||state.test_mode)throw Error('A new entries disabled');
-   await signed('POST','/openApi/swap/v2/trade/leverage',{symbol:p.symbol,side:p.positionSide,leverage:3,recvWindow:5000});
+   await signed('POST','/openApi/swap/v2/trade/leverage',{symbol:p.symbol,side:p.positionSide,leverage:5,recvWindow:5000});
    const payload={...p,submitted_at:now()};
    // Persist BEFORE sending. A timeout/worker crash must never release this reservation by age.
    await patch(id,{request_payload:payload,execution_status:'submitted'});possible=true;

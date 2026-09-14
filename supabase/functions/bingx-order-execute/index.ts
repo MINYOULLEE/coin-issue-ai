@@ -32,8 +32,8 @@ const COINS = ["BTC", "ETH", "XRP", "SOL", "BNB", "DOGE", "ADA", "LINK", "AVAX",
 const SUITE_TYPES = ["strategy_a","strategy_b","strategy_c","strategy_d","strategy_f","strategy_g"];
 const DAILY_REBALANCE_TYPES = [...SUITE_TYPES, "answer_mdd30"];
 const MDD30_ASSETS = new Set(["BTC", "ETH", "XRP", "TRX", "SOL"]);
-const MDD30_EXCHANGE_LEVERAGE = 3;
-const MDD30_MAX_GROSS_EXPOSURE = 2.24;
+const MDD30_EXCHANGE_LEVERAGE = 5;
+const MDD30_MAX_GROSS_EXPOSURE = 56 / 15;
 const MDD30_STOP_PCT = 0.15;
 const STALE_MS: Record<string, number> = { tactical: 120000, swing: 900000, strategy_a: 3600000, strategy_b: 3600000, strategy_c: 3600000, strategy_d: 3600000, strategy_f: 3600000, strategy_g: 3600000, answer_mdd30: 3600000 };
 const COLLECTOR_STALE_MS = 5 * 60 * 1000;
@@ -674,11 +674,11 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     const peak = Math.max(Number(state.a_equity_peak_usd || 0), equity);
     const drawdown = peak > 0 ? (peak - equity) / peak : 0;
     let guard = !!state.a_drawdown_guard_active;
-    if (!guard && drawdown >= .35) guard = true;
-    else if (guard && drawdown <= .175) guard = false;
-    const scale = guard ? 1.05 : 1.4;
+    if (!guard && drawdown >= .225) guard = true;
+    else if (guard && drawdown <= .10125) guard = false;
+    const scale = guard ? .77 : 7 / 3;
     const baseExposure = Number(payload.base_exposure_multiplier);
-    if (!(baseExposure >= 0) || baseExposure > 1.6) throw Error("invalid Stage75 base exposure");
+    if (!(baseExposure >= 0) || baseExposure > 1.6) throw Error("invalid Stage184 base exposure");
     const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT";
     const contract = await getContract(bxSymbol), qtyPrecision = Number(contract.quantityPrecision ?? 3), pricePrecision = Number(contract.pricePrecision ?? 2);
     const raw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
@@ -699,7 +699,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
       await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString() }) });
       return Response.json({ ok: true, resized: false, skipped: "quantity delta below exchange minimum", current_quantity: currentQty, target_quantity: targetQty, scale });
     }
-    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: 3, recvWindow: 5000 });
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: MDD30_EXCHANGE_LEVERAGE, recvWindow: 5000 });
     const adding = targetQty > currentQty;
     const orderSide = adding ? (row.side === "long" ? "BUY" : "SELL") : (row.side === "long" ? "SELL" : "BUY");
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: orderSide, positionSide, type: "MARKET", quantity: delta, recvWindow: 5000 });
@@ -722,7 +722,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
       throw Error(`Stage75 stop replacement failed; safety closed: ${e instanceof Error ? e.message : String(e)}`);
     }
     const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
-    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: 3, notional_usd: notional, margin_usd: notional / 3, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage75: true, stage126_selective_resize: true, stage135_rally_guard: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
+    await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: MDD30_EXCHANGE_LEVERAGE, notional_usd: notional, margin_usd: notional / MDD30_EXCHANGE_LEVERAGE, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage184: true, stage126_selective_resize: true, stage135_rally_guard: true, stage184_c_controller: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
     await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: nowIso }) });
     return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, scale, stop_price: stopPrice });
   } catch (e) {
@@ -1030,10 +1030,10 @@ Deno.serve(async (req: Request) => {
       const peak = Math.max(priorPeak, equity);
       const drawdown = peak > 0 ? (peak - equity) / peak : 0;
       let guard = !!state.a_drawdown_guard_active;
-      if (!guard && drawdown >= 0.35) guard = true;
-      else if (guard && drawdown <= 0.175) guard = false;
-      const baseExposure = Number(signalStrategy.base_exposure_multiplier ?? exposureMultiplier / 1.4);
-      exposureMultiplier = baseExposure * (guard ? 1.05 : 1.4);
+      if (!guard && drawdown >= 0.225) guard = true;
+      else if (guard && drawdown <= 0.10125) guard = false;
+      const baseExposure = Number(signalStrategy.base_exposure_multiplier ?? exposureMultiplier / (7 / 3));
+      exposureMultiplier = baseExposure * (guard ? .77 : 7 / 3);
       await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({
         a_equity_peak_usd: peak, a_drawdown_guard_active: guard,
         a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString(),
@@ -1053,8 +1053,8 @@ Deno.serve(async (req: Request) => {
     const remainingSymbol = Math.max(0, perSymbolCapUsd - usedSymbol);
 
     if (mdd30 && Number(state.max_leverage) < MDD30_EXCHANGE_LEVERAGE) {
-      await insertRejected(signal, "A Stage75 기준은 거래소 레버리지 3x 필요");
-      return Response.json({ ok: false, error: "real_trading_state.max_leverage must be at least 3 for answer_mdd30" }, { status: 400 });
+      await insertRejected(signal, "A Stage184 기준은 거래소 레버리지 5x 필요");
+      return Response.json({ ok: false, error: "real_trading_state.max_leverage must be at least 5 for answer_mdd30" }, { status: 400 });
     }
     const leverage = mdd30
       ? MDD30_EXCHANGE_LEVERAGE

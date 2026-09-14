@@ -17,17 +17,17 @@ def main():
     b = read('strategy/plan_b_standard.json')
     assert a['strategy_id'] == 'answer_mdd30'
     assert a['assets'] == ['BTC', 'ETH', 'XRP', 'TRX', 'SOL']
-    assert a['standard_version'] == 'mdd30_intraday_rally_guard_stage135_v1'
-    assert a['exchange_leverage'] == 3
-    assert a['base_exposure_scale'] == 1.4
-    assert a['max_gross_exposure'] == 2.24
+    assert a['standard_version'] == 'mdd30_5x_c_controller_stage184_v1'
+    assert a['exchange_leverage'] == 5
+    assert abs(a['base_exposure_scale'] - 7 / 3) < 1e-12
+    assert abs(a['max_gross_exposure'] - 56 / 15) < 1e-12
     assert a['emergency_stop_loss_pct'] == 15
     assert a['drawdown_guard'] == {
         'equity_peak_basis': 'actual_bingx_equity',
-        'activation_drawdown_pct': 35,
-        'active_exposure_scale': 1.05,
-        'recovery_drawdown_pct': 17.5,
-        'normal_exposure_scale': 1.4,
+        'activation_drawdown_pct': 22.5,
+        'active_exposure_scale': .77,
+        'recovery_drawdown_pct': 10.125,
+        'normal_exposure_scale': 7 / 3,
         'evaluation': 'before_next_daily_rebalance',
         'state_persistence_required': True,
     }

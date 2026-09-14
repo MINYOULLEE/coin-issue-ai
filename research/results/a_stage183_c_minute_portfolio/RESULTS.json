@@ -1,0 +1,202 @@
+{
+  "id": "A-STAGE183-C-MINUTE-PORTFOLIO",
+  "generated_at": "2026-09-14T09:21:48.885888+00:00",
+  "research_only": true,
+  "live_changes": false,
+  "rows": [
+    {
+      "delay_min": 0,
+      "fills": 114,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 32207310.984825518,
+        "return_pct": 32207210.984825518,
+        "close_mark_mdd_pct": -42.54553584611943,
+        "hourly_adverse_bound_mdd_pct": -44.748069478159444,
+        "total_order_events": 8621,
+        "overlay_actions": 384,
+        "emergency_stop_exits": 50,
+        "turnover_usd": 8466936371.626075,
+        "c_actions": 82,
+        "c_trigger_hours": 29,
+        "c_overlap_hours": 10
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 61015276.64062397,
+        "return_pct": 61015176.64062397,
+        "close_mark_mdd_pct": -44.97563577871908,
+        "hourly_adverse_bound_mdd_pct": -45.374065818305084,
+        "total_order_events": 10072,
+        "overlay_actions": 517,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 16040251010.378204,
+        "c_actions": 114,
+        "c_trigger_hours": 39,
+        "c_overlap_hours": 15
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 2148098.6556496667,
+        "return_pct": 2147998.6556496667,
+        "close_mark_mdd_pct": -45.733381271734316,
+        "hourly_adverse_bound_mdd_pct": -46.373628062749525,
+        "total_order_events": 9873,
+        "overlay_actions": 503,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 662279691.843328,
+        "c_actions": 112,
+        "c_trigger_hours": 38,
+        "c_overlap_hours": 15
+      },
+      "pass": true
+    },
+    {
+      "delay_min": 1,
+      "fills": 114,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 29603539.952604774,
+        "return_pct": 29603439.952604774,
+        "close_mark_mdd_pct": -42.27667280142573,
+        "hourly_adverse_bound_mdd_pct": -44.79057750732033,
+        "total_order_events": 8618,
+        "overlay_actions": 384,
+        "emergency_stop_exits": 50,
+        "turnover_usd": 7775701609.2194605,
+        "c_actions": 82,
+        "c_trigger_hours": 29,
+        "c_overlap_hours": 10
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 46766987.370544754,
+        "return_pct": 46766887.370544754,
+        "close_mark_mdd_pct": -44.95441129611181,
+        "hourly_adverse_bound_mdd_pct": -45.3528413356978,
+        "total_order_events": 10064,
+        "overlay_actions": 518,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 12283912270.178625,
+        "c_actions": 114,
+        "c_trigger_hours": 39,
+        "c_overlap_hours": 15
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1015412.1648835912,
+        "return_pct": 1015312.1648835912,
+        "close_mark_mdd_pct": -45.39805891209583,
+        "hourly_adverse_bound_mdd_pct": -46.031508488512586,
+        "total_order_events": 9843,
+        "overlay_actions": 501,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 373607904.094003,
+        "c_actions": 112,
+        "c_trigger_hours": 38,
+        "c_overlap_hours": 15
+      },
+      "pass": true
+    },
+    {
+      "delay_min": 3,
+      "fills": 114,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 29348714.56668469,
+        "return_pct": 29348614.56668469,
+        "close_mark_mdd_pct": -42.53620644474123,
+        "hourly_adverse_bound_mdd_pct": -44.90474576107737,
+        "total_order_events": 8610,
+        "overlay_actions": 384,
+        "emergency_stop_exits": 50,
+        "turnover_usd": 7812229509.08744,
+        "c_actions": 82,
+        "c_trigger_hours": 29,
+        "c_overlap_hours": 10
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 28333938.688107908,
+        "return_pct": 28333838.688107908,
+        "close_mark_mdd_pct": -42.86456988339948,
+        "hourly_adverse_bound_mdd_pct": -44.599812003118245,
+        "total_order_events": 9909,
+        "overlay_actions": 510,
+        "emergency_stop_exits": 127,
+        "turnover_usd": 7542130233.014714,
+        "c_actions": 114,
+        "c_trigger_hours": 39,
+        "c_overlap_hours": 15
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1373888.9415995902,
+        "return_pct": 1373788.9415995902,
+        "close_mark_mdd_pct": -45.93881722817407,
+        "hourly_adverse_bound_mdd_pct": -46.38847911710007,
+        "total_order_events": 9884,
+        "overlay_actions": 501,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 435689660.36362904,
+        "c_actions": 112,
+        "c_trigger_hours": 38,
+        "c_overlap_hours": 15
+      },
+      "pass": true
+    },
+    {
+      "delay_min": 5,
+      "fills": 114,
+      "five": {
+        "start_usd": 100,
+        "end_usd": 27883090.120679405,
+        "return_pct": 27882990.120679405,
+        "close_mark_mdd_pct": -42.75267044605789,
+        "hourly_adverse_bound_mdd_pct": -44.822639744617085,
+        "total_order_events": 8606,
+        "overlay_actions": 384,
+        "emergency_stop_exits": 50,
+        "turnover_usd": 7425790080.780685,
+        "c_actions": 82,
+        "c_trigger_hours": 29,
+        "c_overlap_hours": 10
+      },
+      "seven": {
+        "start_usd": 100,
+        "end_usd": 57028528.48418199,
+        "return_pct": 57028428.48418199,
+        "close_mark_mdd_pct": -45.453119920839235,
+        "hourly_adverse_bound_mdd_pct": -45.84988549268697,
+        "total_order_events": 10081,
+        "overlay_actions": 518,
+        "emergency_stop_exits": 123,
+        "turnover_usd": 15187799356.97942,
+        "c_actions": 114,
+        "c_trigger_hours": 39,
+        "c_overlap_hours": 15
+      },
+      "triple": {
+        "start_usd": 100,
+        "end_usd": 1355231.8178065934,
+        "return_pct": 1355131.8178065934,
+        "close_mark_mdd_pct": -45.74457340722113,
+        "hourly_adverse_bound_mdd_pct": -46.31489883216913,
+        "total_order_events": 9860,
+        "overlay_actions": 501,
+        "emergency_stop_exits": 122,
+        "turnover_usd": 430632626.11633086,
+        "c_actions": 112,
+        "c_trigger_hours": 38,
+        "c_overlap_hours": 15
+      },
+      "pass": true
+    }
+  ],
+  "passing": 4,
+  "all_delays_pass": true,
+  "limitations": [
+    "Binance USD-M minute opens, not BingX order-book fills.",
+    "Historical trigger windows are in-sample."
+  ]
+}
