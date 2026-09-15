@@ -1,9 +1,9 @@
 # A/B trading plan invariants
 
-Before ANY trading/research/UI/deployment work read `strategy/PLANS.md`, `strategy/mdd30_standard.json`, and `strategy/plan_b_standard.json` in full.
+Before ANY trading/research/UI/deployment work, start at `strategy/work_map/README.md`, select the relevant A/B/controller/research map, then read `strategy/PLANS.md`, `strategy/mdd30_standard.json`, and `strategy/plan_b_standard.json` in full.
 
-- A is the existing `answer_mdd30` system. Current B is `b_core_sparse_stage26` (Stage16 core + ALGO/ETH/VET). Never infer one plan's settings from the other.
-- Read `strategy/plan_b_combination_standard.json` and `strategy/B_STAGE26_APPROVED_20260831.md` before B work. Stage26 functions/DB are deployed; owner-enabled switches stay ON. B ALGO/ETH/VET isolated LONG/SHORT 3x and all eight symbols verified. Financial notifications to chat 6818439075 explicitly approved on 2026-08-31, Telegram functions deployed. Never bypass order preflight. Stage16 is an archived research baseline, not the current B runtime ID.
+- A is the existing `answer_mdd30` system. Current A is `mdd30_5x_c_controller_stage184_v1`; current B is `b_regime_guard_stage112` / `b_regime_guard_stage112_v1`. Never infer one plan's settings from the other.
+- Read `strategy/plan_b_combination_standard.json`, `strategy/B_STAGE112_APPROVED_20260910.md`, and `strategy/B_STAGE26_APPROVED_20260831.md` before B work. Stage112 is the current deployed B standard; Stage26 is required history for the core/supplement execution invariants, not the current runtime ID. Owner-enabled switches stay ON. Financial notifications to chat 6818439075 were explicitly approved on 2026-08-31. Never bypass order preflight. Stage16 is an archived research baseline, not the current B runtime ID.
 - Preserve research opportunity cooldowns independently of fills: supplementary holding is 1h but selected signal boundaries must be >=2h apart. A and new B can both trade ETH through completely separate accounts; symbol disjointness is not an isolation invariant.
 - The words "종목별 A+B" inside A's model describe internal components, NOT the platform B plan.
 - B Stage14/15 headline returns were withdrawn. Never restore their 5.75 multiplier, 20.7x exposure or claimed returns as active B settings.
