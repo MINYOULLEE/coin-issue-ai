@@ -11,6 +11,7 @@ const ASSETS=new Set(["BTC","ETH","XRP","TRX","SOL"]);
 const ACTIVE=new Set(["active","weakening"]);
 const LEVERAGE=5,MAX_GROSS=56/15,STOP_PCT=.15;
 const A_VERSION="mdd30_5x_c_controller_stage184_v1";
+const CURRENT_PLAN_VERSIONS={A:A_VERSION,B:"b_regime_guard_stage112_v1"} as const;
 
 function same(a:string,b:string){if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
 function finite(v:unknown){const n=Number(v);if(!Number.isFinite(n))throw Error("invalid numeric response");return n}
@@ -45,7 +46,7 @@ async function alignStage184Leverage(account:any,trades:any[],key:string,secret:
   const mark=Number(p?.markPrice||trade.entry_price),notional=owned*(mark>0?mark:finite(trade.entry_price));
   await sql`update public.managed_bingx_trades set leverage=${LEVERAGE},margin_usdt=${notional/LEVERAGE},last_error=null,updated_at=now() where id=${trade.id}`;
  }
- await sql`update public.managed_bingx_accounts set a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
+ await sql`update public.managed_bingx_accounts set desired_strategy_version=${A_VERSION},a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),applied_strategy_version=${A_VERSION},strategy_version_synced_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
 }
 
 async function replaceStopAfterResize(account:any,trade:any,key:string,secret:string,quantity:number,entry:number,pricePrecision:number){
@@ -85,7 +86,7 @@ async function rebalanceStage184(account:any,trades:any[],key:string,secret:stri
   const protection=await replaceStopAfterResize(account,trade,key,secret,newQty,newEntry,pp);
   await sql`update public.managed_bingx_trades set quantity=${newQty},leverage=${LEVERAGE},margin_usdt=${newQty*mark/LEVERAGE},entry_price=${newEntry},stop_price=${protection.stop},stop_order_id=${protection.stopOrderId},last_error=null,updated_at=now() where id=${trade.id}`;
  }
- await sql`update public.managed_bingx_accounts set a_last_rebalance_closed_ms=${decisionMs},a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
+ await sql`update public.managed_bingx_accounts set a_last_rebalance_closed_ms=${decisionMs},desired_strategy_version=${A_VERSION},a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),applied_strategy_version=${A_VERSION},strategy_version_synced_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
 }
 
 async function closeTrade(account:any,trade:any,key:string,secret:string,reason:string){
@@ -139,4 +140,4 @@ async function runAccount(account:any){const c=await credentials(account.id),key
  for(const s of signals)await enter(account,s,key,secret);
  }catch(e){await sql`update public.managed_bingx_accounts set status='error',last_error=${String(e).slice(0,500)},last_synced_at=now(),updated_at=now() where id=${account.id}::uuid`;throw e}}
 
-Deno.serve(async req=>{if(req.method!=="POST")return new Response("POST required",{status:405});if(!INTERNAL||!same(req.headers.get("x-internal-key")||"",INTERNAL))return new Response("forbidden",{status:403});const accounts=await sql`select * from public.managed_bingx_accounts where live_enabled and status in ('connected','error') order by created_at`,results=[];for(const a of accounts){if(a.assigned_plan!=="A"){results.push({id:a.id,ok:false,error:"B managed executor not deployed"});continue}try{await runAccount(a);results.push({id:a.id,ok:true})}catch(e){results.push({id:a.id,ok:false,error:String(e).slice(0,200)})}}return Response.json({ok:results.every(x=>x.ok),accounts:results});});
+Deno.serve(async req=>{if(req.method!=="POST")return new Response("POST required",{status:405});if(!INTERNAL||!same(req.headers.get("x-internal-key")||"",INTERNAL))return new Response("forbidden",{status:403});await sql`update public.managed_bingx_accounts set desired_strategy_version=case assigned_plan when 'A' then ${CURRENT_PLAN_VERSIONS.A} when 'B' then ${CURRENT_PLAN_VERSIONS.B} end,updated_at=now() where desired_strategy_version is distinct from case assigned_plan when 'A' then ${CURRENT_PLAN_VERSIONS.A} when 'B' then ${CURRENT_PLAN_VERSIONS.B} end`;const accounts=await sql`select * from public.managed_bingx_accounts where live_enabled and status in ('connected','error') order by created_at`,results=[];for(const a of accounts){if(a.assigned_plan!=="A"){results.push({id:a.id,ok:false,error:"B managed executor not deployed; LIVE activation remains blocked"});continue}try{await runAccount(a);results.push({id:a.id,ok:true,desired_version:CURRENT_PLAN_VERSIONS.A,applied_version:CURRENT_PLAN_VERSIONS.A})}catch(e){results.push({id:a.id,ok:false,error:String(e).slice(0,200)})}}return Response.json({ok:results.every(x=>x.ok),plan_versions:CURRENT_PLAN_VERSIONS,accounts:results});});

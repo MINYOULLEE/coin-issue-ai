@@ -54,6 +54,9 @@ test('managed A live execution is account scoped and fail closed',()=>{
  assert.match(executor,/수동 포지션과 동일 종목·방향 중첩/);
  assert.match(executor,/owned=Math\.min\(actual,finite\(trade\.quantity\)\)/);
  assert.match(executor,/mdd30_5x_c_controller_stage184_v1/);
+ assert.match(executor,/CURRENT_PLAN_VERSIONS/);
+ assert.match(executor,/desired_strategy_version/);
+ assert.match(executor,/applied_strategy_version/);
  assert.match(executor,/alignStage184Leverage/);
  assert.match(executor,/rebalanceStage184/);
  assert.match(executor,/a_last_rebalance_closed_ms/);
@@ -70,6 +73,7 @@ test('managed LIVE switch performs fresh preflight',()=>{
  assert.match(endpoint,/positivePositions\(positionsRaw\)\.length/);
  assert.match(endpoint,/live_enabled_at=now|update\.live_enabled_at=now/);
  assert.match(endpoint,/현재 타인계정 실거래 실행기는 A플랜만 지원합니다/);
+ assert.match(endpoint,/desired_strategy_version,applied_strategy_version,strategy_version_synced_at/);
  assert.match(ui,/LIVE 켜기/);
  assert.match(ui,/자동매매 OFF/);
 });

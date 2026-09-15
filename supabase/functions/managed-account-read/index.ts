@@ -74,15 +74,15 @@ Deno.serve(async req=>{
       await sql.begin(async tx=>{
         const apiRows=await tx`select vault.create_secret(${apiKey}, ${"managed_"+accountId+"_api"}, ${"Managed BingX API key"}) as id`;
         const secretRows=await tx`select vault.create_secret(${secretKey}, ${"managed_"+accountId+"_secret"}, ${"Managed BingX secret key"}) as id`;
-        await tx`insert into public.managed_bingx_accounts(id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,api_key_secret_id,secret_key_secret_id,last_synced_at,last_error)
-          values(${accountId}::uuid,${displayName},${plan},${start},${equity},'connected',false,false,${apiRows[0].id}::uuid,${secretRows[0].id}::uuid,now(),null)`;
+        await tx`insert into public.managed_bingx_accounts(id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,api_key_secret_id,secret_key_secret_id,last_synced_at,last_error,desired_strategy_version)
+          values(${accountId}::uuid,${displayName},${plan},${start},${equity},'connected',false,false,${apiRows[0].id}::uuid,${secretRows[0].id}::uuid,now(),null,${plan==="A"?"mdd30_5x_c_controller_stage184_v1":"b_regime_guard_stage112_v1"})`;
       });
       return Response.json({ok:true,account:{id:accountId,display_name:displayName,assigned_plan:plan,starting_equity_usdt:start,current_equity_usdt:equity,status:"connected",live_enabled:false},preflight:{bingx_authenticated:true,hedge_mode:true,open_positions:0,available_margin_usdt:available},execution:"locked_until_account_scoped_executor"},{headers:CORS});
     }catch(e){return Response.json({ok:false,error:String(e instanceof Error?e.message:e).slice(0,300)},{status:502,headers:CORS});}
   }
 
   if(body.action==="overview"){
-    const{data,error}=await sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,last_synced_at,last_error").order("display_name");
+    const{data,error}=await sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan,starting_equity_usdt,current_equity_usdt,status,live_enabled,alerts_enabled,last_synced_at,last_error,desired_strategy_version,applied_strategy_version,strategy_version_synced_at").order("display_name");
     if(error)return Response.json({ok:false,error:"연동 계정 목록 조회 실패"},{status:502,headers:CORS});
     return Response.json({ok:true,accounts:data||[]},{headers:CORS});
   }
