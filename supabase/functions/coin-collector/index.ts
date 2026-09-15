@@ -1,4 +1,5 @@
 import { ANSWER_FEATURES, evaluateAnswerTree } from "./answer_trees.ts";
+import { aEntryAdmission, currentADecision, completeAClose } from "../_shared/a_recovery_policy.mjs";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -422,6 +423,20 @@ async function manageSignals(market,old){
   for(const signal of active){
     const id=Number(signal.id),age=Date.now()-Date.parse(signal.created_at||nowIso);
     if(signal.strategy_epoch===STRATEGY_EPOCH&&signal.signal_type==="answer_mdd30"&&age>90000&&!liveOpenSignalIds.has(id)&&!reservedSignalIds.has(id)){
+      if(signal.entry_metrics?.c_close_intent?.status==="pending")continue;
+      const historyResponse=await fetch(PROJECT_URL+`/rest/v1/real_trades?signal_id=eq.${id}&select=id,status&limit=1`,{headers:adminHeaders()});
+      if(!historyResponse.ok)throw Error("A orphan history lookup failed");
+      const history=await historyResponse.json();
+      if(history.length){
+        if(history[0].status!=="open")Object.assign(signal,await patchSignal(id,{status:"invalidated",closed_at:nowIso,close_reason:"A 주문 이력 종료 · 동일 신호 재진입 금지",updated_at:nowIso}));
+        continue;
+      }
+      const admission=aEntryAdmission(signal,candidates,Date.now());
+      if(!admission.allowed){
+        // C blocks are temporary; retain the signal and its original timestamp.
+        if(admission.reason!=="C entry freeze")Object.assign(signal,await patchSignal(id,{status:"invalidated",closed_at:nowIso,close_reason:admission.reason,updated_at:nowIso}));
+        continue;
+      }
       const recovery=await triggerRealTrade(signal);
       if(!recovery?.ok)console.error("MDD30 orphan signal recovery failed",id,signal.symbol,recovery?.error||recovery?.skipped);
     }
@@ -429,6 +444,7 @@ async function manageSignals(market,old){
   // 전략 세대 전환 때문에 이미 열려 있는 실거래를 시장가로 닫지 않는다. 이전 세대
   // 포지션은 BingX 동기화/보호 주문이 계속 관리하고, 신규 진입만 A-G 세대로 만든다.
   // legacyActive는 화면과 heartbeat에도 남겨 운영자가 승계 포지션을 계속 확인할 수 있게 한다.
+  active=active.filter(x=>["active","weakening"].includes(x.status));
   const legacyActive=active.filter(x=>x.strategy_epoch!==STRATEGY_EPOCH||!STRATEGY_TYPES.includes(x.signal_type));
   active=active.filter(x=>x.strategy_epoch===STRATEGY_EPOCH&&STRATEGY_TYPES.includes(x.signal_type));
   const byId=Object.fromEntries(active.map(x=>[x.id,x]));let realizedPnl=Number(perf.net_pnl_usd||0);
@@ -442,6 +458,20 @@ async function manageSignals(market,old){
     }else if(newHour)byId[s.id]=await patchSignal(s.id,{last_reviewed_at:new Date(closedHourAt).toISOString(),updated_at:nowIso});
   }
   const open=()=>Object.values(byId),hasType=(t)=>open().some(x=>x.signal_type===t);
+  // Restore durable C intents before daily resizing or any new entry.
+  const cClosedThisCycle=new Set();
+  async function finishCClose(current){
+    const outcome=await completeAClose(current,{patch:patchSignal,close:triggerClose,now:nowIso,price:Number(market[current.symbol]?.price||current.entry_price)});
+    if(outcome.closed){delete byId[current.id];cClosedThisCycle.add(current.symbol)}
+    return outcome;
+  }
+  for(const current of open())if(current.entry_metrics?.c_close_intent?.status==="pending"){
+    const intent=current.entry_metrics.c_close_intent;
+    const state=candidates.a_c_controller||{};
+    if(Date.parse(intent.freeze_until||"")>Date.parse(state.freeze_until||"1970-01-01"))state.freeze_until=intent.freeze_until;
+    candidates.a_c_controller=state;
+    await finishCClose(current);
+  }
   async function enter(symbol,type,side,exposure,leverage,hours,reasons,stopPct,modelConfidence=80,manualImmediate=false){
     if(legacyActive.length+open().length>=5||legacyActive.some(x=>x.symbol===symbol&&x.side===side)||open().some(x=>x.symbol===symbol&&x.side===side))return null;
     const entry=Number(market[symbol]?.price||0);if(!(entry>0))return null;
@@ -453,12 +483,12 @@ async function manageSignals(market,old){
     const referenceEquity=Math.max(0.01,Number(old.paper_account?.equity_usd||old.paper_account?.balance_usd||1000));
     const estimatedNotional=referenceEquity*exposure,estimatedMargin=estimatedNotional/Math.max(1,leverage);
     const plan={leverage,account_equity_usd:referenceEquity,margin_usd:estimatedMargin,notional_usd:estimatedNotional,fee_usd:estimatedNotional*.001,risk_usd:stopPct?estimatedNotional*stopPct:null,risk_pct:stopPct?exposure*stopPct*100:null};
-    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"A Stage184 5배 단일 + C 급변 방어",market_regime:"answer_mdd30",base_exposure_multiplier:exposure/(7/3),exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:56/15,fixed_take_profit:false,exit_mode:"daily_answer_rebalance_with_emergency_stop_intraday_rally_guard_and_c_controller",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:15,selective_resize_threshold_equity_pct:1.25,intraday_rally_guard:true,c_controller:true,manual_immediate_rebalance:manualImmediate,daily_recovery:retryAnswerDecision===true,decision_closed_at:retryAnswerDecision?new Date(answerDecisionClosedAt).toISOString():null}},created_at:created,expires_at:expires,updated_at:created});
+    const s=await insertSignal({symbol,side,signal_type:type,horizon_minutes:hours*60,status:"active",strategy_epoch:STRATEGY_EPOCH,collector_version:COLLECTOR_VERSION,signal_model_version:SIGNAL_MODEL_VERSION,entry_price:entry,invalidation_price:invalidation,target_price:target,confidence:modelConfidence,reasons,...plan,entry_metrics:{strategy_config:{candidate:"A Stage184 5배 단일 + C 급변 방어",market_regime:"answer_mdd30",base_exposure_multiplier:exposure/(7/3),exposure_multiplier:exposure,exchange_leverage:leverage,max_gross_exposure:56/15,fixed_take_profit:false,exit_mode:"daily_answer_rebalance_with_emergency_stop_intraday_rally_guard_and_c_controller",account_sizing:"executor_live_bingx_equity",emergency_hard_stop_pct:15,selective_resize_threshold_equity_pct:1.25,intraday_rally_guard:true,c_controller:true,manual_immediate_rebalance:manualImmediate,daily_recovery:retryAnswerDecision===true,decision_closed_at:new Date(answerDecisionClosedAt).toISOString()}},created_at:created,expires_at:expires,updated_at:created});
     const execution=await triggerRealTrade(s);
     // trade_signals_status_check does not include "rejected". A failed live
     // entry is a terminally invalid signal, so use the schema-supported status
     // and keep the execution reason for auditability.
-    if(!execution?.ok||execution?.skipped){await patchSignal(s.id,{status:"invalidated",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
+    if((!execution?.ok&&!execution?.pending)||execution?.skipped){await patchSignal(s.id,{status:"invalidated",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
     if(!execution.queued&&!execution.pending)liveOpenSignalIds.add(Number(s.id));
     byId[s.id]=s;return s;
   }
@@ -471,7 +501,7 @@ async function manageSignals(market,old){
   const forceAnswerRebalance=tradeCommand?.command==="force_mdd30"||candidates.force_mdd30_rebalance===true;
   const forceAnswerSymbols=tradeCommand?.command==="force_mdd30"&&Array.isArray(tradeCommand.symbols)?tradeCommand.symbols.map(String):Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
   const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
-  const retryAnswerDecision=candidates.hourly_audit?.status==="retry_pending"&&Date.parse(String(candidates.hourly_audit?.closed_at||""))>Number(candidates.last_mdd30_decision_closed_at||0);
+  const retryAnswerDecision=candidates.hourly_audit?.status==="retry_pending"&&currentADecision(Date.parse(String(candidates.hourly_audit?.closed_at||"")),Date.now())&&Date.parse(String(candidates.hourly_audit?.closed_at||""))>Number(candidates.last_mdd30_decision_closed_at||0);
   const answerDecisionClosedAt=retryAnswerDecision?Date.parse(String(candidates.hourly_audit.closed_at)):closedHourAt;
   const answerDecisionDate=new Date(answerDecisionClosedAt);
   const newAnswerDecision=forceAnswerRebalance||retryAnswerDecision||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
@@ -483,6 +513,7 @@ async function manageSignals(market,old){
     for(const symbol of ANSWER_ASSETS){
       if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
       const storedAnswer=forceAnswerRebalance||retryAnswerDecision?forcedAuditAnswers.get(symbol):null;
+      if(retryAnswerDecision&&!forceAnswerRebalance&&!storedAnswer){audit.push({symbol,status:"entry_pending",reason:"저장된 일일 답안 누락 · 임시 시간봉 답안으로 대체 금지"});continue;}
       let answer=storedAnswer?{...(market[symbol]?.answer_mdd30||{}),...storedAnswer}:market[symbol]?.answer_mdd30||null;
       if(symbol==="SOL"&&answer?.side==="short"&&solShortBlocked)answer={...answer,side:null,exposure:0,stage126_guard:"BTC 168h >= 3.5%, SOL 168h >= 12%, breadth >= 3: SOL short blocked"};
       const carriedIndex=legacyActive.findIndex(x=>x.symbol===symbol);
@@ -491,26 +522,27 @@ async function manageSignals(market,old){
         if(await triggerClose(carried,reason)){
           const price=Number(market[symbol]?.price||carried.entry_price),result=(price/Number(carried.entry_price)-1)*100*(carried.side==="long"?1:-1),notional=Number(carried.notional_usd||0),margin=Number(carried.margin_usd||0),net=notional*result/100-Number(carried.fee_usd||0);
           await patchSignal(carried.id,{status:result>.1?"success":result<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});legacyActive.splice(carriedIndex,1);
-        }else{audit.push({symbol,status:"close_failed",reason:"승계 포지션 청산 실패 · 신규진입 차단"});continue}
+        }else{audit.push({symbol,status:"close_failed",answer,reason:"승계 포지션 청산 실패 · 신규진입 차단"});continue}
       }
       const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
-      if(current&&(reservedSignalIds.has(Number(current.id))||!liveOpenSignalIds.has(Number(current.id)))){audit.push({symbol,status:"entry_pending",reason:"거래소 체결 확인/복구 대기"});continue;}
+      if(current?.entry_metrics?.c_close_intent?.status==="pending"||cClosedThisCycle.has(symbol)){audit.push({symbol,status:"close_failed",reason:"C 청산 확인 중 · 이번 주기 재진입/증액 보류",answer});continue;}
+      if(current&&(reservedSignalIds.has(Number(current.id))||!liveOpenSignalIds.has(Number(current.id)))){audit.push({symbol,status:"entry_pending",signal_id:current.id,answer,reason:"거래소 체결 확인/복구 대기"});continue;}
       if(current&&(!answer?.side||current.side!==answer.side||legacyExecutorSignalIds.has(Number(current.id)))){
         const reason=!answer?.side?`${symbol} 현금 전환`:current.side!==answer.side?`${symbol} 방향 전환`:`${symbol} 최종 v${REQUIRED_EXECUTOR_VERSION} 포지션 크기 교정`;
         if(await triggerClose(current,reason)){
           const price=Number(market[symbol]?.price||current.entry_price),result=(price/Number(current.entry_price)-1)*100*(current.side==="long"?1:-1),notional=Number(current.notional_usd||0),margin=Number(current.margin_usd||0),net=notional*result/100-Number(current.fee_usd||0);
           await patchSignal(current.id,{status:result>.1?"success":result<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:result,net_pnl_usd:notional?net:null,leveraged_return_pct:margin?net/margin*100:null,close_reason:reason,updated_at:nowIso});delete byId[current.id];
-        }else{audit.push({symbol,status:"close_failed",reason:"기존 목표 청산 실패 · 신규진입 차단"});continue}
+        }else{audit.push({symbol,status:"close_failed",answer,reason:"기존 목표 청산 실패 · 신규진입 차단"});continue}
       }
       const stillOpen=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol);
       let resize=null;
       if(answer?.side&&stillOpen&&stillOpen.side===answer.side){
         resize=await triggerMdd30Resize(stillOpen,Number(answer.exposure));
-        if(!resize?.ok){audit.push({symbol,status:"resize_failed",reason:resize?.error||"Stage75 수량 차이 조정 실패"});continue}
+        if(!resize?.ok){audit.push({symbol,status:"resize_failed",answer,reason:resize?.error||"Stage75 수량 차이 조정 실패"});continue}
       }
       const freezeUntil=Date.parse(String(candidates.a_c_controller?.freeze_until||""))||0;
       const entered=answer?.side&&!stillOpen&&Date.now()>=freezeUntil?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*(7/3),5,24,[`${symbol} Stage184 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 5배 단일 정상배율 2.3333`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
-      audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
+      audit.push({symbol,signal_id:entered?.id||stillOpen?.id||null,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
     const completed=!audit.some(x=>["close_failed","resize_failed","entry_failed","entry_pending"].includes(x.status));
     if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=answerDecisionClosedAt;
@@ -538,6 +570,7 @@ async function manageSignals(market,old){
       const targetFraction=phase===0?.05:0,results=[];
       for(const symbol of ["ETH","XRP","SOL"]){
         const current=open().find(x=>x.signal_type==="answer_mdd30"&&x.symbol===symbol&&x.side==="short");
+        if(current?.entry_metrics?.c_close_intent?.status==="pending")continue;
         if(!current){results.push({symbol,ok:true,skipped:"no A short"});continue}
         const result=await triggerMdd30RallyGuard(current,targetFraction,phase+1);results.push({symbol,...result});
         if(result?.closed){const price=Number(market[symbol]?.price||current.entry_price),resultPct=(price/Number(current.entry_price)-1)*-100;await patchSignal(current.id,{status:resultPct>.1?"success":resultPct<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:resultPct,close_reason:`A Stage135 급등 방어 ${phase+1}단계 전량청산`,updated_at:nowIso});delete byId[current.id]}
@@ -554,12 +587,12 @@ async function manageSignals(market,old){
   const cState:any=candidates.a_c_controller||{};
   if(commonClosedAt>Number(cState.last_evaluated_closed_at||0)){
     const series=Object.fromEntries(ANSWER_ASSETS.map(s=>[s,(market[s]?.suite_setup?.c_returns_168h||[]).map(Number)]));
-    const valid=ANSWER_ASSETS.every(s=>series[s].length===168&&series[s].every(Number.isFinite));
+    const valid=commonClosedAt>0&&ANSWER_ASSETS.every(s=>Number(market[s]?.suite_setup?.closed_at)===commonClosedAt&&market[s]?.suite_setup?.data_valid===true&&series[s].length===168&&series[s].every(Number.isFinite));
     if(valid){
       const med=[];for(let i=0;i<168;i++)med.push(median(ANSWER_ASSETS.map(s=>series[s][i])));
       const volRatio=populationStd(med.slice(-6))/Math.max(populationStd(med),1e-12),pairs=[];
       for(let i=0;i<ANSWER_ASSETS.length;i++)for(let j=i+1;j<ANSWER_ASSETS.length;j++)pairs.push(correlation(series[ANSWER_ASSETS[i]].slice(-24),series[ANSWER_ASSETS[j]].slice(-24)));
-      const meanCorr=pairs.reduce((a,b)=>a+b,0)/pairs.length,held=open().filter(x=>x.signal_type==="answer_mdd30");
+      const meanCorr=pairs.reduce((a,b)=>a+b,0)/pairs.length,held=open().filter(x=>x.signal_type==="answer_mdd30"&&liveOpenSignalIds.has(Number(x.id)));
       const adverse=(s,n)=>{const rs=series[s.symbol].slice(-n),move=rs.reduce((v,x)=>v*(1+x),1)-1;return -(s.side==="long"?1:-1)*move};
       const instant=held.filter(s=>adverse(s,3)>=.05),broad=held.filter(s=>adverse(s,3)>=.03),persistent=held.filter(s=>adverse(s,6)>=.03);
       const gate=volRatio>=1.8&&meanCorr>=.75,qualifies=gate&&(instant.length>=2||broad.length>=3||persistent.length>=3);
@@ -568,11 +601,23 @@ async function manageSignals(market,old){
       if(qualifies){
         const freezes=[...(persistent.length>=3?[24]:[]),...(broad.length>=3?[48]:[])],freezeHours=freezes.length?Math.min(...freezes):0;
         if(freezeHours)cState.freeze_until=new Date(commonClosedAt+freezeHours*3600000).toISOString();
-        for(const current of targets){const reason="A Stage184 C 급변 특이시장 방어";const closed=await triggerClose(current,reason);results.push({symbol:current.symbol,closed});if(closed){const price=Number(market[current.symbol]?.price||current.entry_price),resultPct=(price/Number(current.entry_price)-1)*100*(current.side==="long"?1:-1);await patchSignal(current.id,{status:resultPct>.1?"success":resultPct<-.1?"failure":"neutral",closed_at:nowIso,exit_price:price,result_pct:resultPct,close_reason:reason,updated_at:nowIso});delete byId[current.id]}}
+        // Persist every target before making any external close request.
+        for(const current of targets){
+          if(current.entry_metrics?.c_close_intent?.status!=="pending"){
+            current.entry_metrics={...(current.entry_metrics||{}),c_close_intent:{status:"pending",signal_id:current.id,trigger_closed_at:commonClosedAt,freeze_until:cState.freeze_until||null,created_at:nowIso}};
+            await patchSignal(current.id,{entry_metrics:current.entry_metrics});
+          }
+        }
+        candidates.a_c_controller=cState;
+        // Keep the original heartbeat: saving a close intent is not a completed collector tick.
+        await save({...old,signal_candidates:candidates,heartbeat:old.heartbeat});
+        for(const current of targets){const outcome=await finishCClose(current);results.push({symbol:current.symbol,...outcome});}
       }
       cState.last_check={closed_at:commonClosedAt,vol_ratio:volRatio,mean_pair_correlation:meanCorr,instant:instant.map(x=>x.symbol),broad:broad.map(x=>x.symbol),persistent:persistent.map(x=>x.symbol),qualified:qualifies,results};
-    }
-    cState.version="stage184";cState.last_evaluated_closed_at=commonClosedAt;cState.updated_at=nowIso;candidates.a_c_controller=cState;
+      cState.last_evaluated_closed_at=commonClosedAt;
+      cState.data_error=null;
+    }else cState.data_error="C requires aligned complete hourly data; evaluation pending";
+    cState.version="stage184";cState.updated_at=nowIso;candidates.a_c_controller=cState;
   }
   active=[...legacyActive,...open()].map(s=>signalView(s,Number(market[s.symbol]?.price||s.entry_price)));
   for(const symbol of COINS){const mine=active.filter(x=>x.symbol===symbol);market[symbol].trade_signal=mine[0]||null;market[symbol].tactical_signal=mine[1]||null;if(mine[0])market[symbol].recommendation=`${mine[0].signal_type.toUpperCase()} ${mine[0].side.toUpperCase()} · ${Number(mine[0].entry_metrics?.strategy_config?.exposure_multiplier||0)}x`}

@@ -1,0 +1,64 @@
+{
+  "id": "A-STAGE185-RECOVERY-VERIFICATION",
+  "live_changes": false,
+  "rows": [
+    {
+      "name": "legacy orphan same decision",
+      "hours": 2,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": true,
+      "result": {
+        "allowed": true,
+        "recovery": true,
+        "boundary": 1789433999999
+      }
+    },
+    {
+      "name": "next daily boundary passed",
+      "hours": 25,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": false,
+      "result": {
+        "allowed": false,
+        "reason": "A legacy decision expired"
+      }
+    },
+    {
+      "name": "direction changed",
+      "hours": 2,
+      "side": "long",
+      "status": "retry_pending",
+      "expected": false,
+      "result": {
+        "allowed": false,
+        "reason": "A recovery direction unavailable or changed"
+      }
+    },
+    {
+      "name": "completed decision",
+      "hours": 2,
+      "side": "short",
+      "status": "completed",
+      "expected": false,
+      "result": {
+        "allowed": false,
+        "reason": "A recovery decision expired or unavailable"
+      }
+    },
+    {
+      "name": "future boundary",
+      "hours": -1,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": false,
+      "result": {
+        "allowed": false,
+        "reason": "invalid signal timestamp"
+      }
+    }
+  ],
+  "passing": 5,
+  "failed": 0
+}

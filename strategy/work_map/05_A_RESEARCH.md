@@ -2,6 +2,8 @@
 
 ## 현재 기준선
 
+최신 실행 복구 점검: `research/results/a_stage185_recovery_audit/REPORT.md`. 후속 로컬 보수: `strategy/A_RECOVERY_REPAIR_20260915.md`. Stage184 전략 파라미터는 유지하며 운영 배포 완료 여부는 보수 기록에서 별도로 확인한다.
+
 새 A 연구는 항상 Stage184를 기준선으로 비교한다. 후보가 Stage184보다 좋아 보여도 연구 결과일 뿐이며 사용자 채택 전 운영 정본에 반영하지 않는다.
 
 ## 연구 계보

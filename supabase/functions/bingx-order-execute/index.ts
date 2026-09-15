@@ -16,6 +16,7 @@
 import { createHmac } from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
 import { selectiveResizeHold } from "../_shared/a_stage75_policy.mjs";
+import { aEntryAdmission } from "../_shared/a_recovery_policy.mjs";
 
 const JSONBigParse = JSONBig({ storeAsString: true });
 
@@ -360,7 +361,11 @@ async function handleClose(payload: any): Promise<Response> {
     if (!API_KEY || !SECRET_KEY) return Response.json({ ok: false, error: "BingX secrets not configured" });
     const rows = await db(`real_trades?signal_id=eq.${payload.id}&status=eq.open&select=*&limit=1`);
     const row = rows?.[0];
-    if (!row) return Response.json({ ok: true, skipped: "no matching open real trade" });
+    if (!row) {
+      const settled = (await db(`real_trades?signal_id=eq.${payload.id}&status=eq.closed&select=id&limit=1`))?.[0];
+      if (settled) return Response.json({ok:true,closed:true,reason:"trade already settled"});
+      return Response.json({ ok: true, skipped: "no matching open real trade" });
+    }
     const bxSymbol = String(row.bingx_symbol), positionSide = row.side === "long" ? "LONG" : "SHORT";
     const closeSide = row.side === "long" ? "SELL" : "BUY";
     const contract = await getContract(bxSymbol), qtyPrecision = Number(contract.quantityPrecision ?? 3);
@@ -801,7 +806,7 @@ Deno.serve(async (req: Request) => {
     // A hard Edge-runtime termination cannot reach the normal catch/finally
     // cleanup. Reclaim only reservations older than two minutes; fresh ones
     // remain protected from concurrent duplicate orders.
-    await db(`trade_execution_reservations?created_at=lt.${encodeURIComponent(new Date(Date.now() - 120000).toISOString())}`, { method: "DELETE" });
+    await db(`trade_execution_reservations?request_payload=is.null&created_at=lt.${encodeURIComponent(new Date(Date.now() - 120000).toISOString())}`, { method: "DELETE" });
     await reconcileOpenTrades();
     return Response.json({ ok: true, synced: true });
   }
@@ -821,6 +826,15 @@ Deno.serve(async (req: Request) => {
   }
 
   try {
+    // Re-read A's source row: stale queued payloads cannot revive a closed or
+    // invalidated signal, change its direction, or remove a C close intent.
+    if (signal?.signal_type === "answer_mdd30") {
+      const id = Number(signal.id);
+      if (!Number.isSafeInteger(id) || id <= 0) return Response.json({ok:false,error:"invalid A signal id"},{status:400});
+      const stored = (await db(`trade_signals?id=eq.${id}&select=*&limit=1`))?.[0];
+      if (!stored || stored.signal_type !== "answer_mdd30" || !["active","weakening"].includes(stored.status)) return Response.json({ok:true,skipped:"A source signal no longer active"});
+      signal = stored;
+    }
     if (!COINS.includes(signal.symbol)) return Response.json({ ok: false, error: "unsupported symbol" }, { status: 400 });
     if (!["long", "short"].includes(signal.side)) return Response.json({ ok: false, error: "invalid side" }, { status: 400 });
     if (!["swing", "tactical", ...DAILY_REBALANCE_TYPES].includes(signal.signal_type)) return Response.json({ ok: false, error: "invalid signal_type" }, { status: 400 });
@@ -850,22 +864,15 @@ Deno.serve(async (req: Request) => {
     const candidateA = DAILY_REBALANCE_TYPES.includes(signal.signal_type);
     const manualImmediateMdd30 = signal.signal_type === "answer_mdd30" && signal.entry_metrics?.strategy_config?.manual_immediate_rebalance === true;
 
-    // 3. 신호 신선도 확인. A의 일일 판단 복구는 같은 저장 판단봉이 여전히
-    // retry_pending이고 종목/방향이 일치할 때만 다음 일일 경계 전까지 허용한다.
+    // 3. Validate the persisted A decision, including legacy orphan signals.
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
-    const recoveryCfg = signal.entry_metrics?.strategy_config;
     let recoverySnapshot: any = null;
-    let authorizedDailyRecovery = false;
-    if (signal.signal_type === "answer_mdd30" && recoveryCfg?.daily_recovery === true) {
+    if (signal.signal_type === "answer_mdd30") {
       const rows = await db("coin_snapshots?id=eq.live&select=updated_at,payload&limit=1");
       recoverySnapshot = rows?.[0] || null;
-      const audit = recoverySnapshot?.payload?.signal_candidates?.hourly_audit;
-      const boundary = Date.parse(String(recoveryCfg?.decision_closed_at || ""));
-      const auditBoundary = Date.parse(String(audit?.closed_at || ""));
-      const asset = Array.isArray(audit?.assets) ? audit.assets.find((x: any) => x?.symbol === signal.symbol) : null;
-      authorizedDailyRecovery = audit?.status === "retry_pending" && Number.isFinite(boundary) && boundary === auditBoundary && Date.now() - boundary < 26 * 3600000 && asset?.answer?.side === signal.side;
-    }
-    if (Date.now() - Date.parse(signal.created_at) > staleMs && !authorizedDailyRecovery) {
+      const admission = aEntryAdmission(signal, recoverySnapshot?.payload?.signal_candidates, Date.now());
+      if (!admission.allowed) return Response.json({ok:true,skipped:admission.reason});
+    } else if (!Number.isFinite(Date.parse(signal.created_at)) || Date.parse(signal.created_at) > Date.now() || Date.now() - Date.parse(signal.created_at) > staleMs) {
       await insertRejected(signal, "오래된 신호");
       return Response.json({ ok: true, skipped: "stale signal" });
     }

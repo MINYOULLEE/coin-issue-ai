@@ -1,0 +1,55 @@
+{
+  "id": "A-STAGE185-RECOVERY-AUDIT",
+  "research_only": true,
+  "live_changes": false,
+  "rows": [
+    {
+      "name": "same decision at +2h",
+      "hours": 2,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": true,
+      "actual": true,
+      "correct": true
+    },
+    {
+      "name": "previous decision after next daily boundary",
+      "hours": 25,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": false,
+      "actual": true,
+      "correct": false
+    },
+    {
+      "name": "direction changed",
+      "hours": 2,
+      "side": "long",
+      "status": "retry_pending",
+      "expected": false,
+      "actual": false,
+      "correct": true
+    },
+    {
+      "name": "completed decision",
+      "hours": 2,
+      "side": "short",
+      "status": "completed",
+      "expected": false,
+      "actual": false,
+      "correct": true
+    },
+    {
+      "name": "future boundary",
+      "hours": -1,
+      "side": "short",
+      "status": "retry_pending",
+      "expected": false,
+      "actual": true,
+      "correct": false
+    }
+  ],
+  "failed_scenarios": 2,
+  "legacy_orphan_gets_recovery_flag": false,
+  "scope": "Local source scenarios; no live DB or exchange access; no historical return estimate"
+}
