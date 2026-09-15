@@ -1,5 +1,7 @@
 # A/B 매매 기준 — 작업 전 반드시 읽기
 
+> 작업 위치를 먼저 찾을 때는 [`strategy/work_map/README.md`](work_map/README.md)에서 시작한다. 현재 A, 현재 B, A 내부 A+B, A+C 방어, A 연구, B 연구를 서로 섞이지 않게 분리한 공식 작업 지도다.
+
 **최신 채택 기준: `B_STAGE112_APPROVED_20260910.md`. B 운영 ID `b_regime_guard_stage112`: Stage93 신호와 Stage66 청산을 유지하고 신규진입 총노출 3.75x, 계좌 낙폭 25% 시 168시간 신규진입 중지, BTC 완료 72시간 수익률 -6% 이하에서 BCH/ICP/LINK/UNI 신규진입 차단을 적용한다. A는 변경하지 않는다. 사용자 B ON·LIVE 상태는 변경하지 않는다. 아래 Stage93/Stage66/Stage45/Stage35/Stage26/Stage16 기록은 과거 이력이다.**
 
 ## A플랜: Stage184 5배 단일 + C 급변 방어 — 2026-09-14 사용자 채택
