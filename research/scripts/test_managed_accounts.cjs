@@ -53,6 +53,13 @@ test('managed A live execution is account scoped and fail closed',()=>{
  assert.match(executor,/protective stop failed; safety close sent/);
  assert.match(executor,/수동 포지션과 동일 종목·방향 중첩/);
  assert.match(executor,/owned=Math\.min\(actual,finite\(trade\.quantity\)\)/);
+ assert.match(executor,/mdd30_5x_c_controller_stage184_v1/);
+ assert.match(executor,/alignStage184Leverage/);
+ assert.match(executor,/rebalanceStage184/);
+ assert.match(executor,/a_last_rebalance_closed_ms/);
+ assert.match(executor,/Stage184 resize protective stop failed; safety close sent/);
+ assert.match(executor,/manual same-side quantity blocks leverage alignment/);
+ assert.doesNotMatch(executor,/set live_enabled=false,status='error'/);
  assert.match(executor,/if\(trade\.stop_order_id\)/);
  assert.doesNotMatch(executor,/BINGX_API_KEY|BINGX_SECRET_KEY/);
  assert.match(collector,/managed-account-executor/);

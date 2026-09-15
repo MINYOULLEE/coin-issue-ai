@@ -10,6 +10,7 @@ const parse=JSONBig({storeAsString:true});
 const ASSETS=new Set(["BTC","ETH","XRP","TRX","SOL"]);
 const ACTIVE=new Set(["active","weakening"]);
 const LEVERAGE=5,MAX_GROSS=56/15,STOP_PCT=.15;
+const A_VERSION="mdd30_5x_c_controller_stage184_v1";
 
 function same(a:string,b:string){if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}
 function finite(v:unknown){const n=Number(v);if(!Number.isFinite(n))throw Error("invalid numeric response");return n}
@@ -27,6 +28,65 @@ async function credentials(accountId:string){const rows=await sql`select k.decry
 async function balance(key:string,secret:string){const raw=await signed(key,secret,"GET","/openApi/swap/v3/user/balance",{recvWindow:5000}),rows=Array.isArray(raw)?raw:Array.isArray(raw?.balance)?raw.balance:[raw?.balance||raw],u=rows.find((x:any)=>x?.asset==="USDT")||rows[0];return{equity:finite(u?.equity),available:finite(u?.availableMargin)}}
 async function contract(key:string,secret:string,symbol:string){const raw=await signed(key,secret,"GET","/openApi/swap/v2/quote/contracts",{symbol}),rows=Array.isArray(raw)?raw:Array.isArray(raw?.contracts)?raw.contracts:[],x=rows.find((v:any)=>v.symbol===symbol)||rows[0];if(!x)throw Error("contract unavailable");return x}
 async function confirmedOrder(key:string,secret:string,symbol:string,clientOrderId:string,raw:any){let o=orderValue(raw);if(o?.orderID||o?.orderId)return o;for(const ms of [150,300,700]){await new Promise(r=>setTimeout(r,ms));o=orderValue(await signed(key,secret,"GET","/openApi/swap/v2/trade/order",{symbol,clientOrderId,recvWindow:5000}));if(o?.orderID||o?.orderId)return o}throw Error("order confirmation unavailable")}
+
+async function alignStage184Leverage(account:any,trades:any[],key:string,secret:string){
+ for(const trade of trades){
+  const symbol=trade.symbol+"-USDT",positionSide=String(trade.side).toUpperCase();
+  const positions=positionRows(await signed(key,secret,"GET","/openApi/swap/v2/user/positions",{symbol,recvWindow:5000}));
+  const p=positions.find((x:any)=>String(x.symbol)===symbol&&String(x.positionSide)===positionSide);
+  const actual=Math.abs(Number(p?.positionAmt??p?.positionAmount??0)),owned=finite(trade.quantity);
+  if(!(actual>0))continue;
+  if(actual>owned+1e-10){
+   await sql`update public.managed_bingx_trades set last_error='manual same-side quantity present; Stage184 leverage alignment deferred',updated_at=now() where id=${trade.id}`;
+   throw Error(`${trade.symbol} manual same-side quantity blocks leverage alignment`);
+  }
+  const exchangeLeverage=Number(p?.leverage??0);
+  if(exchangeLeverage!==LEVERAGE)await signed(key,secret,"POST","/openApi/swap/v2/trade/leverage",{symbol,side:positionSide,leverage:LEVERAGE,recvWindow:5000});
+  const mark=Number(p?.markPrice||trade.entry_price),notional=owned*(mark>0?mark:finite(trade.entry_price));
+  await sql`update public.managed_bingx_trades set leverage=${LEVERAGE},margin_usdt=${notional/LEVERAGE},last_error=null,updated_at=now() where id=${trade.id}`;
+ }
+ await sql`update public.managed_bingx_accounts set a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
+}
+
+async function replaceStopAfterResize(account:any,trade:any,key:string,secret:string,quantity:number,entry:number,pricePrecision:number){
+ const symbol=trade.symbol+"-USDT",positionSide=String(trade.side).toUpperCase(),closeSide=trade.side==="long"?"SELL":"BUY";
+ if(trade.stop_order_id)try{await signed(key,secret,"DELETE","/openApi/swap/v2/trade/order",{symbol,orderId:trade.stop_order_id,recvWindow:5000})}catch{}
+ const stop=round(entry*(trade.side==="long"?1-STOP_PCT:1+STOP_PCT),pricePrecision);
+ try{
+  const stopOrder=orderValue(await signed(key,secret,"POST","/openApi/swap/v2/trade/order",{symbol,side:closeSide,positionSide,type:"STOP_MARKET",stopPrice:stop,quantity,workingType:"MARK_PRICE",recvWindow:5000}));
+  return{stop,stopOrderId:String(stopOrder?.orderID??stopOrder?.orderId??"")};
+ }catch(e){
+  await signed(key,secret,"POST","/openApi/swap/v2/trade/order",{symbol,side:closeSide,positionSide,type:"MARKET",quantity,recvWindow:5000}).catch(()=>{});
+  await sql`update public.managed_bingx_trades set status='closed',closed_at=now(),close_reason='Stage184 resize stop failed; safety close sent',last_error=${String(e).slice(0,500)},updated_at=now() where id=${trade.id}`;
+  throw Error("Stage184 resize protective stop failed; safety close sent");
+ }
+}
+
+async function rebalanceStage184(account:any,trades:any[],key:string,secret:string,equity:number,guard:boolean,decisionMs:number){
+ if(!(decisionMs>0)||decisionMs<=Number(account.a_last_rebalance_closed_ms||0))return;
+ for(const trade of trades){
+  const cfg=trade.entry_metrics?.strategy_config||{},base=finite(cfg.base_exposure_multiplier??finite(cfg.exposure_multiplier)/(7/5));
+  const symbol=trade.symbol+"-USDT",positionSide=String(trade.side).toUpperCase();
+  const [positions,c]=await Promise.all([signed(key,secret,"GET","/openApi/swap/v2/user/positions",{symbol,recvWindow:5000}),contract(key,secret,symbol)]);
+  const p=positionRows(positions).find((x:any)=>String(x.symbol)===symbol&&String(x.positionSide)===positionSide);
+  const actual=Math.abs(Number(p?.positionAmt??p?.positionAmount??0)),owned=finite(trade.quantity),mark=finite(p?.markPrice||trade.entry_price);
+  if(!(actual>0)||actual>owned+1e-10)throw Error(`${trade.symbol} manual same-side quantity blocks Stage184 resize`);
+  const qp=Number(c.quantityPrecision??3),pp=Number(c.pricePrecision??2),target=roundDown(equity*base*(guard?.77:7/3)/mark,qp),delta=roundDown(Math.abs(target-owned),qp);
+  const minQty=Number(c.tradeMinQuantity??0),minUsdt=Number(c.tradeMinUSDT??2),reduce=target<owned;
+  const selective=(trade.symbol==="SOL"&&trade.side==="long"&&reduce)||(trade.symbol==="BTC"&&trade.side==="short"&&reduce);
+  if(!(delta>0)||delta<minQty||delta*mark<minUsdt||(selective&&delta*mark<equity*.0125))continue;
+  if(trade.stop_order_id)try{await signed(key,secret,"DELETE","/openApi/swap/v2/trade/order",{symbol,orderId:trade.stop_order_id,recvWindow:5000})}catch{}
+  const side=reduce?(trade.side==="long"?"SELL":"BUY"):(trade.side==="long"?"BUY":"SELL");
+  const client=`ma${String(account.id).replace(/-/g,"").slice(0,8)}r${trade.id}${decisionMs}`.slice(0,40);
+  await signed(key,secret,"POST","/openApi/swap/v2/trade/order/test",{symbol,side,positionSide,type:"MARKET",quantity:delta,clientOrderId:client.slice(0,36)+"t",recvWindow:5000});
+  await confirmedOrder(key,secret,symbol,client,await signed(key,secret,"POST","/openApi/swap/v2/trade/order",{symbol,side,positionSide,type:"MARKET",quantity:delta,clientOrderId:client,recvWindow:5000}));
+  const afterRows=positionRows(await signed(key,secret,"GET","/openApi/swap/v2/user/positions",{symbol,recvWindow:5000})),after=afterRows.find((x:any)=>String(x.symbol)===symbol&&String(x.positionSide)===positionSide),newQty=Math.abs(finite(after?.positionAmt??after?.positionAmount??0)),newEntry=finite(after?.avgPrice||after?.entryPrice||trade.entry_price);
+  if(!(newQty>0))throw Error("Stage184 resize position verification failed");
+  const protection=await replaceStopAfterResize(account,trade,key,secret,newQty,newEntry,pp);
+  await sql`update public.managed_bingx_trades set quantity=${newQty},leverage=${LEVERAGE},margin_usdt=${newQty*mark/LEVERAGE},entry_price=${newEntry},stop_price=${protection.stop},stop_order_id=${protection.stopOrderId},last_error=null,updated_at=now() where id=${trade.id}`;
+ }
+ await sql`update public.managed_bingx_accounts set a_last_rebalance_closed_ms=${decisionMs},a_strategy_version=${A_VERSION},a_strategy_aligned_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
+}
 
 async function closeTrade(account:any,trade:any,key:string,secret:string,reason:string){
  const symbol=trade.symbol+"-USDT",positionSide=trade.side.toUpperCase(),closeSide=trade.side==="long"?"SELL":"BUY";
@@ -67,11 +127,16 @@ async function runAccount(account:any){const c=await credentials(account.id),key
   await signed(key,secret,"POST","/openApi/swap/v2/trade/order/test",{symbol:"BTC-USDT",side:"BUY",positionSide:"LONG",type:"MARKET",quantity:qty,clientOrderId:("mapre"+String(account.id).replace(/-/g,"")).slice(0,32),recvWindow:5000});
   account.live_enabled_at=new Date().toISOString();await sql`update public.managed_bingx_accounts set live_enabled_at=${account.live_enabled_at},last_error=null,updated_at=now() where id=${account.id}::uuid`;
  }
- const b=await balance(key,secret);await sql`update public.managed_bingx_accounts set current_equity_usdt=${b.equity},a_equity_peak_usdt=greatest(coalesce(a_equity_peak_usdt,0),${b.equity}),status='connected',last_synced_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
- const trades=await sql`select t.*,s.status signal_status,s.close_reason signal_close_reason from public.managed_bingx_trades t left join public.trade_signals s on s.id=t.signal_id where t.account_id=${account.id}::uuid and t.status='open' order by t.created_at`;
+ const b=await balance(key,secret),peak=Math.max(Number(account.a_equity_peak_usdt||0),b.equity),dd=peak>0?(peak-b.equity)/peak:0;let guard=!!account.a_drawdown_guard_active;if(!guard&&dd>=.225)guard=true;else if(guard&&dd<=.10125)guard=false;
+ await sql`update public.managed_bingx_accounts set current_equity_usdt=${b.equity},a_equity_peak_usdt=${peak},a_drawdown_guard_active=${guard},status='connected',last_synced_at=now(),last_error=null,updated_at=now() where id=${account.id}::uuid`;
+ const trades=await sql`select t.*,s.status signal_status,s.close_reason signal_close_reason,s.entry_metrics from public.managed_bingx_trades t left join public.trade_signals s on s.id=t.signal_id where t.account_id=${account.id}::uuid and t.status='open' order by t.created_at`;
  for(const t of trades)if(!ACTIVE.has(String(t.signal_status)))await closeTrade(account,t,key,secret,String(t.signal_close_reason||"A플랜 신호 종료"));
+ const surviving=trades.filter((t:any)=>ACTIVE.has(String(t.signal_status)));
+ await alignStage184Leverage(account,surviving,key,secret);
+ const decision=await sql`select coalesce((payload #>> '{signal_candidates,last_mdd30_decision_closed_at}')::bigint,0) closed_ms from public.coin_snapshots where id='latest'`;
+ await rebalanceStage184(account,surviving,key,secret,b.equity,guard,Number(decision[0]?.closed_ms||0));
  const signals=await sql`select id,symbol,side,signal_type,status,created_at,entry_price,invalidation_price,target_price,entry_metrics from public.trade_signals where signal_type='answer_mdd30' and status in ('active','weakening') and created_at>=${account.live_enabled_at} order by created_at`;
  for(const s of signals)await enter(account,s,key,secret);
- }catch(e){await sql`update public.managed_bingx_accounts set live_enabled=false,status='error',last_error=${String(e).slice(0,500)},last_synced_at=now(),updated_at=now() where id=${account.id}::uuid`;throw e}}
+ }catch(e){await sql`update public.managed_bingx_accounts set status='error',last_error=${String(e).slice(0,500)},last_synced_at=now(),updated_at=now() where id=${account.id}::uuid`;throw e}}
 
 Deno.serve(async req=>{if(req.method!=="POST")return new Response("POST required",{status:405});if(!INTERNAL||!same(req.headers.get("x-internal-key")||"",INTERNAL))return new Response("forbidden",{status:403});const accounts=await sql`select * from public.managed_bingx_accounts where live_enabled and status in ('connected','error') order by created_at`,results=[];for(const a of accounts){if(a.assigned_plan!=="A"){results.push({id:a.id,ok:false,error:"B managed executor not deployed"});continue}try{await runAccount(a);results.push({id:a.id,ok:true})}catch(e){results.push({id:a.id,ok:false,error:String(e).slice(0,200)})}}return Response.json({ok:results.every(x=>x.ok),accounts:results});});
