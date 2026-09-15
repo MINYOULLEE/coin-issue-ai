@@ -471,7 +471,10 @@ async function manageSignals(market,old){
   const forceAnswerRebalance=tradeCommand?.command==="force_mdd30"||candidates.force_mdd30_rebalance===true;
   const forceAnswerSymbols=tradeCommand?.command==="force_mdd30"&&Array.isArray(tradeCommand.symbols)?tradeCommand.symbols.map(String):Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
   const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
-  const newAnswerDecision=forceAnswerRebalance||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
+  const retryAnswerDecision=candidates.hourly_audit?.status==="retry_pending"&&Date.parse(String(candidates.hourly_audit?.closed_at||""))>Number(candidates.last_mdd30_decision_closed_at||0);
+  const answerDecisionClosedAt=retryAnswerDecision?Date.parse(String(candidates.hourly_audit.closed_at)):closedHourAt;
+  const answerDecisionDate=new Date(answerDecisionClosedAt);
+  const newAnswerDecision=forceAnswerRebalance||retryAnswerDecision||(isAnswerDecisionHour&&closedHourAt>Number(candidates.last_mdd30_decision_closed_at||0));
   if(newAnswerDecision){
     // Commit the boundary only after every asset has completed or is held.
     candidates.force_mdd30_rebalance=false;candidates.force_mdd30_symbols=[];const audit=[];
@@ -479,7 +482,7 @@ async function manageSignals(market,old){
     const solShortBlocked=Number(market.BTC?.answer_mdd30?.return_168h||0)>=.035&&Number(market.SOL?.answer_mdd30?.return_168h||0)>=.12&&answerBreadth>=3;
     for(const symbol of ANSWER_ASSETS){
       if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
-      const storedAnswer=forceAnswerRebalance?forcedAuditAnswers.get(symbol):null;
+      const storedAnswer=forceAnswerRebalance||retryAnswerDecision?forcedAuditAnswers.get(symbol):null;
       let answer=storedAnswer?{...(market[symbol]?.answer_mdd30||{}),...storedAnswer}:market[symbol]?.answer_mdd30||null;
       if(symbol==="SOL"&&answer?.side==="short"&&solShortBlocked)answer={...answer,side:null,exposure:0,stage126_guard:"BTC 168h >= 3.5%, SOL 168h >= 12%, breadth >= 3: SOL short blocked"};
       const carriedIndex=legacyActive.findIndex(x=>x.symbol===symbol);
@@ -510,9 +513,9 @@ async function manageSignals(market,old){
       audit.push({symbol,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
     const completed=!audit.some(x=>["close_failed","resize_failed","entry_failed","entry_pending"].includes(x.status));
-    if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=closedHourAt;
-    candidates.hourly_audit={closed_at:closedDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
-    if(completed&&!forceAnswerRebalance)candidates.a_rally_guard={version:"stage135",anchor_closed_at:closedHourAt,anchor_prices:Object.fromEntries(ANSWER_ASSETS.map(x=>[x,Number(market[x]?.suite_setup?.close||0)])),last_evaluated_closed_at:closedHourAt,phase:0,streak:0,updated_at:nowIso};
+    if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=answerDecisionClosedAt;
+    candidates.hourly_audit={closed_at:answerDecisionDate.toISOString(),status:completed?"completed":"retry_pending",checked_at:nowIso,regime:"answer_mdd30",assets:audit};
+    if(completed&&!forceAnswerRebalance)candidates.a_rally_guard={version:"stage135",anchor_closed_at:answerDecisionClosedAt,anchor_prices:Object.fromEntries(ANSWER_ASSETS.map(x=>[x,Number(market[x]?.suite_setup?.close||0)])),last_evaluated_closed_at:answerDecisionClosedAt,phase:0,streak:0,updated_at:nowIso};
     if(tradeCommand?.id)await fetch(PROJECT_URL+`/rest/v1/trade_control_commands?id=eq.${tradeCommand.id}`,{method:"PATCH",headers:adminHeaders({Prefer:"return=minimal"}),body:JSON.stringify({status:"consumed",consumed_at:new Date().toISOString()})});
   }
   if(candidates.a_rally_guard?.version!=="stage135"){
