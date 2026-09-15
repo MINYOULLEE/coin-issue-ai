@@ -133,7 +133,7 @@ async function runAccount(account:any){const c=await credentials(account.id),key
  for(const t of trades)if(!ACTIVE.has(String(t.signal_status)))await closeTrade(account,t,key,secret,String(t.signal_close_reason||"A플랜 신호 종료"));
  const surviving=trades.filter((t:any)=>ACTIVE.has(String(t.signal_status)));
  await alignStage184Leverage(account,surviving,key,secret);
- const decision=await sql`select coalesce((payload #>> '{signal_candidates,last_mdd30_decision_closed_at}')::bigint,0) closed_ms from public.coin_snapshots where id='latest'`;
+ const decision=await sql`select case when payload #>> '{signal_candidates,hourly_audit,status}'='completed' then coalesce((extract(epoch from ((payload #>> '{signal_candidates,hourly_audit,closed_at}')::timestamptz))*1000)::bigint,0) else 0 end closed_ms from public.coin_snapshots where id='live'`;
  await rebalanceStage184(account,surviving,key,secret,b.equity,guard,Number(decision[0]?.closed_ms||0));
  const signals=await sql`select id,symbol,side,signal_type,status,created_at,entry_price,invalidation_price,target_price,entry_metrics from public.trade_signals where signal_type='answer_mdd30' and status in ('active','weakening') and created_at>=${account.live_enabled_at} order by created_at`;
  for(const s of signals)await enter(account,s,key,secret);

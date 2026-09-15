@@ -954,14 +954,17 @@ Deno.serve(async (req: Request) => {
         cooldown_until: cooldownUntil ? new Date(cooldownUntil).toISOString() : null,
       },
     };
-    if (dailyNetPnl <= -dailyLossLimitUsd) {
+    // answer_mdd30 Stage184 already owns its risk policy: the 22.5%/10.125%
+    // drawdown guard, C controller and 15% exchange stop. Applying the legacy
+    // account-wide daily/streak breakers here changes the approved daily answer
+    // and caused a rejected-signal retry storm. Keep these generic breakers for
+    // every other strategy; all exchange, margin, duplicate and manual-position
+    // preflight checks below still apply to A.
+    if (!candidateA && dailyNetPnl <= -dailyLossLimitUsd) {
       await insertRejected(signal, `일일 손실 회로차단: ${dailyNetPnl.toFixed(2)} USDT / 한도 -${dailyLossLimitUsd.toFixed(2)} USDT (UTC 자정까지)`, breakerMetrics);
       return Response.json({ ok: true, skipped: "daily loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
     }
-    // A user-requested immediate MDD30 rebalance may bypass only the generic
-    // per-leg loss streak once. The daily-loss breaker and every exposure,
-    // margin, symbol, duplicate, and exchange guard remain active.
-    if (!manualImmediateMdd30 && consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
+    if (!candidateA && !manualImmediateMdd30 && consecutiveLosses >= maxConsecutiveLosses && Date.now() < cooldownUntil) {
       const remainingMinutes = Math.ceil((cooldownUntil - Date.now()) / 60000);
       await insertRejected(signal, `연속 손실 회로차단: ${consecutiveLosses}연패 / ${maxConsecutiveLosses}회, 재개까지 약 ${remainingMinutes}분`, breakerMetrics);
       return Response.json({ ok: true, skipped: "consecutive loss circuit breaker", circuit_breaker: breakerMetrics.strategy_config });
