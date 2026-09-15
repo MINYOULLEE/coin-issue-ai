@@ -850,15 +850,28 @@ Deno.serve(async (req: Request) => {
     const candidateA = DAILY_REBALANCE_TYPES.includes(signal.signal_type);
     const manualImmediateMdd30 = signal.signal_type === "answer_mdd30" && signal.entry_metrics?.strategy_config?.manual_immediate_rebalance === true;
 
-    // 3. 신호 신선도 확인
+    // 3. 신호 신선도 확인. A의 일일 판단 복구는 같은 저장 판단봉이 여전히
+    // retry_pending이고 종목/방향이 일치할 때만 다음 일일 경계 전까지 허용한다.
     const staleMs = STALE_MS[signal.signal_type] ?? 300000;
-    if (Date.now() - Date.parse(signal.created_at) > staleMs) {
+    const recoveryCfg = signal.entry_metrics?.strategy_config;
+    let recoverySnapshot: any = null;
+    let authorizedDailyRecovery = false;
+    if (signal.signal_type === "answer_mdd30" && recoveryCfg?.daily_recovery === true) {
+      const rows = await db("coin_snapshots?id=eq.live&select=updated_at,payload&limit=1");
+      recoverySnapshot = rows?.[0] || null;
+      const audit = recoverySnapshot?.payload?.signal_candidates?.hourly_audit;
+      const boundary = Date.parse(String(recoveryCfg?.decision_closed_at || ""));
+      const auditBoundary = Date.parse(String(audit?.closed_at || ""));
+      const asset = Array.isArray(audit?.assets) ? audit.assets.find((x: any) => x?.symbol === signal.symbol) : null;
+      authorizedDailyRecovery = audit?.status === "retry_pending" && Number.isFinite(boundary) && boundary === auditBoundary && Date.now() - boundary < 26 * 3600000 && asset?.answer?.side === signal.side;
+    }
+    if (Date.now() - Date.parse(signal.created_at) > staleMs && !authorizedDailyRecovery) {
       await insertRejected(signal, "오래된 신호");
       return Response.json({ ok: true, skipped: "stale signal" });
     }
 
     // 4. 수집기 정상 동작 확인 (중단 상태면 신규 진입 금지)
-    const snap = await db("coin_snapshots?id=eq.live&select=updated_at&limit=1");
+    const snap = recoverySnapshot ? [recoverySnapshot] : await db("coin_snapshots?id=eq.live&select=updated_at&limit=1");
     const heartbeat = snap?.[0]?.updated_at ? Date.parse(snap[0].updated_at) : 0;
     if (!heartbeat || Date.now() - heartbeat > COLLECTOR_STALE_MS) {
       await insertRejected(signal, "수집기 중단 상태");
