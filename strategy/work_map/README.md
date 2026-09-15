@@ -9,7 +9,7 @@
 | A플랜 본체 | [`01_A_PLAN.md`](01_A_PLAN.md) | 운영 정본 Stage184 |
 | B플랜 본체 | [`02_B_PLAN.md`](02_B_PLAN.md) | 운영 정본 Stage112 |
 | A의 C 보조 | [`03_A_C_CONTROLLER.md`](03_A_C_CONTROLLER.md) | A 손실 방어 전용 |
-| A 내부 A+B | [`04_A_INTERNAL_AB.md`](04_A_INTERNAL_AB.md) | 플랫폼 B와 무관한 A 내부 명칭 |
+| B의 C 보조 | [`04_B_C_CONTROLLER.md`](04_B_C_CONTROLLER.md) | 연구 전용, 아직 운영 미적용 |
 | A 연구 | [`05_A_RESEARCH.md`](05_A_RESEARCH.md) | Stage184 이후 후보는 연구 상태부터 시작 |
 | B 연구 | [`06_B_RESEARCH.md`](06_B_RESEARCH.md) | Stage112 이후 후보는 연구 상태부터 시작 |
 
@@ -17,7 +17,7 @@
 
 - A 운영 ID는 `answer_mdd30`, 버전은 `mdd30_5x_c_controller_stage184_v1`이다.
 - B 운영 ID는 `b_regime_guard_stage112`, 버전은 `b_regime_guard_stage112_v1`이다.
-- A 문구의 `종목별 A+B`는 A 모델 내부 구성이다. 독립 계정으로 운영되는 B플랜이 아니다.
+- A 문구의 `종목별 A+B`는 과거 표시 문구일 뿐 별도 보조 작업 분류로 사용하지 않는다.
 - C는 독립 수익 전략이 아니라 A 자동수량의 급변 손실을 방어하는 컨트롤러다.
 - 채택, 구현, 배포, LIVE, 실거래 검증은 서로 다른 상태다. 연구 성과만으로 배포하거나 LIVE를 바꾸지 않는다.
 - A/B의 API 자격증명, 상태, 신호, 주문, 거래 장부, 알림 표식을 공유하거나 대체하지 않는다.
