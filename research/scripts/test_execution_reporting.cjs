@@ -17,6 +17,12 @@ test('A close late settlement has no global timestamp cutoff and validates actua
  const ctx=vm.createContext({closed:[{id:1,net_pnl_usd:0,close_price:10,closed_at:'2020-01-01',margin_usd:10},{id:2,net_pnl_usd:null,close_price:10}],lastClosed:'2026-08-31',send:async m=>sent.push(m),markDelivered:async(...x)=>marks.push(x),side:String,price:String,num:String});
  await vm.runInContext('(async()=>{'+line+'})()',ctx);assert.equal(sent.length,1);assert.equal(marks[0][2],'telegram_close_notified_at');
 });
+test('A expected manual-position hold is acknowledged without Telegram error spam',async()=>{
+ const s=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
+ const line=s.split('\n').find(x=>x.includes('for(const x of newRows||[]')),sent=[],marks=[];
+ const ctx=vm.createContext({newRows:[{id:9,status:'rejected',symbol:'BTC',side:'long',reject_reason:'수동 포지션과 동일 종목·방향 중첩 · 자동 진입 차단'}],lastId:0,send:async m=>sent.push(m),markDelivered:async(...x)=>marks.push(x),side:String,price:String,num:String,MDD30_STANDARD:'fixture'});
+ await vm.runInContext('(async()=>{'+line+'})()',ctx);assert.equal(sent.length,0);assert.equal(marks.length,1);assert.equal(marks[0][2],'telegram_rejection_notified_at');
+});
 test('B late settlement delivery does not use a close-time watermark',async()=>{
  const s=fs.readFileSync('supabase/functions/telegram-trade-notify/index.ts','utf8');
  const start=s.indexOf('const {data:closedPb'),end=s.indexOf('\n',s.indexOf('for(const x of closedPb',start));

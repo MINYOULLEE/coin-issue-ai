@@ -159,7 +159,8 @@ export async function closeDue({sb,bx,now=Date.now}){
  const results=[];
  for(const trade of trades){try{
   let protectionDue=false;
-  if(trade.plan_b_signals.strategy_id===STANDARD.strategy_id&&trade.profit_lock_policy){
+  const scheduledDue=Date.parse(trade.plan_b_signals.expires_at)<=now();
+  if(!scheduledDue&&trade.plan_b_signals.strategy_id===STANDARD.strategy_id&&trade.profit_lock_policy){
    const raw=await bx.read('/openApi/swap/v3/quote/klines',{symbol:trade.symbol+'-USDT',interval:'1h',limit:3});
    const completed=normalizeHourlyKlines(raw,now()).filter(c=>c.t>=Math.floor(Date.parse(trade.filled_at)/3600000)*3600000);
    const latest=completed.at(-1),update=latest?advanceProfitLock(trade,latest):null;
@@ -170,7 +171,6 @@ export async function closeDue({sb,bx,now=Date.now}){
     protectionDue=profitFloorBreached(trade,mark,now(),normalizeKlines(minuteRaw,60000,now()));
    }
   }
-  const scheduledDue=Date.parse(trade.plan_b_signals.expires_at)<=now();
   if(!scheduledDue&&!protectionDue)continue;
   const exitReason=protectionDue?'profit_lock':'scheduled_time';
   if(!trade.bingx_order_id){results.push({id:trade.id,error:'unverified trade; no synthetic close'});continue;}
@@ -182,6 +182,8 @@ export async function closeDue({sb,bx,now=Date.now}){
    if(!confirmation.terminal&&confirmation.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
   }
   let quantity=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side),manualRemainder=Number(intent.manual_remainder_qty??Math.max(0,quantity-Number(trade.quantity)));
+  if(!Number.isFinite(manualRemainder)||manualRemainder<0)throw Error('invalid manual remainder');
+  quantity=Math.min(Math.max(0,quantity-manualRemainder),Number(trade.quantity));
   if(quantity>0){
    quantity=Math.min(quantity,Number(trade.quantity));
    if(!['open','closing'].includes(intent.status)){results.push({id:trade.id,error:'entry reconciliation pending'});continue;}
@@ -191,7 +193,7 @@ export async function closeDue({sb,bx,now=Date.now}){
     if(!prior.terminal&&prior.status!=='rejected'){results.push({id:trade.id,status:'close_pending'});continue;}
     const observed=positionQuantity(await bx.read('/openApi/swap/v2/user/positions',{symbol:trade.symbol+'-USDT'}),trade.symbol,trade.side);
     if(observed<=manualRemainder+1e-10)quantity=0;else quantity=Math.min(observed-manualRemainder,Number(trade.quantity));
-    if(quantity===0)continue; // finalize after owned quantity is gone; manual remainder is preserved
+    if(quantity===0)throw Error('position changed during close reconciliation; retry without submitting');
    }
    const attempt=Number(intent.close_attempt||0)+1,clientOrderId=trade.client_order_id+'-c'+attempt;
    const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,manual_remainder_qty:manualRemainder,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));

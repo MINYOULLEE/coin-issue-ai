@@ -25,6 +25,23 @@ test('submission timeout retains collateral and does not mark rejection',async()
 test('expired signals cannot reach reservation',async()=>{const f=fixture({signals:[{...signal(1),entry_deadline:new Date(NOW-1).toISOString()}]});await executeBatch(f);assert.equal(f.rpcCalls.filter(x=>x.name==='plan_b_reserve_intents').length,0);assert.equal(eligible({...signal(1),confirmed_at:new Date(NOW+1).toISOString()},NOW),false);});
 test('manual same-symbol side is never merged and reports the blocked signal',async()=>{const f=fixture();f.setPosition(2);const result=await executeBatch(f);assert.equal(f.tables.plan_b_real_trades.some(t=>t.symbol==='AVAX'),false);assert.equal(f.tables.plan_b_real_trades.some(t=>t.symbol==='ICP'),true);assert.equal(result.skipped[0].reason,'manual_same_side_overlap');assert.equal(f.tables.plan_b_signals.find(s=>s.symbol==='AVAX').dispatch_block_reason,'manual_same_side_overlap');});
 function closingFixture(){const f=fixture({enabled:false,signals:[signal(1)]});f.tables.plan_b_real_trades.push({id:1,signal_id:1,symbol:'AVAX',side:'long',status:'open',quantity:2,entry_price:10,bingx_order_id:'entry-1',client_order_id:'pb35-1',filled_at:new Date(NOW-3600000).toISOString(),created_at:new Date(NOW-3600000).toISOString()});f.tables.plan_b_execution_intents.push({id:1,signal_id:1,status:'open',close_attempt:0});f.setPosition(2);return f;}
+test('expired Stage112 profit-lock position closes during candle outage',async()=>{
+ const f=closingFixture();f.tables.plan_b_signals[0].symbol='ICP';
+ Object.assign(f.tables.plan_b_real_trades[0],{symbol:'ICP',profit_lock_policy:'causal_atr_peak_close_stage66_v1'});
+ const read=f.bx.read;f.bx.read=async(path,...args)=>{if(path.includes('/quote/klines'))throw Error('candle outage');return read(path,...args)};
+ const result=await closeDue(f);assert.equal(result.ok,true);assert.equal(f.tables.plan_b_real_trades[0].status,'closed');assert.equal(f.calls.filter(x=>x.submit).length,1);
+});
+test('confirmed B close releases ledger with manual-only remainder and sends no more orders',async()=>{
+ const f=closingFixture();Object.assign(f.tables.plan_b_execution_intents[0],{status:'closing',close_attempt:1,close_client_order_id:'pb112-1-c1',manual_remainder_qty:3});
+ f.setPosition(3);f.bx.lookup=async()=>({terminal:true,status:'filled'});
+ await closeDue(f);await closeDue(f);
+ assert.equal(f.tables.plan_b_real_trades[0].status,'closed');assert.equal(f.tables.plan_b_execution_intents[0].status,'closed');assert.equal(f.calls.filter(x=>x.submit).length,0);
+});
+test('manual-only B remainder cannot finalize while close order is nonterminal',async()=>{
+ const f=closingFixture();Object.assign(f.tables.plan_b_execution_intents[0],{status:'closing',close_attempt:1,close_client_order_id:'pb112-1-c1',manual_remainder_qty:3});
+ f.setPosition(3);f.bx.lookup=async()=>({terminal:false,status:'partially_filled'});await closeDue(f);
+ assert.equal(f.tables.plan_b_real_trades[0].status,'open');assert.equal(f.calls.filter(x=>x.submit).length,0);
+});
 test('OFF still closes verified live position; PnL waits for exchange settlement',async()=>{const f=closingFixture();await closeDue(f);assert.equal(f.calls.filter(x=>x.submit)[0].submit.close,true);assert.equal(f.tables.plan_b_real_trades[0].status,'closed');assert.equal(f.tables.plan_b_real_trades[0].net_pnl_usd,null);});
 test('unfilled close never changes trade to closed',async()=>{const f=closingFixture();f.bx.submit=async()=>({status:'unknown'});await closeDue(f);assert.equal(f.tables.plan_b_real_trades[0].status,'open');assert.equal(f.tables.plan_b_execution_intents[0].status,'closing');});
 test('no exchange order id cannot be synthetically closed',async()=>{const f=closingFixture();f.tables.plan_b_real_trades[0].bingx_order_id=null;await closeDue(f);assert.equal(f.tables.plan_b_real_trades[0].status,'open');assert.equal(f.calls.filter(x=>x.submit).length,0);});

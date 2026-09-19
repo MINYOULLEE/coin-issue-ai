@@ -103,19 +103,29 @@ function symbolOf(v:any,fallback=""):string{
   const s=String(v?.symbol||fallback).toUpperCase().replace("/","-");
   return s.includes("-")?s:s.endsWith("USDT")?s.slice(0,-4)+"-USDT":s;
 }
+function orderClientId(v:any){return String(v?.clientOrderID??v?.clientOrderId??v?.clientOrderIDStr??"")}
+function automaticAOrder(v:any){return /^ciai\d+(?:[-a-z0-9]*)?$/i.test(orderClientId(v))}
 async function syncActualBingxHistory(){
   if(!API_KEY||!SECRET_KEY)throw new Error("BingX API key missing");
   const now=Date.now(),syncedAt=new Date(now).toISOString(),errors:string[]=[];
   const openData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000});
+  const openLedger=(await db("real_trades?status=eq.open&test_mode=eq.false&select=symbol,side,quantity,entry_price"))||[];
   const openRows=listOf(openData).filter((v:any)=>Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount))>0).map((v:any)=>{
     const symbol=symbolOf(v),side=sideOf(v),qty=Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount));
     const entry=n(v?.avgPrice??v?.entryPrice??v?.openPrice),lev=Math.max(1,Math.round(n(v?.leverage)||1));
     const pid=String(v?.positionId??v?.id??"");
+    const ledger=openLedger.filter((x:any)=>String(x.symbol)+"-USDT"===symbol&&x.side===side),ledgerQty=ledger.reduce((s:number,x:any)=>s+n(x.quantity),0);
+    const ledgerEntry=ledgerQty?ledger.reduce((s:number,x:any)=>s+n(x.entry_price)*n(x.quantity),0)/ledgerQty:0;
+    const automatic=Math.abs(ledgerQty-qty)<=Math.max(1e-10,qty*.001)&&Math.abs(ledgerEntry-entry)<=Math.max(1e-10,entry*.0005);
     return {external_id:pid?"position:"+pid:`open:${symbol}:${side}`,position_id:pid||null,symbol,side,status:"open",
       entry_price:entry||null,close_price:null,quantity:qty||null,margin_usd:n(v?.initialMargin??v?.margin??v?.positionMargin)||(entry&&qty?entry*qty/lev:null),
       leverage:lev,realized_pnl_usd:null,unrealized_pnl_usd:n(v?.unrealizedProfit??v?.unrealizedPnl),fee_usd:null,
-      opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:null,raw:v,synced_at:syncedAt};
+      opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:null,control_marker:automatic?1:2,raw:v,synced_at:syncedAt};
   });
+  // Save the current exchange snapshot before slower per-symbol history calls.
+  // A later timeout must never hide every live position after rows were marked stale.
+  await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
+  for(let i=0;i<openRows.length;i+=40)await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(openRows.slice(i,i+40))});
   const closedRows:any[]=[];
   // 기본 종목과 최근 7일 동안 실제 주문이 있었던 후보군 A 종목만 조회한다. 매분 15종목
   // 전체를 호출하면 BingX 제한에 걸릴 수 있지만, 이 방식이면 새로 거래된 종목도 즉시 포함된다.
@@ -152,6 +162,7 @@ async function syncActualBingxHistory(){
           closedRows.push({external_id:"position:"+pid,position_id:pid,symbol,side:ps==="SHORT"?"short":"long",status:"closed",
             entry_price:entry||null,close_price:close||null,quantity:openQty||null,margin_usd:entry&&openQty?entry*openQty/lev:null,leverage:lev,
             realized_pnl_usd:gross+commission,unrealized_pnl_usd:null,fee_usd:Math.abs(commission),opened_at:isoTime(opened),closed_at:isoTime(closed),
+            control_marker:g.every(automaticAOrder)?1:2,
             raw:{source:"allOrders",gross_pnl:gross,commission,open_order_ids:opens.map((o:any)=>String(o?.orderId||"")),close_order_ids:closes.map((o:any)=>String(o?.orderId||""))},synced_at:syncedAt});
         }
       }
@@ -169,7 +180,6 @@ async function syncActualBingxHistory(){
       }
     }catch(e){const msg=symbol+": "+String(e instanceof Error?e.message:e);errors.push(msg);console.error("BingX positionHistory:",msg)}
   }
-  await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
   const rows=[...byId.values()];
   for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
@@ -267,6 +277,7 @@ Deno.serve(async(req:Request)=>{
          fill_price:entry||null,fee_usd:fee||null,close_price:close||null,close_reason:closed?"BingX 포지션 종료":null,
          net_pnl_usd:pnl,reject_reason:null,created_at:x.opened_at,updated_at:x.synced_at,closed_at:x.closed_at,
          unrealized_pnl_usd:closed?null:pnl,base_return_pct:base,margin_return_pct:roi,r_multiple:null,
+         control_marker:Number(x.control_marker)===2?2:1,
          evaluation:!closed?"진행 중":pnl!=null&&pnl>0?"성공":pnl!=null&&pnl<0?"실패":"중립"};
      });
      const rows=mapped.slice(offset,offset+limit),closed=mapped.filter((x:any)=>x.status==="closed"&&x.net_pnl_usd!=null);

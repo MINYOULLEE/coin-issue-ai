@@ -400,6 +400,10 @@ async function manageSignals(market,old){
     candidates.run_order_transport_test=false;
     candidates.last_order_transport_test={...(await triggerOrderTransportTest()),checked_at:nowIso};
   }
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/plan-b-account-read",{method:"POST",headers:{"Content-Type":"application/json",apikey:SERVICE_KEY,Authorization:"Bearer "+SERVICE_KEY,"x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"internal_history_sync"})});
+    if(!r.ok)console.error("B actual history sync failed",r.status,await r.text());
+  }catch(e){console.error("B actual history sync exception",e instanceof Error?e.message:String(e))}
   // Reconcile durable A entry intents by exchange lookup only, even outside the decision hour.
   try {
   const recoveryResponse=await fetch(PROJECT_URL+"/functions/v1/bingx-order-submit",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":Deno.env.get("INTERNAL_TRADE_SECRET")||""},body:JSON.stringify({action:"recover"}),signal:AbortSignal.timeout(20000)});
@@ -488,7 +492,14 @@ async function manageSignals(market,old){
     // trade_signals_status_check does not include "rejected". A failed live
     // entry is a terminally invalid signal, so use the schema-supported status
     // and keep the execution reason for auditability.
-    if((!execution?.ok&&!execution?.pending)||execution?.skipped){await patchSignal(s.id,{status:"invalidated",close_reason:String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});return null}
+    if((!execution?.ok&&!execution?.pending)||execution?.skipped){
+      const manualHeld=execution?.skipped==="manual position overlap";
+      await patchSignal(s.id,{status:"invalidated",close_reason:manualHeld?"수동 동일방향 포지션 보유 · 자동 진입 생략":String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});
+      // A manual same-side position is an intentional safety hold, not a
+      // retryable transport/order failure. Completing this daily boundary
+      // prevents a fresh signal and Telegram rejection every collector minute.
+      return manualHeld?{...s,manual_held:true}:null;
+    }
     if(!execution.queued&&!execution.pending)liveOpenSignalIds.add(Number(s.id));
     byId[s.id]=s;return s;
   }
@@ -500,7 +511,8 @@ async function manageSignals(market,old){
   const claimedCommands=await commandResponse.json(),tradeCommand=claimedCommands[0]||null;
   const forceAnswerRebalance=tradeCommand?.command==="force_mdd30"||candidates.force_mdd30_rebalance===true;
   const forceAnswerSymbols=tradeCommand?.command==="force_mdd30"&&Array.isArray(tradeCommand.symbols)?tradeCommand.symbols.map(String):Array.isArray(candidates.force_mdd30_symbols)?candidates.force_mdd30_symbols.map(String):[];
-  const forcedAuditAnswers=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x.answer]));
+  const priorAuditAssets=new Map((Array.isArray(candidates.hourly_audit?.assets)?candidates.hourly_audit.assets:[]).map((x:any)=>[String(x.symbol),x]));
+  const forcedAuditAnswers=new Map([...priorAuditAssets].map(([symbol,x]:any)=>[symbol,x.answer]));
   const retryAnswerDecision=candidates.hourly_audit?.status==="retry_pending"&&currentADecision(Date.parse(String(candidates.hourly_audit?.closed_at||"")),Date.now())&&Date.parse(String(candidates.hourly_audit?.closed_at||""))>Number(candidates.last_mdd30_decision_closed_at||0);
   const answerDecisionClosedAt=retryAnswerDecision?Date.parse(String(candidates.hourly_audit.closed_at)):closedHourAt;
   const answerDecisionDate=new Date(answerDecisionClosedAt);
@@ -512,6 +524,11 @@ async function manageSignals(market,old){
     const solShortBlocked=Number(market.BTC?.answer_mdd30?.return_168h||0)>=.035&&Number(market.SOL?.answer_mdd30?.return_168h||0)>=.12&&answerBreadth>=3;
     for(const symbol of ANSWER_ASSETS){
       if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
+      const priorAudit:any=priorAuditAssets.get(symbol);
+      if(retryAnswerDecision&&!forceAnswerRebalance&&priorAudit?.status==="manual_held"){
+        audit.push({...priorAudit,status:"manual_held",reason:"수동 동일방향 포지션 보유 · 당일 자동 진입 완료 처리"});
+        continue;
+      }
       const storedAnswer=forceAnswerRebalance||retryAnswerDecision?forcedAuditAnswers.get(symbol):null;
       if(retryAnswerDecision&&!forceAnswerRebalance&&!storedAnswer){audit.push({symbol,status:"entry_pending",reason:"저장된 일일 답안 누락 · 임시 시간봉 답안으로 대체 금지"});continue;}
       let answer=storedAnswer?{...(market[symbol]?.answer_mdd30||{}),...storedAnswer}:market[symbol]?.answer_mdd30||null;
@@ -542,7 +559,7 @@ async function manageSignals(market,old){
       }
       const freezeUntil=Date.parse(String(candidates.a_c_controller?.freeze_until||""))||0;
       const entered=answer?.side&&!stillOpen&&Date.now()>=freezeUntil?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*(7/3),5,24,[`${symbol} Stage184 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 5배 단일 정상배율 2.3333`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
-      audit.push({symbol,signal_id:entered?.id||stillOpen?.id||null,status:entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
+      audit.push({symbol,signal_id:entered?.id||stillOpen?.id||null,status:entered?.manual_held?"manual_held":entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }
     const completed=!audit.some(x=>["close_failed","resize_failed","entry_failed","entry_pending"].includes(x.status));
     if(completed&&!forceAnswerRebalance)candidates.last_mdd30_decision_closed_at=answerDecisionClosedAt;

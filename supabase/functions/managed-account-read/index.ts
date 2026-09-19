@@ -127,7 +127,7 @@ Deno.serve(async req=>{
     try{
       const rows=await sql`select a.id,a.assigned_plan,a.live_enabled,k.decrypted_secret api_key,s.decrypted_secret secret_key from public.managed_bingx_accounts a join vault.decrypted_secrets k on k.id=a.api_key_secret_id join vault.decrypted_secrets s on s.id=a.secret_key_secret_id where a.id=${accountId}::uuid limit 1`,account=rows[0];
       if(!account)throw Error("계정을 찾을 수 없습니다.");
-      if(account.assigned_plan!=="A")throw Error("현재 타인계정 실거래 실행기는 A플랜만 지원합니다.");
+      if(!["A","B"].includes(String(account.assigned_plan)))throw Error("배정 플랜이 올바르지 않습니다.");
       const active=await sql`select count(*)::integer count from public.managed_bingx_trades where account_id=${accountId}::uuid and status in ('reserved','open','closing','unknown')`;
       if(!enabled&&Number(active[0]?.count)>0)throw Error("진행 중 거래를 먼저 정상 청산해야 LIVE를 끌 수 있습니다.");
       let equity:number|null=null;
@@ -166,7 +166,7 @@ Deno.serve(async req=>{
     const page=Math.max(1,Math.floor(Number(body.page)||1)),limit=Math.min(50,Math.max(1,Math.floor(Number(body.limit)||20))),from=(page-1)*limit;
     const[{data:account,error:accountError},{data,count,error}]=await Promise.all([
       sb.from("managed_bingx_accounts").select("id,display_name,assigned_plan").eq("id",accountId).maybeSingle(),
-      sb.from("managed_bingx_trades").select("id,assigned_plan,symbol,side,status,quantity,leverage,margin_usdt,entry_price,close_price,realized_pnl_usdt,fee_usdt,opened_at,closed_at,created_at",{count:"exact"}).eq("account_id",accountId).order("created_at",{ascending:false}).range(from,from+limit-1)
+      sb.from("managed_bingx_trades").select("id,assigned_plan,symbol,side,status,quantity,leverage,margin_usdt,entry_price,close_price,realized_pnl_usdt,fee_usdt,control_marker,opened_at,closed_at,created_at",{count:"exact"}).eq("account_id",accountId).order("created_at",{ascending:false}).range(from,from+limit-1)
     ]);
     if(accountError||error)return Response.json({ok:false,error:"거래내역 조회 실패"},{status:502,headers:CORS});
     if(!account)return Response.json({ok:false,error:"계정을 찾을 수 없습니다."},{status:404,headers:CORS});

@@ -3,6 +3,7 @@ const migration=fs.readFileSync('supabase/migrations/20260909074042_add_managed_
 const ui=fs.readFileSync('docs/managed-accounts.js','utf8');
 const webhook=fs.readFileSync('supabase/functions/telegram-bot-webhook/index.ts','utf8');
 const endpoint=fs.readFileSync('supabase/functions/managed-account-read/index.ts','utf8');
+const executor=fs.readFileSync('supabase/functions/managed-account-executor/index.ts','utf8');
 test('managed accounts are service-only and credentials are Vault references',()=>{
  assert.match(migration,/enable row level security/);
  assert.match(migration,/revoke all on public\.managed_bingx_accounts from public, anon, authenticated/);
@@ -39,20 +40,19 @@ test('starting balance edit and disconnect are owner-session guarded',()=>{
  assert.match(ui,/data-ma-action="disconnect"/);
 });
 
-test('managed A live execution is account scoped and fail closed',()=>{
- const executor=fs.readFileSync('supabase/functions/managed-account-executor/index.ts','utf8');
+test('managed execution is account scoped and fail closed',()=>{
  const collector=fs.readFileSync('supabase/functions/coin-collector/index.ts','utf8');
  assert.match(executor,/vault\.decrypted_secrets/);
- assert.match(executor,/assigned_plan!=="A"/);
- assert.match(executor,/created_at>=\$\{account\.live_enabled_at\}/);
- assert.match(executor,/managed_bingx_trades\(account_id,assigned_plan,signal_id/);
- assert.match(executor,/on conflict do nothing/);
+ assert.match(executor,/PLAN_ASSETS/);
+ assert.match(executor,/managed_bingx_trades\(account_id,assigned_plan,symbol,side,status/);
  assert.match(executor,/order\/test/);
  assert.match(executor,/marginType:"ISOLATED"/);
  assert.match(executor,/type:"STOP_MARKET"/);
  assert.match(executor,/protective stop failed; safety close sent/);
- assert.match(executor,/수동 포지션과 동일 종목·방향 중첩/);
- assert.match(executor,/owned=Math\.min\(actual,finite\(trade\.quantity\)\)/);
+ assert.match(executor,/owner_position_copy/);
+ assert.match(executor,/runCopyAccount/);
+ assert.match(executor,/PLAN_B_BINGX_API_KEY/);
+ assert.match(executor,/await closeManagedTrade/);
  assert.match(executor,/mdd30_5x_c_controller_stage184_v1/);
  assert.match(executor,/CURRENT_PLAN_VERSIONS/);
  assert.match(executor,/desired_strategy_version/);
@@ -64,7 +64,7 @@ test('managed A live execution is account scoped and fail closed',()=>{
  assert.match(executor,/manual same-side quantity blocks leverage alignment/);
  assert.doesNotMatch(executor,/set live_enabled=false,status='error'/);
  assert.match(executor,/if\(trade\.stop_order_id\)/);
- assert.doesNotMatch(executor,/BINGX_API_KEY|BINGX_SECRET_KEY/);
+ assert.match(executor,/sourceCredentials/);
  assert.match(collector,/managed-account-executor/);
 });
 
@@ -72,8 +72,14 @@ test('managed LIVE switch performs fresh preflight',()=>{
  assert.match(endpoint,/body\.action==="set_live"/);
  assert.match(endpoint,/positivePositions\(positionsRaw\)\.length/);
  assert.match(endpoint,/live_enabled_at=now|update\.live_enabled_at=now/);
- assert.match(endpoint,/현재 타인계정 실거래 실행기는 A플랜만 지원합니다/);
+ assert.doesNotMatch(endpoint,/현재 타인계정 실거래 실행기는 A플랜만 지원합니다/);
  assert.match(endpoint,/desired_strategy_version,applied_strategy_version,strategy_version_synced_at/);
  assert.match(ui,/LIVE 켜기/);
  assert.match(ui,/자동매매 OFF/);
+});
+test('managed A and B follow the selected owner account instead of replaying central signals',()=>{
+ assert.match(executor,/sourceCredentials\(plan/);
+ assert.match(executor,/targetQuantity\(sourcePosition\.quantity,sourceBalance\.equity,followerBalance\.equity/);
+ assert.doesNotMatch(executor,/B managed executor not deployed/);
+ assert.doesNotMatch(endpoint,/현재 타인계정 실거래 실행기는 A플랜만 지원합니다/);
 });
