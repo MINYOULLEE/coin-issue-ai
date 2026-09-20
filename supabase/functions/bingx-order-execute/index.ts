@@ -920,7 +920,13 @@ Deno.serve(async (req: Request) => {
     if(!Array.isArray(liveBeforeEntry))throw Error("invalid position response before entry");
     const exchangeSameSide=liveBeforeEntry.filter((p:any)=>String(p.symbol)===signal.symbol+"-USDT"&&String(p.positionSide)===signal.side.toUpperCase()).reduce((sum:number,p:any)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error("invalid manual position quantity");return sum+Math.abs(q)},0);
     const ledgerSameSide=open.filter((x:any)=>x.symbol===signal.symbol&&x.side===signal.side).reduce((sum:number,x:any)=>sum+Math.abs(Number(x.quantity||0)),0);
-    if(exchangeSameSide>ledgerSameSide+1e-10){await insertRejected(signal,"수동 포지션과 동일 종목·방향 중첩 · 자동 진입 차단");return Response.json({ok:true,skipped:"manual position overlap"});}
+    if(exchangeSameSide>ledgerSameSide+1e-10){
+      // This is an expected ownership boundary, not an exchange/order error.
+      // Keep the audit trail without manufacturing a rejected trade row (and
+      // therefore without creating a Telegram rejection candidate).
+      await traceExecution(Number(signal.id),"manual_position_hold",{symbol:signal.symbol,side:signal.side,exchange_quantity:exchangeSameSide,automatic_ledger_quantity:ledgerSameSide});
+      return Response.json({ok:true,skipped:"manual position overlap"});
+    }
 
     // 6-1. 실시간 BingX 잔고 조회 — 담보금을 고정 달러가 아니라 "지금 이 순간의 실제 잔고 비율"로 계산한다.
     //      수익이 나서 잔고가 늘면 다음 신호부터 자동으로 담보금도 커진다.
