@@ -1275,14 +1275,25 @@ Deno.serve(async (req: Request) => {
         stop_pct: MDD30_STOP_PCT,
         price_precision: pricePrecision,
       };
-      EdgeRuntime.waitUntil(fetch(PROJECT_URL + "/functions/v1/bingx-order-submit", {
+      // Wait for the separate worker to acknowledge the durable reservation.
+      // Returning "queued" before reading the worker response hid deployment
+      // drift (for example, an old 3x worker rejecting the current 5x plan)
+      // and left the source signal in entry_pending forever.
+      const workerResponse = await fetch(PROJECT_URL + "/functions/v1/bingx-order-submit", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-internal-key": INTERNAL_KEY },
         body: JSON.stringify(workerPayload),
-      }).then(async (r) => {
-        if (!r.ok) console.error("bingx-order-submit failed", r.status, await r.text());
-      }).catch((e) => console.error("bingx-order-submit dispatch failed", e instanceof Error ? e.message : String(e))));
-      return Response.json({ ok: true, queued: true, signal_id: signal.id });
+        signal: AbortSignal.timeout(25000),
+      });
+      const workerText = await workerResponse.text();
+      let workerResult: any = {};
+      try { workerResult = workerText ? JSON.parse(workerText) : {}; } catch { /* handled below */ }
+      if (!workerResponse.ok) {
+        const workerError = String(workerResult?.error || workerText || `HTTP ${workerResponse.status}`).slice(0, 500);
+        console.error("bingx-order-submit failed", workerResponse.status, workerError);
+        return Response.json({ ok: false, pending: !!workerResult?.pending, signal_id: signal.id, error: workerError }, { status: workerResult?.pending ? 202 : 502 });
+      }
+      return Response.json(workerResult);
     }
 
     // Final admission for non-MDD30 strategies remains serialized here.

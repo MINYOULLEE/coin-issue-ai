@@ -61,6 +61,8 @@ test('managed execution is account scoped and fail closed',()=>{
  assert.match(executor,/rebalanceStage184/);
  assert.match(executor,/a_last_rebalance_closed_ms/);
  assert.match(executor,/Stage184 resize protective stop failed; safety close sent/);
+ assert.match(ui,/margin_usdt/);
+ assert.match(ui,/담보금/);
  assert.match(executor,/manual same-side quantity blocks leverage alignment/);
  assert.doesNotMatch(executor,/set live_enabled=false,status='error'/);
  assert.match(executor,/if\(trade\.stop_order_id\)/);

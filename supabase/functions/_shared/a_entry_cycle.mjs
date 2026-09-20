@@ -46,12 +46,16 @@ export function createAEntryCycle({db,signed,now=()=>new Date().toISOString()}) 
    if(!slot?.reserved)return {ok:true,pending:true,signal_id:id,reason:slot?.reason};reserved=true;
    const state=(await db('real_trading_state?id=eq.singleton&select=enabled,test_mode'))?.[0];
    if(!state?.enabled||state.test_mode)throw Error('A new entries disabled');
+   const source=(await db(`trade_signals?id=eq.${id}&select=id,symbol,side,signal_type,status,strategy_epoch&limit=1`))?.[0];
+   if(!source||!['active','weakening'].includes(source.status)||source.symbol!==s.symbol||source.side!==s.side||source.signal_type!==s.signal_type||source.strategy_epoch!==s.strategy_epoch){await release(id);return {ok:true,skipped:'A source signal no longer active',signal_id:id};}
    await signed('POST','/openApi/swap/v2/trade/leverage',{symbol:p.symbol,side:p.positionSide,leverage:5,recvWindow:5000});
    const payload={...p,submitted_at:now()};
    // Persist BEFORE sending. A timeout/worker crash must never release this reservation by age.
    await patch(id,{request_payload:payload,execution_status:'submitted'});possible=true;
    const latest=(await db('real_trading_state?id=eq.singleton&select=enabled,test_mode'))?.[0];
    if(!latest?.enabled||latest.test_mode){possible=false;throw Error('A new entries disabled before submit');}
+   const latestSource=(await db(`trade_signals?id=eq.${id}&select=id,status&limit=1`))?.[0];
+   if(!latestSource||!['active','weakening'].includes(latestSource.status)){possible=false;await release(id);return {ok:true,skipped:'A source signal closed before submit',signal_id:id};}
    const raw=await signed('POST','/openApi/swap/v2/trade/order',{symbol:p.symbol,side:p.side,positionSide:p.positionSide,type:'MARKET',quantity:p.quantity,clientOrderId:`ciai${id}`,recvWindow:5000});
    return await settle(payload,raw);
   }catch(e){
