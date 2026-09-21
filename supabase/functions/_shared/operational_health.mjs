@@ -24,7 +24,7 @@ export function transportErrorDisposition({error,snapshot,bHealth=[],now=Date.no
  const source=String(error?.source||'');
  const transientTransport=(source==='supabase-http'||source==='plan-b-http')&&(
   error?.status_code>=500||
-  error?.status_code==null&&/timeout|dns|handshake/i.test(message)||
+  error?.status_code==null&&/timeout|dns|handshake|failed sending data to the peer|connection reset|broken pipe/i.test(message)||
   (error?.status_code===401||error?.status_code===403)&&(/scheduler authorization required/i.test(message)||/^\s*\{\s*"ok"\s*:\s*false\s*\}\s*$/i.test(message))
  );
  if(!transientTransport)return 'immediate';
