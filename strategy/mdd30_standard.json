@@ -67,7 +67,15 @@
     },
     "overlap_policy": "union_close_once_and_minimum_positive_freeze",
     "action": "close_only_qualifying_A_automatic_quantities; freeze_new_reentry_only",
-    "manual_position_policy": "never_close_or_resize_manual_quantity"
+    "manual_position_policy": "manual_position_always_wins; block_new_automatic_opposite_entry; close_only_conflicting_automatic_quantity; never_close_or_resize_manual_quantity",
+    "manual_direction_conflict_guard": {
+      "enabled": true,
+      "scope": "same_symbol",
+      "new_entry": "block_automatic_short_when_manual_long_exists_and_block_automatic_long_when_manual_short_exists",
+      "existing_conflict": "close_only_verified_automatic_quantity",
+      "manual_quantity": "never_close_or_resize",
+      "adopted_on": "2026-09-21"
+    }
   },
   "answer_trees_sha256": "9A483FD33C540F6601B01901143313B81C89E8C3A9CCD257141F86694F34E31B",
   "current_replay": {

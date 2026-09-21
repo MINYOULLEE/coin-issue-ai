@@ -309,6 +309,14 @@ async function triggerSync(){
     if(!j.ok)console.error("sync failed:",j.error);
   }catch(e){console.error("triggerSync failed:",e instanceof Error?e.message:String(e))}
 }
+async function triggerManualConflictGuard(){
+  if(!INTERNAL_TRADE_SECRET)return {ok:false,error:"internal trade secret missing"};
+  try{
+    const r=await fetch(PROJECT_URL+"/functions/v1/bingx-order-execute",{method:"POST",headers:{"Content-Type":"application/json","x-internal-key":INTERNAL_TRADE_SECRET},body:JSON.stringify({action:"manual_conflict_guard"})});
+    const j=await r.json().catch(()=>({ok:false,error:"invalid manual conflict guard response"}));
+    if(!j.ok)console.error("A C manual conflict guard failed",j.error||j.closed);return j;
+  }catch(e){const error=e instanceof Error?e.message:String(e);console.error("A C manual conflict guard unavailable",error);return {ok:false,error}}
+}
 // 열려있는 실거래 중 손절/익절 조건부 주문이 안 걸려있는 게 있으면 매 주기마다 자동으로
 // 채워 넣는다. 진입 주문에 손절/익절을 첨부하는 방식이 조용히 실패하는 사례가 확인되어
 // 넣은 이중 안전장치 — 이미 걸려있는 건 건드리지 않으므로 매번 호출해도 안전하다.
@@ -393,9 +401,11 @@ async function manageSignals(market,old){
     if(!r.ok)console.error("BingX history background sync failed",r.status,await r.text());
   }catch(e){console.error("BingX history background sync error",e instanceof Error?e.message:String(e))}
   await triggerSync(); // 매 주기마다 무조건 실거래 정산 확인 — 신호 종료 감지와 별개의 이중 안전장치
+  const manualConflictGuard=await triggerManualConflictGuard();
   await triggerMdd30LeverageRepair(); // 실제 거래소 레버리지와 DB 담보를 승인된 A 5x 기준으로 일치
   await triggerProtect(); // 매 주기마다 손절/익절 누락 여부 확인 후 자동 보강
   let active=await activeSignals();const perf=await historyStats(),candidates={...(old.signal_candidates||{})},health={},cooldowns={};const now=new Date(),nowIso=now.toISOString();
+  candidates.manual_conflict_guard={...manualConflictGuard,checked_at:nowIso};
   if(candidates.run_order_transport_test===true){
     candidates.run_order_transport_test=false;
     candidates.last_order_transport_test={...(await triggerOrderTransportTest()),checked_at:nowIso};
@@ -493,8 +503,8 @@ async function manageSignals(market,old){
     // entry is a terminally invalid signal, so use the schema-supported status
     // and keep the execution reason for auditability.
     if((!execution?.ok&&!execution?.pending)||execution?.skipped){
-      const manualHeld=execution?.skipped==="manual position overlap";
-      await patchSignal(s.id,{status:"invalidated",close_reason:manualHeld?"수동 동일방향 포지션 보유 · 자동 진입 생략":String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});
+      const manualHeld=execution?.skipped==="manual position overlap"||execution?.skipped==="manual opposite position conflict";
+      await patchSignal(s.id,{status:"invalidated",close_reason:manualHeld?"수동 포지션 우선 · 같은 종목 자동 양방향 진입 생략":String(execution?.error||execution?.skipped||"실거래 진입 실패"),closed_at:nowIso,updated_at:nowIso});
       // A manual same-side position is an intentional safety hold, not a
       // retryable transport/order failure. Completing this daily boundary
       // prevents a fresh signal and Telegram rejection every collector minute.

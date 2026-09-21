@@ -4,6 +4,8 @@
 
 C는 독립 플랜이나 수익 확대 신호가 아니다. **A 5배 단일의 급변시장 손실만 방어**하며 A 자동수량에만 작동한다. 현재 A Stage184 안에 포함된 운영 규칙이다.
 
+사용자 수동 포지션은 항상 자동 포지션보다 우선한다. 같은 종목에 수동 LONG이 있으면 자동 SHORT 진입을 막고, 수동 SHORT이 있으면 자동 LONG 진입을 막는다. 이미 충돌했다면 거래소 실제 수량과 자동 장부를 대조해 충돌하는 자동수량만 청산하며 수동수량은 건드리지 않는다.
+
 ## 발동 구조
 
 공통 완료 시간봉을 한 번씩 평가하고 다음 수집 주기에서 실행한다.
@@ -24,6 +26,7 @@ C는 독립 플랜이나 수익 확대 신호가 아니다. **A 5배 단일의 �
 - 최종 경로 조합: `research/results/a_stage177_c_overlap_priority/RESULTS.json`, `research/results/a_stage178_c_combined_paths/RESULTS.json`
 - 실행 스트레스: `research/results/a_stage179_c_execution_stress/RESULTS.json`
 - 분봉 자료·포트폴리오: `research/results/a_stage182_c_futures_minutes/RESULTS.json`, `research/results/a_stage183_c_minute_portfolio/RESULTS.json`
+- 수동 방향 충돌 실행 안전장치: `strategy/A_C_MANUAL_CONFLICT_GUARD_20260921.md`
 
 ## C 연구 계보
 

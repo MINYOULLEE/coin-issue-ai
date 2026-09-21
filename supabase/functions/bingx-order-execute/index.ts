@@ -17,6 +17,7 @@ import { createHmac } from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
 import { selectiveResizeHold } from "../_shared/a_stage75_policy.mjs";
 import { aEntryAdmission } from "../_shared/a_recovery_policy.mjs";
+import {hasAnyOppositePosition,manualOppositeQuantity} from "../_shared/a_manual_conflict_guard.mjs";
 
 const JSONBigParse = JSONBig({ storeAsString: true });
 
@@ -405,6 +406,30 @@ async function handleClose(payload: any): Promise<Response> {
   }
 }
 
+async function handleManualConflictGuard(): Promise<Response> {
+  try {
+    const open=(await db("real_trades?status=eq.open&signal_type=eq.answer_mdd30&select=signal_id,symbol,side,quantity"))||[];
+    if(!open.length)return Response.json({ok:true,checked:0,closed:[]});
+    const raw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000});
+    const positions=Array.isArray(raw)?raw:(raw?.positions||[]);
+    if(!Array.isArray(positions))throw Error("invalid position response for manual conflict guard");
+    const results:any[]=[];
+    for(const row of open){
+      const manualOpposite=manualOppositeQuantity(positions,open,row.symbol,row.side);
+      if(!(manualOpposite>1e-10))continue;
+      const reason="A C 수동 반대방향 우선 · 충돌 자동수량 청산";
+      const response=await handleClose({id:row.signal_id,reason});
+      const body=await response.json();
+      if(body.ok&&body.closed){
+        await db(`trade_signals?id=eq.${row.signal_id}`,{method:"PATCH",body:JSON.stringify({status:"invalidated",closed_at:new Date().toISOString(),close_reason:reason,updated_at:new Date().toISOString()})});
+        await traceExecution(Number(row.signal_id),"manual_opposite_auto_closed",{symbol:row.symbol,automatic_side:row.side,manual_opposite_quantity:manualOpposite});
+      }
+      results.push({signal_id:row.signal_id,symbol:row.symbol,automatic_side:row.side,manual_opposite_quantity:manualOpposite,...body});
+    }
+    return Response.json({ok:results.every(x=>x.ok&&x.closed),checked:open.length,closed:results});
+  }catch(e){return Response.json({ok:false,error:e instanceof Error?e.message:String(e)},{status:502})}
+}
+
 // 손절/익절이 안 걸려있는 것으로 확인된 기존 열린 실거래에 즉시 조건부 주문을 걸어준다.
 // id를 주면 그 1건만, 안 주면 열려있는 전체를 대상으로 한다. 이미 걸려있는 건 건드리지 않고
 // 빠진 것만 채우기 때문에 매 주기 반복 호출해도 안전하다(불필요한 취소·재등록 없음).
@@ -784,6 +809,7 @@ Deno.serve(async (req: Request) => {
   // 열려있는 실거래의 조건부 주문(SL/TP)만 취소 후 새 가격으로 다시 건다.
   if (signal?.action === "reprice") return await handleReprice(signal);
   if (signal?.action === "close") return await handleClose(signal);
+  if (signal?.action === "manual_conflict_guard") return await handleManualConflictGuard();
 
   // 과거 종료 건들의 수수료를 한 번 소급 보정한다 (사람이 요청했을 때만 사용, 자동 반복 안 함).
   if (signal?.action === "backfill_fees") return await handleBackfillFees();
@@ -918,6 +944,10 @@ Deno.serve(async (req: Request) => {
     const liveBeforeEntryRaw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{symbol:signal.symbol+"-USDT",recvWindow:5000});
     const liveBeforeEntry=Array.isArray(liveBeforeEntryRaw)?liveBeforeEntryRaw:(liveBeforeEntryRaw?.positions||[]);
     if(!Array.isArray(liveBeforeEntry))throw Error("invalid position response before entry");
+    if(candidateA&&hasAnyOppositePosition(liveBeforeEntry,signal.symbol,signal.side)){
+      await traceExecution(Number(signal.id),"manual_opposite_hold",{symbol:signal.symbol,requested_side:signal.side});
+      return Response.json({ok:true,skipped:"manual opposite position conflict"});
+    }
     const exchangeSameSide=liveBeforeEntry.filter((p:any)=>String(p.symbol)===signal.symbol+"-USDT"&&String(p.positionSide)===signal.side.toUpperCase()).reduce((sum:number,p:any)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error("invalid manual position quantity");return sum+Math.abs(q)},0);
     const ledgerSameSide=open.filter((x:any)=>x.symbol===signal.symbol&&x.side===signal.side).reduce((sum:number,x:any)=>sum+Math.abs(Number(x.quantity||0)),0);
     if(exchangeSameSide>ledgerSameSide+1e-10){
