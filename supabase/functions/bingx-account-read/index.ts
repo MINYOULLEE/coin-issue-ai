@@ -108,6 +108,7 @@ function automaticAOrder(v:any){return /^ciai\d+(?:[-a-z0-9]*)?$/i.test(orderCli
 async function syncActualBingxHistory(){
   if(!API_KEY||!SECRET_KEY)throw new Error("BingX API key missing");
   const now=Date.now(),syncedAt=new Date(now).toISOString(),errors:string[]=[];
+  const manualIds=new Set(((await db("bingx_trade_history?control_marker=eq.2&select=external_id"))||[]).map((x:any)=>String(x.external_id)));
   const openData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000});
   const openLedger=(await db("real_trades?status=eq.open&test_mode=eq.false&select=symbol,side,quantity,entry_price"))||[];
   const openRows=listOf(openData).filter((v:any)=>Math.abs(n(v?.positionAmt??v?.positionAmount??v?.amount))>0).map((v:any)=>{
@@ -125,6 +126,7 @@ async function syncActualBingxHistory(){
   // Save the current exchange snapshot before slower per-symbol history calls.
   // A later timeout must never hide every live position after rows were marked stale.
   await db("bingx_trade_history?status=eq.open",{method:"PATCH",headers:{Prefer:"return=minimal"},body:JSON.stringify({status:"stale",synced_at:syncedAt})});
+  for(const row of openRows)if(manualIds.has(row.external_id))row.control_marker=2;
   for(let i=0;i<openRows.length;i+=40)await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(openRows.slice(i,i+40))});
   const closedRows:any[]=[];
   // 기본 종목과 최근 7일 동안 실제 주문이 있었던 후보군 A 종목만 조회한다. 매분 15종목
@@ -141,12 +143,12 @@ async function syncActualBingxHistory(){
       const data=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v1/trade/positionHistory",
         {symbol,currency:"USDT",startTs:now-7*86400000,endTs:now,pageIndex:1,pageSize:100,recvWindow:5000});
       const historyItems=listOf(data);
+      const orderData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/allOrders",
+        {symbol,startTime:now-7*86400000,endTime:now,limit:1000,recvWindow:5000});
+      const fills=listOf(orderData).filter((o:any)=>String(o?.status).toUpperCase()==="FILLED"&&n(o?.executedQty??o?.origQty)>0);
+      const groups=new Map<string,any[]>();
+      for(const o of fills){const pid=String(o?.positionID??o?.positionId??"");if(!pid)continue;const g=groups.get(pid)||[];g.push(o);groups.set(pid,g)}
       if(!historyItems.length){
-        const orderData=await fetchSigned("prod-live",API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/allOrders",
-          {symbol,startTime:now-7*86400000,endTime:now,limit:1000,recvWindow:5000});
-        const fills=listOf(orderData).filter((o:any)=>String(o?.status).toUpperCase()==="FILLED"&&n(o?.executedQty??o?.origQty)>0);
-        const groups=new Map<string,any[]>();
-        for(const o of fills){const pid=String(o?.positionID??o?.positionId??"");if(!pid)continue;const g=groups.get(pid)||[];g.push(o);groups.set(pid,g)}
         for(const [pid,g] of groups){
           const opens=g.filter((o:any)=>!Boolean(o?.reduceOnly));
           const closes=g.filter((o:any)=>Boolean(o?.reduceOnly));
@@ -171,17 +173,19 @@ async function syncActualBingxHistory(){
         const entry=n(v?.avgPrice??v?.avgOpenPrice??v?.openPrice??v?.entryPrice),close=n(v?.closeAvgPrice??v?.avgClosePrice??v?.closePrice);
         const lev=Math.max(1,Math.round(n(v?.leverage)||1)),pnl=n(v?.netProfit??v?.realizedProfit??v?.realisedProfit??v?.realizedPnl??v?.profit);
         const fee=Math.abs(n(v?.commission??v?.tradingFee??v?.fee)),closedAt=isoTime(v?.closeTime??v?.updateTime??v?.endTime);
-        const pid=String(v?.positionId??v?.id??"");
+        const pid=String(v?.positionId??v?.positionID??v?.id??""),positionOrders=groups.get(pid)||[];
         closedRows.push({external_id:pid?"position:"+pid:`closed:${sym}:${side}:${closedAt||String(v?.closeTime||v?.updateTime||"unknown")}`,
           position_id:pid||null,symbol:sym,side,status:"closed",entry_price:entry||null,close_price:close||null,quantity:qty||null,
           margin_usd:n(v?.initialMargin??v?.margin??v?.positionMargin)||(entry&&qty?entry*qty/lev:null),leverage:lev,
           realized_pnl_usd:pnl,unrealized_pnl_usd:null,fee_usd:fee||null,
-          opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:closedAt,raw:v,synced_at:syncedAt});
+          opened_at:isoTime(v?.positionTime??v?.openTime??v?.createTime??v?.time),closed_at:closedAt,
+          control_marker:positionOrders.length&&positionOrders.every(automaticAOrder)?1:2,
+          raw:{...v,control_evidence:{filled_orders:positionOrders.length,automatic_orders:positionOrders.filter(automaticAOrder).length}},synced_at:syncedAt});
       }
     }catch(e){const msg=symbol+": "+String(e instanceof Error?e.message:e);errors.push(msg);console.error("BingX positionHistory:",msg)}
   }
   const byId=new Map<string,any>(); for(const row of [...openRows,...closedRows])byId.set(row.external_id,row);
-  const rows=[...byId.values()];
+  const rows=[...byId.values()];for(const row of rows)if(manualIds.has(row.external_id))row.control_marker=2;
   for(let i=0;i<rows.length;i+=40){const chunk=rows.slice(i,i+40);await db("bingx_trade_history?on_conflict=external_id",{method:"POST",headers:{Prefer:"resolution=merge-duplicates,return=minimal"},body:JSON.stringify(chunk)})}
   // 동일 종목을 종료 직후 재진입해도 손익이 앞뒤 거래에 섞이지 않도록 BingX의 positionHistory
   // 한 건을 진입 시각이 가장 가까운 내부 주문 한 건에 1:1로 매칭한다.

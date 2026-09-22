@@ -334,12 +334,12 @@ async function handleReprice(payload: any): Promise<Response> {
     }
 
     if (row.signal_type !== "strategy_f") await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
-      symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET", stopPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
+      symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET", stopPrice, quantity: qty, workingType: "MARK_PRICE", clientOrderId:`ciai${row.id}sl${Date.now()}`, recvWindow: 5000,
     });
     if (!candidateA) {
       await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
         symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
-        stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000,
+        stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", clientOrderId:`ciai${row.id}tp${Date.now()}`, recvWindow: 5000,
       });
     }
 
@@ -385,7 +385,7 @@ async function handleClose(payload: any): Promise<Response> {
       try { await fetchSigned(API_KEY, SECRET_KEY, "DELETE", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, orderId: o.orderId ?? o.orderID, recvWindow: 5000 }); }
       catch (e) { console.error("close: protective cancel failed", e instanceof Error ? e.message : String(e)); }
     }
-    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000 });
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, clientOrderId:`ciai${row.id}close`, recvWindow: 5000 });
     // Acceptance is not a fill. Confirm the exchange position has no remainder.
     let empty = false;
     for (const wait of [250, 500, 1000]) {
@@ -510,13 +510,13 @@ async function handleProtect(payload: any): Promise<Response> {
         let slOk = hasSl, tpOk = hasTp, slErr = "", tpErr = "";
         if (!hasSl) {
           try {
-            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET", stopPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000 });
+            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET", stopPrice, quantity: qty, workingType: "MARK_PRICE", clientOrderId:`ciai${row.id}sl${Date.now()}`, recvWindow: 5000 });
             slOk = true;
           } catch (e) { slErr = e instanceof Error ? e.message : String(e); }
         }
         if (!candidateA && !hasTp) {
           try {
-            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET", stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", recvWindow: 5000 });
+            await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET", stopPrice: targetPrice, quantity: qty, workingType: "MARK_PRICE", clientOrderId:`ciai${row.id}tp${Date.now()}`, recvWindow: 5000 });
             tpOk = true;
           } catch (e) { tpErr = e instanceof Error ? e.message : String(e); }
         }
@@ -732,7 +732,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: MDD30_EXCHANGE_LEVERAGE, recvWindow: 5000 });
     const adding = targetQty > currentQty;
     const orderSide = adding ? (row.side === "long" ? "BUY" : "SELL") : (row.side === "long" ? "SELL" : "BUY");
-    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: orderSide, positionSide, type: "MARKET", quantity: delta, recvWindow: 5000 });
+    await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: orderSide, positionSide, type: "MARKET", quantity: delta, clientOrderId:`ciai${row.id}resize${Date.now()}`, recvWindow: 5000 });
     await new Promise(resolve => setTimeout(resolve, 500));
     const afterRaw = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v2/user/positions", { symbol: bxSymbol, recvWindow: 5000 });
     const afterRows = Array.isArray(afterRaw) ? afterRaw : (afterRaw?.positions || []);
@@ -746,9 +746,9 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     }
     const stopPrice = roundTo(avgPrice * (row.side === "long" ? .85 : 1.15), pricePrecision);
     try {
-      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "STOP_MARKET", stopPrice, quantity: finalQty, workingType: "MARK_PRICE", recvWindow: 5000 });
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "STOP_MARKET", stopPrice, quantity: finalQty, workingType: "MARK_PRICE", clientOrderId:`ciai${row.id}sl${Date.now()}`, recvWindow: 5000 });
     } catch (e) {
-      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "MARKET", quantity: finalQty, recvWindow: 5000 });
+      await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", { symbol: bxSymbol, side: row.side === "long" ? "SELL" : "BUY", positionSide, type: "MARKET", quantity: finalQty, clientOrderId:`ciai${row.id}safety${Date.now()}`, recvWindow: 5000 });
       throw Error(`Stage75 stop replacement failed; safety closed: ${e instanceof Error ? e.message : String(e)}`);
     }
     const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
@@ -780,14 +780,14 @@ async function handleMdd30RallyGuard(payload: any): Promise<Response> {
     const delta=roundDown(currentQty-targetQty,qtyPrecision);if(!(delta>0))return Response.json({ok:true,resized:false,skipped:"rally guard delta below precision"});
     const openOrders=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/trade/openOrders",{symbol:bxSymbol,recvWindow:5000});
     for(const order of (Array.isArray(openOrders)?openOrders:(openOrders?.orders||[])).filter((o:any)=>String(o.positionSide)===positionSide&&["STOP_MARKET","TAKE_PROFIT_MARKET"].includes(String(o.type))))await fetchSigned(API_KEY,SECRET_KEY,"DELETE","/openApi/swap/v2/trade/order",{symbol:bxSymbol,orderId:order.orderId??order.orderID,recvWindow:5000});
-    await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:delta,recvWindow:5000});
+    await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:delta,clientOrderId:`ciai${row.id}rally${phase}`,recvWindow:5000});
     await new Promise(resolve=>setTimeout(resolve,500));
     const afterRaw=await fetchSigned(API_KEY,SECRET_KEY,"GET","/openApi/swap/v2/user/positions",{symbol:bxSymbol,recvWindow:5000}),afterRows=Array.isArray(afterRaw)?afterRaw:(afterRaw?.positions||[]),after=afterRows.find((p:any)=>p.symbol===bxSymbol&&p.positionSide===positionSide);
     const finalQty=Math.abs(Number(after?.positionAmt??after?.positionAmount??0)),avgPrice=Number(after?.avgPrice??after?.entryPrice??row.entry_price);
     if(!(finalQty>0)){await reconcileOpenTrades();return Response.json({ok:true,closed:true,phase,target_fraction:0,reason:"rally guard exchange fill closed remainder"})}
     const stopPrice=roundTo(avgPrice*1.15,pricePrecision);
-    try{await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"STOP_MARKET",stopPrice,quantity:finalQty,workingType:"MARK_PRICE",recvWindow:5000})}
-    catch(e){await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:finalQty,recvWindow:5000});throw Error(`rally guard stop replacement failed; safety closed: ${e instanceof Error?e.message:String(e)}`)}
+    try{await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"STOP_MARKET",stopPrice,quantity:finalQty,workingType:"MARK_PRICE",clientOrderId:`ciai${row.id}sl${Date.now()}`,recvWindow:5000})}
+    catch(e){await fetchSigned(API_KEY,SECRET_KEY,"POST","/openApi/swap/v2/trade/order",{symbol:bxSymbol,side:"BUY",positionSide,type:"MARKET",quantity:finalQty,clientOrderId:`ciai${row.id}safety${Date.now()}`,recvWindow:5000});throw Error(`rally guard stop replacement failed; safety closed: ${e instanceof Error?e.message:String(e)}`)}
     const nowIso=new Date().toISOString(),notional=finalQty*avgPrice,config={...(row.strategy_config||{}),stage135_rally_guard:true,rally_guard_phase:phase,rally_guard_before_quantity:currentQty,rally_guard_remaining_fraction:finalQty/currentQty,rally_guard_notification_pending:true};
     await db(`real_trades?id=eq.${row.id}`,{method:"PATCH",body:JSON.stringify({quantity:finalQty,notional_usd:notional,margin_usd:notional/3,stop_price:stopPrice,stop_order_created_at:nowIso,protective_verified:true,strategy_config:config,telegram_entry_notified_at:null,updated_at:nowIso})});
     await db(`trade_signals?id=eq.${row.signal_id}`,{method:"PATCH",body:JSON.stringify({notional_usd:notional,margin_usd:notional/3,updated_at:nowIso})});
@@ -1402,7 +1402,7 @@ Deno.serve(async (req: Request) => {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "STOP_MARKET",
-          stopPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+          stopPrice, quantity, workingType: "MARK_PRICE", clientOrderId:`ciai${signal.id}sl${Date.now()}`, recvWindow: 5000,
         });
         slAttached = true;
         stopCreatedAt = new Date().toISOString();
@@ -1412,7 +1412,7 @@ Deno.serve(async (req: Request) => {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
           symbol: bxSymbol, side: closeSide, positionSide, type: "TAKE_PROFIT_MARKET",
-          stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", recvWindow: 5000,
+          stopPrice: targetPrice, quantity, workingType: "MARK_PRICE", clientOrderId:`ciai${signal.id}tp${Date.now()}`, recvWindow: 5000,
         });
         tpAttached = true;
         targetCreatedAt = new Date().toISOString();
@@ -1426,7 +1426,7 @@ Deno.serve(async (req: Request) => {
     if (!slAttached && (!candidateA || emergencyHardStopRequired)) {
       try {
         await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/order", {
-          symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, recvWindow: 5000,
+          symbol: bxSymbol, side: closeSide, positionSide, type: "MARKET", quantity, clientOrderId:`ciai${signal.id}safety${Date.now()}`, recvWindow: 5000,
         });
       } catch (e) { console.error("EMERGENCY CLOSE FAILED after stop-loss attach failure:", bxSymbol, e instanceof Error ? e.message : String(e)); }
       await insertRejected(signal, "손절 주문 부착 실패로 안전 청산: " + slError.slice(0, 300));
@@ -1495,6 +1495,7 @@ Deno.serve(async (req: Request) => {
           positionSide: unrecordedLiveEntry.positionSide,
           type: "MARKET",
           quantity: unrecordedLiveEntry.quantity,
+          clientOrderId: `ciai${signal.id}rollback${Date.now()}`,
           recvWindow: 5000,
         });
       } catch (closeError) {

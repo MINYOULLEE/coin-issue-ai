@@ -32,3 +32,11 @@ export function copyDelta(actual,target,precision,minQuantity,minNotional,markPr
 }
 
 export function positionKey(symbol,side){return `${String(symbol)}:${String(side).toUpperCase()}`}
+
+export function copyKeys(sourcePositions,followerPositions,openLedger=[]){
+ return new Set([
+  ...sourcePositions.map(position=>positionKey(position.symbol,position.side)),
+  ...followerPositions.map(position=>positionKey(position.symbol,position.side)),
+  ...openLedger.map(row=>positionKey(String(row.symbol).includes('-')?row.symbol:`${row.symbol}-USDT`,row.side))
+ ]);
+}

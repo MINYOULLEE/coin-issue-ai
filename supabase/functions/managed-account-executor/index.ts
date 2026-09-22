@@ -3,7 +3,7 @@ import postgres from "https://deno.land/x/postgresjs@v3.4.5/mod.js";
 import {createHmac} from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
 import {closeManagedTrade,managedCloseSettlement} from "../_shared/managed_close.mjs";
-import {copyDelta,normalizedPositions,positionKey,targetQuantity} from "../_shared/managed_position_copy.mjs";
+import {copyDelta,copyKeys,normalizedPositions,positionKey,targetQuantity} from "../_shared/managed_position_copy.mjs";
 
 const sql=postgres(Deno.env.get("SUPABASE_DB_URL")!,{prepare:false,max:1});
 const INTERNAL=Deno.env.get("INTERNAL_TRADE_SECRET")||"";
@@ -180,7 +180,8 @@ async function runCopyAccount(account:any){
  const follower=await credentials(account.id),source=sourceCredentials(plan);
  const [sourceBalance,sourceRaw,followerBalance,followerRaw]=await Promise.all([balance(source.api_key,source.secret_key),signed(source.api_key,source.secret_key,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000}),balance(follower.api_key,follower.secret_key),signed(follower.api_key,follower.secret_key,"GET","/openApi/swap/v2/user/positions",{recvWindow:5000})]);
  const sourcePositions=normalizedPositions(sourceRaw).filter(p=>allowed.has(p.symbol.replace("-USDT",""))),followerPositions=normalizedPositions(followerRaw),sourceMap=new Map(sourcePositions.map(p=>[positionKey(p.symbol,p.side),p])),followerMap=new Map(followerPositions.map(p=>[positionKey(p.symbol,p.side),p]));
- const keys=new Set([...sourceMap.keys(),...followerMap.keys()]);
+ const openLedger=await sql`select symbol,side from public.managed_bingx_trades where account_id=${account.id}::uuid and status in ('open','closing')`;
+ const keys=copyKeys(sourcePositions,followerPositions,openLedger);
  for(const key of keys){
   const sourcePosition=sourceMap.get(key),actual=followerMap.get(key),symbol=sourcePosition?.symbol||actual?.symbol||"",side=sourcePosition?.side||actual?.side||"";
   if(!allowed.has(symbol.replace("-USDT","")))continue;
