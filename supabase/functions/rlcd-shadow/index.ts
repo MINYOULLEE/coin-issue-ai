@@ -6,6 +6,7 @@ const URL=Deno.env.get('SUPABASE_URL')!;
 const KEY=Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const sb=createClient(URL,KEY,{auth:{persistSession:false}});
 const HORIZONS=[1,4,24];
+const NON_TRADING_MARKET_KEYS=new Set(['USDT']);
 const CORS={'Content-Type':'application/json','Cache-Control':'no-store','Access-Control-Allow-Origin':'https://minyoullee.github.io','Access-Control-Allow-Headers':'authorization, apikey, content-type, x-scheduler-key','Access-Control-Allow-Methods':'POST, OPTIONS'};
 
 async function authorized(req:Request){
@@ -25,6 +26,10 @@ async function createDecisions(){
   const market=snapshot.payload.market as Record<string,any>,bBySymbol=new Map((bRows||[]).map((x:any)=>[x.symbol,x]));
   const decisionBoundary=hourKey(),decidedAt=new Date().toISOString(),rows:any[]=[];
   for(const [symbol,m] of Object.entries(market)){
+    // The dashboard snapshot also carries USDT/KRW as a display-only FX row.
+    // It is not a Binance USDT-margined trading symbol (USDTUSDT), so never
+    // create or score an R-Lab decision for it.
+    if(NON_TRADING_MARKET_KEYS.has(symbol))continue;
     const entry=Number(m?.price);if(!(entry>0))continue;
     const answer=m?.answer_mdd30?{...m.answer_mdd30,classes:[-1,0,1]}:null;
     const result=seedDecision({answer,micro:m?.micro_scenarios,bSignal:bBySymbol.get(symbol)||null});

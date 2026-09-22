@@ -25,6 +25,8 @@ test('transport outage waits for semantic recovery but trading errors remain imm
  const peerFailure={id:11,source:'supabase-http',status_code:null,message:'Failed sending data to the peer',created_at:new Date(now-10000).toISOString()};
  assert.equal(transportErrorDisposition({error:peerFailure,snapshot:{},bHealth:[],now}),'pending');
  assert.equal(transportErrorDisposition({error:peerFailure,snapshot:{updated_at:new Date(now-5000).toISOString()},bHealth:health,now}),'recovered');
+ const rlabPartial={source:'supabase-http',status_code:200,message:'{"ok":false,"model":"rlab_seed_observer_v1","scored":{"failures":[{"error":"USDT candles 400"}]}}',created_at:new Date(now-240000).toISOString()};
+ assert.equal(transportErrorDisposition({error:rlabPartial,snapshot:{},bHealth:[],now}),'recovered');
 });
 const html='<table><tr><td><time datetime="2026-08-30T12:00:00Z"></time></td><td><a href="/PressRoom/PressReleases/123">Official news</a></td></tr></table>';
 test('CFTC fallback preserves official URL and publication date',async()=>{const seen=[];const r=await fetchNews('CFTC Press','https://fixture.invalid/rss',{fetcher:async u=>{seen.push(u);return seen.length===1?new Response('',{status:403}):new Response(html);}});assert.equal(r.fallback,true);assert(r.xml.includes('https://www.cftc.gov/PressRoom/PressReleases/123'));assert(r.xml.includes('Sun, 30 Aug 2026'));});

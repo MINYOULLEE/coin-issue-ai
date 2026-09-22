@@ -22,6 +22,10 @@ export function outcomeErrors(result){return (result?.results||[]).filter(x=>x.e
 export function transportErrorDisposition({error,snapshot,bHealth=[],now=Date.now()}){
  const at=Date.parse(error?.created_at||''),message=String(error?.message||'');
  const source=String(error?.source||'');
+ // R-Lab is a shadow-only research observer with no order path.  Its partial
+ // scoring failures remain in system_errors/R-Lab diagnostics, but they must
+ // not be presented as live-trading Telegram incidents.
+ if(source==='supabase-http'&&error?.status_code===200&&/"model"\s*:\s*"rlab_[^"]+"/i.test(message))return 'recovered';
  const transientTransport=(source==='supabase-http'||source==='plan-b-http')&&(
   error?.status_code>=500||
   error?.status_code==null&&/timeout|dns|handshake|failed sending data to the peer|connection reset|broken pipe/i.test(message)||
