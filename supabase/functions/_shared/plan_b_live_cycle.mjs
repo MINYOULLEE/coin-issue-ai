@@ -15,6 +15,27 @@ export function eligible(signal,now=Date.now()) {
   Date.parse(signal.confirmed_at)<=now && now-Date.parse(signal.confirmed_at)<300000 && Date.parse(signal.entry_deadline)>now;
 }
 export function fillValid(fill,quantity) {return ['filled','partially_filled'].includes(fill.status)&&!!fill.orderId&&Number.isFinite(fill.price)&&fill.price>0&&Number.isFinite(fill.quantity)&&fill.quantity>0&&fill.quantity<=quantity;}
+export function strategyRiskEquity(startingCapital,trades,marks={}) {
+ const start=Number(startingCapital),rows=Array.isArray(trades)?trades:[];
+ if(!Number.isFinite(start)||start<=0)throw Error('invalid B strategy starting capital');
+ return rows.filter(t=>Number(t.control_marker??1)!==2).reduce((equity,t)=>{
+  if(t.status==='closed'){
+   const pnl=Number(t.net_pnl_usd);
+   if(!Number.isFinite(pnl))throw Error('invalid closed B strategy PnL');
+   return equity+pnl;
+  }
+  if(t.status==='open'){
+   const entry=Number(t.entry_price),quantity=Number(t.quantity),mark=Number(marks[t.symbol]);
+   if(![entry,quantity,mark].every(Number.isFinite)||entry<=0||quantity<=0||mark<=0)throw Error('invalid open B strategy valuation');
+   return equity+(mark-entry)*quantity*(t.side==='short'?-1:1);
+  }
+  return equity;
+ },start);
+}
+async function expireMissedSignals(sb,now) {
+ return checked(sb.from('plan_b_signals').update({status:'expired',dispatch_block_reason:'expired_before_dispatch',dispatch_checked_at:new Date(now).toISOString(),updated_at:new Date(now).toISOString()})
+  .eq('status','active').is('dispatched_at',null).lt('entry_deadline',new Date(now).toISOString()));
+}
 export function positionQuantity(raw,symbol,side) {
  const rows=Array.isArray(raw)?raw:raw?.positions;if(!Array.isArray(rows))throw Error('invalid position response');
  return rows.filter(p=>p.symbol===symbol+'-USDT'&&p.positionSide===side.toUpperCase()).reduce((sum,p)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');return sum+Math.abs(q);},0);
@@ -47,6 +68,7 @@ export function historySettlement(raw,trade) {
 export async function executeBatch({sb,bx,now=Date.now}) {
  const state=await checked(sb.from('plan_b_trading_state').select('*').eq('id','singleton').single());
  if(state.strategy_id!==STANDARD.strategy_id)throw Error('B strategy mismatch');
+ await expireMissedSignals(sb,now());
  if(!state.enabled||state.test_mode)return {mode:'paused',processed:0}; // never create paper real-trades
  const intents=await checked(sb.from('plan_b_execution_intents').select('*').not('status','in','(closed,rejected,expired)'))||[];
  // All uncertain submissions must be reconciled before allocating additional funds.
@@ -55,7 +77,17 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  const account=balances.find(b=>b.asset==='USDT');if(!account)throw Error('USDT unavailable');
  const balance=Number(account.balance),equity=Number(account.equity),free=Number(account.availableMargin);
  if(![balance,equity,free].every(Number.isFinite))throw Error('invalid balance');
- const risk=await checked(sb.rpc('plan_b_update_risk_guard',{p_equity:equity,p_now:new Date(now()).toISOString()}));
+ // Stage112 drawdown belongs to the automatic B sleeve. Owner trades and
+ // deposits/withdrawals still affect available-margin sizing, but must not
+ // manufacture strategy drawdown or pause automatic entries.
+ const riskTrades=await checked(sb.from('plan_b_real_trades').select('symbol,side,status,quantity,entry_price,net_pnl_usd,control_marker'))||[];
+ const openRiskTrades=riskTrades.filter(t=>t.status==='open'&&Number(t.control_marker??1)!==2),riskMarks={};
+ for(const trade of openRiskTrades){
+  const raw=await bx.read('/openApi/swap/v2/quote/premiumIndex',{symbol:trade.symbol+'-USDT'}),row=Array.isArray(raw)?raw[0]:raw;
+  riskMarks[trade.symbol]=Number(row?.markPrice);
+ }
+ const strategyEquity=strategyRiskEquity(Number(state.starting_capital_usd||650),riskTrades,riskMarks);
+ const risk=await checked(sb.rpc('plan_b_update_risk_guard',{p_equity:strategyEquity,p_now:new Date(now()).toISOString()}));
  if(!risk?.entry_allowed)return {mode:'risk_pause',processed:0,risk};
  const pending=await checked(sb.from('plan_b_signals').select('*').eq('status','active').is('dispatched_at',null).gt('entry_deadline',new Date(now()).toISOString()).order('id'))||[];
  const occupied=new Set(intents.map(i=>i.symbol)),seen=new Set();
