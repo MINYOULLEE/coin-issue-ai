@@ -16,7 +16,7 @@
     "strategy/A_RECOVERY_REPAIR_20260915.md": "d2b59dfd3ef5954ec0f31628051f0cbafc58939eaf83e62ac2d0de3690eb1f67",
     "docs/index.html": "eb0c03abd16e5b8423c0a759c28533e81697a54758c82cb4262c58125ca48119",
     "docs/managed-accounts.css": "10499e5caaa0d4115370e1514613e041f32eb79f0fe384bb2091741c05f1e777",
-    "docs/managed-accounts.js": "79bccf5acbaf593d190754bc068abdccd0c114664e9689abfd7f134424dd0130",
+    "docs/managed-accounts.js": "205f080418f4262523f30c134a447d943528ed9a54a8b38cbac055c9411c186b",
     "docs/mobile-layout.css": "11b289d2f987052370d1048129dcc156ffed7e7805e0f1f367a42d1b9872f747",
     "docs/plan-controls.js": "147c009c7ac799515559766e7ee2c456b383994065c58ac9285bf1106f2d6348",
     "research/results/a_drawdown_guard_stage75/RESULTS.json": "1651e4a6126f7baca3be1e7fb4c7fb742219cfae1df38f86fea99ddad2739412",
@@ -157,6 +157,7 @@
     "supabase/repairs/plan_b_stage26_reservations.sql": "a31cc02d2e934bd5bfea5265542fbaab2fc480db5ddc746d1cb146cace95dee7",
     "supabase/repairs/plan_b_stage26.sql": "51cb85016a8862b7b9bcb025fc6fe5e0beee74c9cb4131e056e23f745f7a223f",
     "supabase/repairs/telegram_notify_timeout_20260901.sql": "a1fd5f1167061916a4fbda7f5bdaa36b31aef9a092d390c6843fbcab743ad466",
-    "supabase/repairs/telegram_trade_delivery.sql": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d"
+    "supabase/repairs/telegram_trade_delivery.sql": "0905d2e42de5d8a87a6ec62f1c56dcbc4fe10d9fa07be9efe7cf44f0be080f6d",
+    "research/scripts/test_managed_trade_time.mjs": "90d1a1c8fedd4aceb2711bce118f70adaf7776dfcac06114045526106288f9da"
   }
 }
