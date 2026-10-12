@@ -1,0 +1,16 @@
+{
+  "scope":"A read-only history reconstruction; no trading strategy, orders, credentials or ON/LIVE changes",
+  "cause":"Seven-day allOrders window grouped earlier reductions with later additions on one TRX position and incorrectly classified it as fully closed",
+  "invalid_external_id":"position:2103288463046701058",
+  "invalid_pnl_usd":-1.302194,
+  "invalid_opened_at":"2026-10-10T01:00:21Z",
+  "invalid_closed_at":"2026-10-09T01:00:18Z",
+  "repair":"Preserved original data in raw.history_validation; marked invalid completion stale with unverified realized PnL null. Not a claim that real partial realized losses disappeared.",
+  "confirmed_positive_trades":{"SOL":3.0053,"XRP":3.451487},
+  "before":{"wins":47,"losses":46,"net_usd":294.264881},
+  "after":{"closed":92,"wins":47,"losses":45,"win_rate_pct":51.08695652173913,"net_usd":295.567075,"fee_usd":35.147025},
+  "guards":["Do not infer full closure while same position ID is live","Require equal opening/closing quantities instead of accepting excess closes from truncated history","Require chronological first opening and final closing","Parse reduceOnly string false correctly","Do not persist or match backwards closed lifecycles into internal trade settlements"],
+  "tests":{"passed":6,"failed":0},
+  "live_switches":{"a_enabled":true,"a_test_mode":false,"b_enabled":true,"b_test_mode":false},
+  "exchange_orders_submitted_by_repair":0
+}
