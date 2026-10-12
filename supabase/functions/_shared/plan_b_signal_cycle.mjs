@@ -7,7 +7,7 @@ export async function runCombinationSignals({sb,fetchCandles,now=Date.now,previe
  const stamp=now(),boundary=Math.floor(stamp/H)*H;
  const saved=await checked(sb.from('plan_b_opportunity_state').select('payload').eq('id','singleton').single());
  let state=saved.payload;
- if(state.version!==STANDARD.standard_version)throw Error('B opportunity version mismatch');
+ if(state.version!==(STANDARD.opportunity_version||STANDARD.standard_version))throw Error('B opportunity version mismatch');
  if(state.lastConfirmedAt>boundary)throw Error('future opportunity state');
  if(!preview&&state.lastConfirmedAt===boundary)return {ok:true,plan:'B',strategy_id:STANDARD.strategy_id,confirmed_at:new Date(boundary).toISOString(),mode:'up_to_date',results:[],orders_submitted:0};
  if(boundary-state.lastConfirmedAt>800*H)throw Error('B recovery exceeds candle window; explicit backfill required');

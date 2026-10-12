@@ -66,7 +66,7 @@ export function combinationDecision(symbol,rows,now) {
 // One complete, chronological hour at a time. Missing hours must be replayed,
 // never initialized as 'idle'. Caller must atomically persist returned state AND signals.
 export function advanceOpportunities(previous,decisions,confirmedAt){
- if(previous?.version!==standard.standard_version||!Number.isFinite(confirmedAt)||confirmedAt%H||previous.lastConfirmedAt+H!==confirmedAt)throw Error('opportunity state requires chronological bootstrap/replay');
+ if(previous?.version!==(standard.opportunity_version||standard.standard_version)||!Number.isFinite(confirmedAt)||confirmedAt%H||previous.lastConfirmedAt+H!==confirmedAt)throw Error('opportunity state requires chronological bootstrap/replay');
  const symbols=Object.keys(standard.symbols);
  for(const symbol of symbols){
   const d=decisions[symbol],n=previous.nextEligibleAt?.[symbol];

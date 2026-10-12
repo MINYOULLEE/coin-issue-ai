@@ -3,6 +3,7 @@ import postgres from "https://deno.land/x/postgresjs@v3.4.5/mod.js";
 import {createHmac} from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
 import {closeManagedTrade,managedCloseSettlement} from "../_shared/managed_close.mjs";
+import B_STANDARD from "../_shared/plan_b_standard.json" with {type:"json"};
 import {copyDelta,copyKeys,normalizedPositions,positionKey,targetQuantity} from "../_shared/managed_position_copy.mjs";
 
 const sql=postgres(Deno.env.get("SUPABASE_DB_URL")!,{prepare:false,max:1});
@@ -13,7 +14,7 @@ const ASSETS=new Set(["BTC","ETH","XRP","TRX","SOL"]);
 const ACTIVE=new Set(["active","weakening"]);
 const LEVERAGE=5,MAX_GROSS=56/15,STOP_PCT=.15;
 const A_VERSION="mdd30_5x_c_controller_stage184_v1";
-const CURRENT_PLAN_VERSIONS={A:A_VERSION,B:"b_regime_guard_stage112_v1"} as const;
+const CURRENT_PLAN_VERSIONS={A:A_VERSION,B:B_STANDARD.standard_version} as const;
 const PLAN_ASSETS={A:new Set(["BTC","ETH","XRP","TRX","SOL"]),B:new Set(["AVAX","ICP","BCH","DOGE","UNI","ALGO","ETH","VET","LINK","DOT","LTC","BNB","ADA"])};
 
 function same(a:string,b:string){if(a.length!==b.length)return false;let x=0;for(let i=0;i<a.length;i++)x|=a.charCodeAt(i)^b.charCodeAt(i);return x===0}

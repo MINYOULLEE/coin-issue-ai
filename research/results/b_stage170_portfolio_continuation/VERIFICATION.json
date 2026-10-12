@@ -1,0 +1,79 @@
+{
+  "status": "passed",
+  "research_only": true,
+  "checks": {
+    "baseline": {
+      "ledger_reconciles": true,
+      "quantity_carried": true,
+      "group_overlap": 0,
+      "strict_ttl": true,
+      "by_symbol": {
+        "LINK": 49,
+        "LTC": 49,
+        "DOT": 81,
+        "UNI": 149,
+        "BNB": 20,
+        "ETH": 37,
+        "VET": 14,
+        "DOGE": 52,
+        "ICP": 149,
+        "BCH": 108,
+        "ALGO": 14,
+        "AVAX": 49,
+        "ADA": 16
+      },
+      "retained_boundaries": 0
+    },
+    "candidate": {
+      "ledger_reconciles": true,
+      "quantity_carried": true,
+      "group_overlap": 0,
+      "strict_ttl": true,
+      "by_symbol": {
+        "LINK": 50,
+        "LTC": 51,
+        "DOT": 82,
+        "UNI": 150,
+        "BNB": 23,
+        "ETH": 39,
+        "VET": 14,
+        "DOGE": 53,
+        "ICP": 120,
+        "BCH": 108,
+        "ALGO": 15,
+        "AVAX": 49,
+        "ADA": 16
+      },
+      "retained_boundaries": 28
+    }
+  },
+  "scenarios": 11,
+  "improved_scenarios": 11,
+  "no_worse_mdd_scenarios": 11,
+  "frozen_improved_thirds": 2,
+  "results_sha256": "12f99cc2433bca4451c79201e1564ebe97496041785c53fcb0ae770adb33d4d7",
+  "not_verified": [
+    "whole-B synchronized futures minutes",
+    "BingX mark-price liquidation tiers",
+    "unseen future returns"
+  ],
+  "input_sha256": {
+    "strategy\\plan_b_standard.json": "4cb263815b74d6d0038e5f561c4db25650097f8cd24fe20fd80ecbdb57f26150",
+    "strategy\\plan_b_combination_standard.json": "d89428d50f3a53543dadaca7789d7cc40791193f3d2abd1c5432fafca7f8872c",
+    "research\\scripts\\research_b_stage170_portfolio_continuation.py": "c846a8408deb9150868ad704fbb7b6fc3552e44900bedb57b03651e50fc25180",
+    "research\\results\\b_stage169_icp_minutes\\RESULTS.json": "19a477d7aa477144f344eb12c1904cdc8c3c3feece42311790a40ac190bf64b8",
+    "research\\data_7y\\AVAXUSDT_1h.csv": "b8835946f3bd43fac1292575ce3cd533375c3dd82ce68daaa29b4a8ec8567f66",
+    "research\\data_7y\\ICPUSDT_1h.csv": "2694a821de6c9895c12e7ea6f116308d82491c9834306d241cbca79075827293",
+    "research\\data_7y\\BCHUSDT_1h.csv": "de14be4f1ba4314e3640085376a5ed383d628bc38708594209ab81888a17eb65",
+    "research\\data_7y\\DOGEUSDT_1h.csv": "0147f406e63eb23bc4041a74aec7c7a42e7c3414be89a1c62a10489468187518",
+    "research\\data_7y\\UNIUSDT_1h.csv": "4137787cf8202271aa66d8d72eaffae241251f0b8152280f984fc77504c5d8fe",
+    "research\\data_7y\\ALGOUSDT_1h.csv": "99b6107b4e8a7fdad1c24c84b00e0267b2d1f85edfcadc0654ed98ff47ead01a",
+    "research\\data_7y\\ETHUSDT_1h.csv": "b88d695d44f2c0854c88af897a07a789143cf5f4488f63c9934a60b6a1821959",
+    "research\\data_7y\\VETUSDT_1h.csv": "78316b7e47a1d70acdfd20af053093dc918a4441497466ce73c75c10592dd136",
+    "research\\data_7y\\LINKUSDT_1h.csv": "15571637221285784303833684d7596692ed0c7f67fbf99a23630a207954a00a",
+    "research\\data_7y\\DOTUSDT_1h.csv": "d009900eb521f2a4751708faf63e9394d1e13af10ada096cd8334e67516a07b0",
+    "research\\data_7y\\LTCUSDT_1h.csv": "66191fe714735802a6ff3382488a2a74910ffc26e685394b3c53ea385d3d73fa",
+    "research\\data_7y\\BNBUSDT_1h.csv": "912b69355e522010774ddb0c30fa538a5d50ca89aa95c811c602e38a96590e42",
+    "research\\data_7y\\ADAUSDT_1h.csv": "474aa7d644c925fb681082a7d6bc6ed1a4cb71fbe27baf4ff1fabd2708930380"
+  }
+}

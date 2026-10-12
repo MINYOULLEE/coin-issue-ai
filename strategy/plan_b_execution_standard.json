@@ -32,6 +32,7 @@
     "atomic_opportunity_publication": true,
     "close_confirmation_before_next_group": true,
     "original_expiry_not_extended": true,
+    "icp_conditional_continuation": "separate_trade_deadline_max8h_stage170_atomic_signal_consumption",
     "uncertain_submission_policy": "retain_reservation_reconcile_no_blind_resubmit"
   },
   "monitoring": {

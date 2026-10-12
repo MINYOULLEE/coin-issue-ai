@@ -1,6 +1,6 @@
 {
-  "execution_version": "stage112_regime_guard_20260910_v1",
+  "execution_version": "stage170_icp_continuation_20261012_v1",
   "live_ready": true,
   "strategy_id": "b_regime_guard_stage112",
-  "note": "Owner-enabled switch preserved. Stage112 keeps Stage93 signals and Stage66 exits, caps new-entry gross/equity at 3.75x, pauses only new entries for 168h after a 25% account drawdown, and blocks BCH/ICP/LINK/UNI entries during a completed BTC 72h return of -6% or worse."
+  "note": "Stage170 adopts conditional fixed-quantity ICP retention at selected same-side 2h boundaries, capped at 8h from original confirmation. Existing Stage112 entry risk, signal/opportunity IDs, owner switches, profit floors and manual ownership are preserved."
 }

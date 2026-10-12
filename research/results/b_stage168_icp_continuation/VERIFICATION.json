@@ -1,0 +1,82 @@
+{
+  "research_only": true,
+  "live_changes": false,
+  "baseline_exact": true,
+  "synthetic_accounting_and_control_checks": "passed",
+  "comparisons": [
+    {
+      "max_hold_hours": 4,
+      "additional_continuation_margin_gross_guard": true,
+      "final_equity_improvement_pct": 12.094456316253632,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": true
+    },
+    {
+      "max_hold_hours": 4,
+      "additional_continuation_margin_gross_guard": false,
+      "final_equity_improvement_pct": -21.415011180277897,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": false
+    },
+    {
+      "max_hold_hours": 8,
+      "additional_continuation_margin_gross_guard": true,
+      "final_equity_improvement_pct": 16.95931244804425,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": true
+    },
+    {
+      "max_hold_hours": 8,
+      "additional_continuation_margin_gross_guard": false,
+      "final_equity_improvement_pct": -8.351988550104316,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": false
+    },
+    {
+      "max_hold_hours": 24,
+      "additional_continuation_margin_gross_guard": true,
+      "final_equity_improvement_pct": 16.95931244804425,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": true
+    },
+    {
+      "max_hold_hours": 24,
+      "additional_continuation_margin_gross_guard": false,
+      "final_equity_improvement_pct": -6.05457132049485,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": false
+    },
+    {
+      "max_hold_hours": 168,
+      "additional_continuation_margin_gross_guard": true,
+      "final_equity_improvement_pct": 16.95931244804425,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": true
+    },
+    {
+      "max_hold_hours": 168,
+      "additional_continuation_margin_gross_guard": false,
+      "final_equity_improvement_pct": -6.05457132049485,
+      "double_cost_better_both": true,
+      "stress_risk_pass": true,
+      "candidate_screen_pass": false
+    }
+  ],
+  "sha256": {
+    "research\\scripts\\research_b_stage168_icp_continuation.py": "8a3d59ecdd0a0b55d5c270e9ef5f290ea70d547768e687e54afc605efd880bc6",
+    "research\\results\\b_stage168_icp_continuation\\RESULTS.json": "9744117c7197b724278553829312251e50dd50df62a0eac2af607fb420a4d9a5",
+    "research\\data_7y\\ICPUSDT_1h.csv": "2694a821de6c9895c12e7ea6f116308d82491c9834306d241cbca79075827293"
+  },
+  "not_yet_verified": [
+    "ICP perpetual minute execution on changed boundaries",
+    "BingX live fills",
+    "untouched future market"
+  ]
+}

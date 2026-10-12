@@ -1,8 +1,10 @@
 # A/B 매매 기준 — 작업 전 반드시 읽기
 
+**2026-10-12 최신 B 채택: `B_STAGE170_APPROVED_20261012.md`, 정책 버전 `b_icp_continuation_stage170_v1`. 기존 전략 ID `b_regime_guard_stage112`와 기회 버전 `b_regime_guard_stage112_v1`은 호환용으로 유지한다. ICP만 같은 방향 2시간 재신호와 담보·노출·위험 조건을 통과할 때 원 수량/진입가/보호선을 최대 8시간까지 유지한다. 원 신호 만료와 5분 TTL은 불변이며 실패 시 기존 확인 청산한다. A Stage184와 모든 ON/LIVE 상태는 변경하지 않는다. 이하 Stage112 설명은 이전 채택 이력이다.**
+
 > 작업 위치를 먼저 찾을 때는 [`strategy/work_map/README.md`](work_map/README.md)에서 시작한다. 현재 A, 현재 B, A+C 방어, B+C 연구, A 연구, B 연구를 서로 섞이지 않게 분리한 공식 작업 지도다.
 
-**최신 채택 기준: `B_STAGE112_APPROVED_20260910.md`. B 운영 ID `b_regime_guard_stage112`: Stage93 신호와 Stage66 청산을 유지하고 신규진입 총노출 3.75x, 계좌 낙폭 25% 시 168시간 신규진입 중지, BTC 완료 72시간 수익률 -6% 이하에서 BCH/ICP/LINK/UNI 신규진입 차단을 적용한다. A는 변경하지 않는다. 사용자 B ON·LIVE 상태는 변경하지 않는다. 아래 Stage93/Stage66/Stage45/Stage35/Stage26/Stage16 기록은 과거 이력이다.**
+**Stage112 채택 이력: `B_STAGE112_APPROVED_20260910.md`. 기존 B 운영 ID `b_regime_guard_stage112`: Stage93 신호와 Stage66 청산, 신규진입 총노출 3.75x, 계좌 낙폭 25% 시 168시간 신규진입 중지, BTC 완료 72시간 수익률 -6% 이하에서 BCH/ICP/LINK/UNI 신규진입 차단. 이 진입·위험 규칙들은 Stage170에도 유지된다. 아래 Stage93/Stage66/Stage45/Stage35/Stage26/Stage16 기록은 과거 이력이다.**
 
 ## A플랜: Stage184 5배 단일 + C 급변 방어 — 2026-09-14 사용자 채택
 

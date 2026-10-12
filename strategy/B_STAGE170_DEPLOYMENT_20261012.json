@@ -1,0 +1,44 @@
+{
+  "policy_version": "b_icp_continuation_stage170_v1",
+  "execution_version": "stage170_icp_continuation_20261012_v1",
+  "strategy_id_compatibility": "b_regime_guard_stage112",
+  "opportunity_version_compatibility": "b_regime_guard_stage112_v1",
+  "user_approved": true,
+  "status": "deployed_active_pending_natural_continuation_fill_validation",
+  "activated_at_utc": "2026-10-12T13:31:57.112282Z",
+  "activation_time_note": "B policy status update time, not exchange execution timestamp",
+  "functions": [
+    {"name":"plan-b-executor","version":41,"bundled_files_matched":9},
+    {"name":"plan-b-strategy","version":21,"bundled_files_matched":8},
+    {"name":"plan-b-account-read","version":34,"bundled_files_matched":7},
+    {"name":"plan-b-stage26-preflight","version":14,"bundled_files_matched":9},
+    {"name":"managed-account-executor","version":21,"bundled_files_matched":4},
+    {"name":"managed-account-read","version":12,"bundled_files_matched":2}
+  ],
+  "source_parity": {"mismatches":0,"bundled_file_comparisons":39},
+  "tests": {
+    "node": {"passed":100,"failed":0},
+    "reserved_margin_python": {"passed":2,"failed":0},
+    "isolated_database": "passed: pg_temp-only fixtures; no public trading records mutated",
+    "database_cases": ["gross cap","free margin","risk pause","fixed original quantity","unchanged original expiry","atomic selected signal consumption","duplicate rejection","stale close CAS","extended deadline rejects scheduled close","profit lock still closes"],
+    "live_record_rollback_fixture": "rejected by safety review; not executed; replaced by isolated temporary fixtures",
+    "security": {"warn":0,"error":0,"service_only_rpc_verified":true,"existing_rls_no_policy_info_count":23}
+  },
+  "runtime_observation": {
+    "a_enabled":true,"a_test_mode":false,"b_enabled":true,"b_test_mode":false,
+    "b_validation_status":"stage170_deployed_pending_natural_continuation_validation",
+    "close":{"ok":true,"updated_at":"2026-10-12T13:36:20.569Z"},
+    "execute":{"ok":true,"updated_at":"2026-10-12T13:36:21.186Z"},
+    "signals":{"ok":true,"updated_at":"2026-10-12T13:37:00.383Z"},
+    "b_or_managed_system_errors_since_20261012_133100_utc":0,
+    "forced_orders_submitted_by_this_work":0
+  },
+  "managed_accounts": {
+    "a_registered":1,"b_registered":0,
+    "b_desired_and_applied_versions_read_canonical_standard":true,
+    "b_actual_follower_fill_verified":false,
+    "note":"No B follower currently registered. Future B assignments use Stage170; no claim of a real B follower fill. Existing follower copying mechanics were preserved."
+  },
+  "a_strategy_modified":false,
+  "limitations":["Natural same-side continuation has not yet been observed after activation","No real B follower account to verify","Research partly uses hourly proxies; no guaranteed returns or BingX liquidation certification"]
+}

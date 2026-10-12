@@ -1,9 +1,10 @@
 {
   "plan": "B",
   "profile": "aggressive",
-  "standard_version": "b_regime_guard_stage112_v1",
+  "standard_version": "b_icp_continuation_stage170_v1",
+  "opportunity_version": "b_regime_guard_stage112_v1",
   "strategy_id": "b_regime_guard_stage112",
-  "adoption_status": "user_adopted_20260910",
+  "adoption_status": "user_adopted_20261012",
   "live_ready": true,
   "live_account": {
     "starting_capital_usd": 650,
@@ -13,11 +14,37 @@
     "order_sizing_basis": "actual_exchange_equity_and_available_margin"
   },
   "acceptance": {
-    "user_adopted_on": "2026-09-10",
+    "user_adopted_on": "2026-10-12",
     "base_cost_return_floor_pct": 1000000,
     "closed_trade_mdd_limit_pct": 70,
     "independent_validation": false,
     "live_validation": false
+  },
+  "icp_continuation": {
+    "enabled": true,
+    "version": "stage170_icp_same_side_max8h_v1",
+    "symbol": "ICP",
+    "max_hold_hours": 8,
+    "boundary_hours": 2,
+    "quantity": "fixed_original_entry",
+    "profit_floor": "carry_original_entry_and_floor",
+    "requires": ["selected_same_side_signal_at_current_expiry", "strict_under_5min_signal_ttl", "risk_entry_allowed", "gross_lte_3_75_actual_equity", "available_margin_covers_2h_funding", "confirmed_automatic_quantity", "no_uncertain_or_closing_intents"],
+    "signal_publication_wait_max_ms": 60000,
+    "fallback": "original_confirmed_market_close",
+    "original_signal_expiry_unchanged": true
+  },
+  "continuation_research_reference": {
+    "file": "research/results/b_stage170_portfolio_continuation/RESULTS.json",
+    "period": ["2021-08-28", "2026-08-30"],
+    "start_usd": 100,
+    "end_usd": 1976578.0322792777,
+    "return_pct": 1976478.0322792777,
+    "trades": 770,
+    "hybrid_mark_mdd_pct": -53.40844445839919,
+    "delay_minutes": 1,
+    "cost_multiplier": 1,
+    "seven_year_result": null,
+    "limitations": "Hybrid ICP futures minutes / other hourly proxies; 2 of 3 historical sections improve; no future or BingX liquidation certification. Legacy reference below belongs to Stage112, not Stage170."
   },
   "symbols": {
     "AVAX": {
@@ -264,7 +291,7 @@
     "Forward/untouched-data and actual futures/live performance validation"
   ],
   "core_baseline": "strategy/archive/plan_b_stage16_v1.json",
-  "display_name": "B 공격형 · Stage112 Stage93 + 노출·낙폭·BTC 구간 보호",
+  "display_name": "B 공격형 · Stage170 ICP 조건부 최대 8시간 유지",
   "coordination": {
     "priority": "core",
     "same_account_groups_mutually_exclusive": true,
@@ -274,7 +301,8 @@
     "entry_ttl_comparison": "strictly_less_than",
     "max_adverse_move_fraction": 0.0035,
     "exit_confirmation_before_margin_release": true,
-    "original_exit_time_not_extended": true,
+    "original_signal_expiry_not_extended": true,
+    "only_icp_trade_deadline_conditional_max8h": true,
     "uncertain_order": "retain_reservation_and_reconcile_no_blind_retry",
     "opportunity_state": "persist_causal_selection_and_cooldown_independent_of_fills",
     "supplement_cooldown_note": "Research opportunities(): nxt=i+hold+1; 1h holding means accepted entry boundaries at least 2h apart"
@@ -293,5 +321,5 @@
     "research/results/b_algo_ada_combo_stage91/results.json",
     "research/results/b_algo_ada_futures_stage92/results.json"
   ],
-  "implementation_status": "stage112_fully_deployed_live_pending_natural_fill_validation_20260910"
+  "implementation_status": "stage170_deployed_pending_natural_continuation_validation_20261012"
 }

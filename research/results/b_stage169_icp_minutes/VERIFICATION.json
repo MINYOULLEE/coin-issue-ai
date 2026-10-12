@@ -1,0 +1,53 @@
+{
+  "research_only": true,
+  "live_changes": false,
+  "candidate": "ICP conditional fixed-quantity continuation up to 8h",
+  "scope": "Independent ICP execution sleeves per same-direction signal chain; not full B portfolio performance",
+  "public_quote_coverage": {
+    "requested_windows": 175,
+    "complete_tradable_windows": 170,
+    "unique_minutes": 55300,
+    "official_archive_windows": 21,
+    "prelisting_unavailable_windows": 5,
+    "initial_rest_gaps_superseded": "FETCH_FAILURE.json preserves initial REST-only gaps. RESULTS.json includes official archive recovery and explicit prelisting exclusions.",
+    "contract_onboard_at": "2021-07-30T07:00:00Z"
+  },
+  "execution_checks": [
+    "Incomplete minutes fail coverage validation",
+    "Daily archive payloads match official SHA256 checksums",
+    "Overlapping minute windows must agree exactly",
+    "Entry TTL is strictly below five minutes",
+    "Current adverse movement above 0.35 percent rejects entry",
+    "Exit confirmation precedes same-boundary reentry",
+    "Continued position quantity is unchanged",
+    "Protection updates use completed hourly closes",
+    "Completed-minute floor crossing fills later at the delayed market proxy, including gap-through losses",
+    "Learned samples must be known at signal time"
+  ],
+  "local_price_stress_result": {
+    "continuous_signal_chains": 31,
+    "delay_minutes": [0, 1, 3, 4],
+    "cost_multipliers": [1, 2],
+    "additional_exit_slippage_pct": [0, 0.1, 0.3],
+    "scenarios": 24,
+    "scenarios_with_positive_mean_difference": 24,
+    "one_minute_base_cost": {
+      "better": 22,
+      "worse": 2,
+      "equal": 7,
+      "baseline_trades": 93,
+      "candidate_trades": 60,
+      "mean_end_difference_usd_per_independent_100_usd_sleeve": 0.45482779658567735
+    },
+    "worse_examples": [
+      {"start": "2024-11-10T18:00:00Z", "difference_usd": -0.6999788028862639, "cause": "Baseline resized after profitable exit and used a refreshed protection floor; fixed-quantity continuation earned less despite lower turnover."},
+      {"start": "2026-02-25T20:00:00Z", "difference_usd": -4.087345345012054, "cause": "Carried protection closed the extended trade after the next signal TTL, so the later profitable fresh entry was unavailable."}
+    ]
+  },
+  "remaining_before_operational_adoption": [
+    "Recompute full B portfolio compounded path with minute exit times, simultaneous collateral allocation and group conflicts",
+    "Validate current production frozen ICP profit thresholds alongside historical rolling learned thresholds",
+    "Actual BingX execution and untouched future validation"
+  ],
+  "five_year_cagr_status": "Stage168 +6025600.63 percent remains a historical hourly-screen estimate; Stage169 does not certify it as minute-verified full-portfolio compounded return."
+}

@@ -1,6 +1,7 @@
 import {allocatePlanB,PLAN_B_STANDARD as STANDARD} from './plan_b_sizing.mjs';
 import {constrainBQuantity} from './plan_b_exchange.mjs';
 import {advanceProfitLock,normalizeHourlyKlines,normalizeKlines,profitFloorBreached,profitLockPolicy} from './plan_b_profit_lock.mjs';
+import {continuationDecision} from './plan_b_icp_continuation.mjs';
 
 export async function checked(query) { const {data,error}=await query;if(error)throw error;return data; }
 export function selectExecutionGroup(signals,intents){
@@ -39,6 +40,14 @@ async function expireMissedSignals(sb,now) {
 export function positionQuantity(raw,symbol,side) {
  const rows=Array.isArray(raw)?raw:raw?.positions;if(!Array.isArray(rows))throw Error('invalid position response');
  return rows.filter(p=>p.symbol===symbol+'-USDT'&&p.positionSide===side.toUpperCase()).reduce((sum,p)=>{const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');return sum+Math.abs(q);},0);
+}
+export function automaticLedgerGross(openTrades,liveRows) {
+ return (openTrades||[]).filter(t=>Number(t.control_marker??1)!==2).reduce((sum,trade)=>{
+  const live=(liveRows||[]).find(p=>p.symbol===trade.symbol+'-USDT'&&p.positionSide===trade.side.toUpperCase());
+  const mark=Number(live?.markPrice??live?.avgPrice??live?.entryPrice),quantity=Math.abs(Number(trade.quantity));
+  if(!Number.isFinite(mark)||mark<=0||!Number.isFinite(quantity)||quantity<=0)throw Error('invalid automatic B gross valuation');
+  return sum+quantity*mark;
+ },0);
 }
 function epochMs(value){const n=Number(value);return Number.isFinite(n)&&n>0?(n<100000000000?n*1000:n):NaN;}
 function historyRows(raw){
@@ -97,7 +106,7 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  const liveRows=Array.isArray(livePositions)?livePositions:livePositions?.positions;
  if(!Array.isArray(liveRows))throw Error('invalid position response');
  for(const p of liveRows){const q=Number(p.positionAmt??p.positionAmount);if(!Number.isFinite(q))throw Error('invalid position quantity');}
- const ledgerOpen=await checked(sb.from('plan_b_real_trades').select('symbol,side,quantity').eq('status','open'))||[];
+ const ledgerOpen=await checked(sb.from('plan_b_real_trades').select('symbol,side,quantity,control_marker').eq('status','open'))||[];
  const contracts=await bx.read('/openApi/swap/v2/quote/contracts',{});
  const proposals=[],skipped=[];
  for(const signal of signals){
@@ -124,7 +133,10 @@ export async function executeBatch({sb,bx,now=Date.now}) {
  if(!proposals.length)return {mode:'live',processed:0,skipped};
  const snapshot=new Date(now()).toISOString();
  const held=intents.reduce((s,i)=>s+Number(i.reserved_usd),0);
- const currentGross=liveRows.reduce((sum,p)=>{const q=Math.abs(Number(p.positionAmt??p.positionAmount));const mark=Number(p.markPrice??p.avgPrice??p.entryPrice);return sum+(Number.isFinite(q)&&Number.isFinite(mark)?q*mark:0);},0);
+ // The 3.75x ceiling is the automatic B sleeve's strategy limit. Owner
+ // positions (marker 2), including non-B BTC/ETH positions, still reduce the
+ // exchange-reported free margin above but do not consume automatic B gross.
+ const currentGross=automaticLedgerGross(ledgerOpen,liveRows);
  const allocation=allocatePlanB({plan:'B',strategyId:STANDARD.strategy_id,balance,equity,reservedMargin:held,currentGross,proposals});
  const required=allocation.orders.reduce((s,o)=>s+o.requiredReservation,0),ratio=required>0?Math.min(1,Math.max(0,free-equity*.05)/required):0;
  if(ratio<=0)return {mode:'insufficient_free_margin',processed:0};
@@ -185,25 +197,67 @@ export async function reconcileEntries({sb,bx,now=Date.now}){
  }
  return errors;
 }
+export async function evaluateIcpContinuation({sb,bx,trade,now=Date.now}){
+ const stamp=now(),due=Date.parse(trade.continuation_until||trade.plan_b_signals?.expires_at),original=Date.parse(trade.signal_confirmed_at||trade.plan_b_signals?.confirmed_at);
+ if(!STANDARD.icp_continuation?.enabled||trade.symbol!=='ICP'||Number(trade.control_marker??1)===2||!Number.isFinite(due)||due%3600000||!Number.isFinite(original)||due+7200000>original+28800000)return {continued:false};
+ const state=await checked(sb.from('plan_b_trading_state').select('*').eq('id','singleton').single());
+ if(state.strategy_id!==STANDARD.strategy_id||!state.enabled||state.test_mode||!String(state.validation_status||'').startsWith('stage170_'))return {continued:false};
+ const opportunity=await checked(sb.from('plan_b_opportunity_state').select('payload').eq('id','singleton').single());
+ if(opportunity.payload.version!==(STANDARD.opportunity_version||STANDARD.standard_version))return {continued:false};
+ if(opportunity.payload.lastConfirmedAt<due)return {continued:false,waiting:stamp-due<STANDARD.icp_continuation.signal_publication_wait_max_ms};
+ const signal=await checked(sb.from('plan_b_signals').select('*').eq('symbol','ICP').eq('confirmed_at',new Date(due).toISOString()).eq('status','active').is('dispatched_at',null).maybeSingle());
+ if(!signal||signal.side!==trade.side)return {continued:false};
+ const intents=await checked(sb.from('plan_b_execution_intents').select('*').not('status','in','(closed,rejected,expired)'))||[];
+ const own=intents.find(i=>i.signal_id===trade.signal_id);
+ if(!own||own.status!=='open'||intents.some(i=>['submitted','unknown','partial','closing'].includes(i.status)))return {continued:false};
+ const riskTrades=await checked(sb.from('plan_b_real_trades').select('symbol,side,status,quantity,entry_price,net_pnl_usd,control_marker'))||[];
+ const raw=await bx.read('/openApi/swap/v2/user/positions',{}),liveRows=Array.isArray(raw)?raw:raw?.positions;
+ if(!Array.isArray(liveRows))throw Error('invalid continuation positions');
+ const riskMarks={};
+ for(const t of riskTrades.filter(t=>t.status==='open'&&Number(t.control_marker??1)!==2)){
+  const row=liveRows.find(p=>p.symbol===t.symbol+'-USDT'&&p.positionSide===t.side.toUpperCase());
+  const mark=Number(row?.markPrice);if(!Number.isFinite(mark)||mark<=0)throw Error('invalid continuation mark');riskMarks[t.symbol]=mark;
+ }
+ const risk=await checked(sb.rpc('plan_b_update_risk_guard',{p_equity:strategyRiskEquity(Number(state.starting_capital_usd||650),riskTrades,riskMarks),p_now:new Date(now()).toISOString()}));
+ const rawBalance=await bx.read('/openApi/swap/v3/user/balance',{}),balances=Array.isArray(rawBalance)?rawBalance:Array.isArray(rawBalance?.balance)?rawBalance.balance:[rawBalance?.balance||rawBalance];
+ const account=balances.find(b=>b.asset==='USDT');if(!account)throw Error('continuation USDT unavailable');
+ const snapshot=now(),balance=Number(account.balance),equity=Number(account.equity),availableMargin=Number(account.availableMargin);
+ const open=riskTrades.filter(t=>t.status==='open'&&Number(t.control_marker??1)!==2),gross=automaticLedgerGross(open,liveRows),ownedQuantity=positionQuantity(liveRows,'ICP',trade.side);
+ const decision=continuationDecision({trade:{...trade,continuation_mark:riskMarks.ICP},signal,now:snapshot,balance,equity,availableMargin,reservedMargin:intents.reduce((s,i)=>s+Number(i.reserved_usd),0),gross,entryAllowed:risk?.entry_allowed===true,intentStatus:own.status,ownedQuantity});
+ if(!decision.ok)return {continued:false,reason:decision.reason};
+ const committed=await checked(sb.rpc('plan_b_continue_icp',{p_trade_id:trade.id,p_signal_id:signal.id,p_balance:balance,p_equity:equity,p_available:availableMargin,p_gross:gross,p_mark:riskMarks.ICP,p_owned_quantity:ownedQuantity,p_snapshot:new Date(snapshot).toISOString()}));
+ return {continued:committed===true,expires_at:decision.expiresAt,signal_id:signal.id};
+}
 export async function closeDue({sb,bx,now=Date.now}){
  // Exit management deliberately does not depend on the new-entry switch or paper mode.
- const trades=await checked(sb.from('plan_b_real_trades').select('*,plan_b_signals!inner(expires_at,strategy_id,strategy_params)').eq('status','open'))||[];
+ const trades=await checked(sb.from('plan_b_real_trades').select('*,plan_b_signals!inner(expires_at,confirmed_at,strategy_id,strategy_params)').eq('status','open'))||[];
  const results=[];
  for(const trade of trades){try{
-  let protectionDue=false;
-  const scheduledDue=Date.parse(trade.plan_b_signals.expires_at)<=now();
-  if(!scheduledDue&&trade.plan_b_signals.strategy_id===STANDARD.strategy_id&&trade.profit_lock_policy){
+  let protectionDue=false,protectionUnavailable=false;
+  const scheduledDue=Date.parse(trade.continuation_until||trade.plan_b_signals.expires_at)<=now();
+  if((!scheduledDue||trade.symbol==='ICP')&&trade.plan_b_signals.strategy_id===STANDARD.strategy_id&&trade.profit_lock_policy){
+   try{
    const raw=await bx.read('/openApi/swap/v3/quote/klines',{symbol:trade.symbol+'-USDT',interval:'1h',limit:3});
    const completed=normalizeHourlyKlines(raw,now()).filter(c=>c.t>=Math.floor(Date.parse(trade.filled_at)/3600000)*3600000);
    const latest=completed.at(-1),update=latest?advanceProfitLock(trade,latest):null;
+   if(scheduledDue&&trade.symbol==='ICP'&&latest?.t!==Math.floor(now()/3600000)*3600000-3600000)throw Error('missing current completed protection hour');
    if(update){await checked(sb.from('plan_b_real_trades').update({...update,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));Object.assign(trade,update);}
    if(trade.profit_lock_armed_at){
     const marks=await bx.read('/openApi/swap/v2/quote/premiumIndex',{symbol:trade.symbol+'-USDT'}),mark=Number((Array.isArray(marks)?marks[0]:marks)?.markPrice);
     const minuteRaw=await bx.read('/openApi/swap/v3/quote/klines',{symbol:trade.symbol+'-USDT',interval:'1m',limit:2});
-    protectionDue=profitFloorBreached(trade,mark,now(),normalizeKlines(minuteRaw,60000,now()));
+    const minutes=normalizeKlines(minuteRaw,60000,now());
+    if(scheduledDue&&trade.symbol==='ICP'&&minutes.at(-1)?.t!==Math.floor(now()/60000)*60000-60000)throw Error('missing current completed protection minute');
+    protectionDue=profitFloorBreached(trade,mark,now(),minutes);
    }
+   }catch(error){if(!scheduledDue)throw error;protectionUnavailable=true;results.push({id:trade.id,continuation_skipped:'protection_read_unavailable; scheduled close preserved'});}
   }
   if(!scheduledDue&&!protectionDue)continue;
+  if(scheduledDue&&!protectionDue&&!protectionUnavailable&&trade.symbol==='ICP'){
+   try{
+    const retention=await evaluateIcpContinuation({sb,bx,trade,now});
+    if(retention.continued||retention.waiting){results.push({id:trade.id,status:retention.continued?'continued':'awaiting_signal_publication',...retention});continue;}
+   }catch(error){results.push({id:trade.id,continuation_skipped:String(error.message)});}
+  }
   const exitReason=protectionDue?'profit_lock':'scheduled_time';
   if(!trade.bingx_order_id){results.push({id:trade.id,error:'unverified trade; no synthetic close'});continue;}
   const intent=await checked(sb.from('plan_b_execution_intents').select('*').eq('signal_id',trade.signal_id).single());
@@ -228,7 +282,11 @@ export async function closeDue({sb,bx,now=Date.now}){
     if(quantity===0)throw Error('position changed during close reconciliation; retry without submitting');
    }
    const attempt=Number(intent.close_attempt||0)+1,clientOrderId=trade.client_order_id+'-c'+attempt;
-   const claimed=await checked(sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,manual_remainder_qty:manualRemainder,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0)).select('id'));
+   let claimQuery=sb.from('plan_b_execution_intents').update({status:'closing',close_attempt:attempt,close_client_order_id:clientOrderId,close_quantity:quantity,manual_remainder_qty:manualRemainder,updated_at:new Date(now()).toISOString()}).eq('id',intent.id).eq('status',intent.status).eq('close_attempt',Number(intent.close_attempt||0));
+   if(intent.updated_at)claimQuery=claimQuery.eq('updated_at',intent.updated_at);
+   const claimed=trade.symbol==='ICP'
+    ?await checked(sb.rpc('plan_b_claim_stage170_close',{p_trade_id:trade.id,p_intent_id:intent.id,p_updated_at:intent.updated_at,p_reason:exitReason,p_quantity:quantity,p_manual:manualRemainder,p_attempt:attempt,p_client_order_id:clientOrderId}))
+    :await checked(claimQuery.select('id'));
    if(!claimed?.length)continue;
    await checked(sb.from('plan_b_real_trades').update({exit_reason:trade.exit_reason||exitReason,updated_at:new Date(now()).toISOString()}).eq('id',trade.id));
    const order={plan:'B',symbol:trade.symbol,side:trade.side,quantity,clientOrderId,close:true};

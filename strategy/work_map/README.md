@@ -7,7 +7,7 @@
 | 작업 대상 | 읽을 문서 | 현재 상태 |
 |---|---|---|
 | A플랜 본체 | [`01_A_PLAN.md`](01_A_PLAN.md) | 운영 정본 Stage184 |
-| B플랜 본체 | [`02_B_PLAN.md`](02_B_PLAN.md) | 운영 정본 Stage112 |
+| B플랜 본체 | [`02_B_PLAN.md`](02_B_PLAN.md) | 운영 정책 Stage170 · 기존 신호/주문 ID 유지 |
 | A의 C 보조 | [`03_A_C_CONTROLLER.md`](03_A_C_CONTROLLER.md) | A 손실 방어 전용 |
 | B의 C 보조 | [`04_B_C_CONTROLLER.md`](04_B_C_CONTROLLER.md) | 연구 전용, 아직 운영 미적용 |
 | A 연구 | [`05_A_RESEARCH.md`](05_A_RESEARCH.md) | Stage184 이후 후보는 연구 상태부터 시작 |

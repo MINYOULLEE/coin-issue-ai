@@ -3,7 +3,7 @@ import {runCombinationSignals} from '../../supabase/functions/_shared/plan_b_sig
 import {COMBINATION_STANDARD as S} from '../../supabase/functions/_shared/plan_b_combination.mjs';
 import {selectExecutionGroup} from '../../supabase/functions/_shared/plan_b_live_cycle.mjs';
 const H=3600000,N=200*H;
-const make=()=>({version:S.standard_version,lastConfirmedAt:N-H,coreBusyUntil:0,nextEligibleAt:Object.fromEntries(Object.keys(S.symbols).map(k=>[k,0]))});
+const make=()=>({version:S.opportunity_version||S.standard_version,lastConfirmedAt:N-H,coreBusyUntil:0,nextEligibleAt:Object.fromEntries(Object.keys(S.symbols).map(k=>[k,0]))});
 function fixture(){let state=make(),calls=0;const sb={from:()=>({select(){return this},eq(){return this},single:async()=>({data:{payload:state}})}),rpc:async(name,args)=>{assert.equal(name,'plan_b_publish_opportunities');calls++;if(args.p_expected!==state.lastConfirmedAt)return {data:false};state=args.p_steps.at(-1).state;return {data:true};}};return {sb,now:()=>N+1000,fetchCandles:async()=>Array.from({length:200},(_,i)=>({t:i*H,o:100,h:101,l:99,c:100,v:100})),get state(){return state},get calls(){return calls}};}
 test('complete thirteen-symbol hour is one atomic publication and duplicate is no-op',async()=>{const f=fixture();const r=await runCombinationSignals(f);assert.equal(r.mode,'published');assert.equal(f.state.lastConfirmedAt,N);await runCombinationSignals(f);assert.equal(f.calls,1);});
 test('concurrent collectors cannot advance same hour twice',async()=>{const f=fixture();const results=await Promise.all([runCombinationSignals(f),runCombinationSignals(f)]);assert.deepEqual(results.map(r=>r.mode).sort(),['concurrent_worker_won','published']);assert.equal(f.state.lastConfirmedAt,N);});

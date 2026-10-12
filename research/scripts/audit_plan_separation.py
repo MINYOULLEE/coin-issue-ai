@@ -53,7 +53,15 @@ def main():
     runtime = read('supabase/functions/_shared/plan_b_runtime.json')
     assert runtime['strategy_id'] == b['strategy_id']
     assert runtime['live_ready'] is True, 'Preserve owner-enabled B runtime; never restore old OFF snapshot'
-    assert b['acceptance']['user_adopted_on'] == '2026-09-10'
+    assert b['acceptance']['user_adopted_on'] == '2026-10-12'
+    assert b['standard_version'] == 'b_icp_continuation_stage170_v1'
+    assert b['opportunity_version'] == 'b_regime_guard_stage112_v1'
+    assert b['icp_continuation']['max_hold_hours'] == 8
+    assert b['icp_continuation']['quantity'] == 'fixed_original_entry'
+    candidate = read(b['continuation_research_reference']['file'])
+    current = next(r['candidate'] for r in candidate['scenarios'] if r['policy']=='frozen' and r['delay_minutes']==1 and r['cost_multiplier']==1)
+    for key in ('end_usd','return_pct','trades','hybrid_mark_mdd_pct'):
+        assert current[key] == b['continuation_research_reference'][key]
     assert b['live_account']['starting_capital_usd'] == 650
     assert b['live_account']['public_trade_history'] is True
     assert b['reference']['start_usd'] == 100
