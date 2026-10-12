@@ -3,6 +3,9 @@
   "algorithm": "SHA256 UTF8 normalized LF",
   "scope": "User-approved B Stage170 ICP conditional fixed-quantity continuation; A strategy unchanged. Existing unrelated worktree edits excluded from this commit.",
   "sha256": {
+    "supabase/functions/_shared/closed_order_lifecycle.mjs": "d60630d6352faf520a3703e2d40347c194a16fa1b9affa8003c3b05a1fbe2515",
+    "research/scripts/test_closed_order_lifecycle.mjs": "b3348896e7695ac392f08be35dd334f1b907f34e11671d62893bd7a1bb062913",
+    "strategy/A_HISTORY_LIFECYCLE_REPAIR_20261013.json": "972a4c3fca0b042385330453d33166c8f1468390cac53776fd4bb9ee5c981e77",
     "supabase/functions/_shared/managed_close.mjs": "6e54e1af0210b8c798c99124005ef3b60039a68c748c2cc958855b3f42ad0fd4",
     "research/scripts/test_managed_close.mjs": "0ff65ec08c0b7e9c8d496951e3f5e0bdaaa9218bc968973b9407d3fd8eb61065",
     "supabase/migrations/20260915120000_managed_close_confirmation.sql": "9cdf256effb1a891ae7f27380be2f23ed93f4328c7183f338ac0e21e389d5600",
@@ -109,7 +112,7 @@
     "supabase/functions/_shared/plan_b_risk.mjs": "e90e3eb12d37298abe877704e24a6067f8ac58da50c5904276d8a4d8979e4cb8",
     "supabase/functions/_shared/telegram_webhook_auth.mjs": "5098282bebb5bc558989d62d8ed00e239adc7a3e04cde666d155ab5090edb012",
     "supabase/functions/_shared/trade_returns.mjs": "8f817aa3ca6ba696ce3e473a84d8025dc6d2692ba698773535c2e40e0f4395ec",
-    "supabase/functions/bingx-account-read/index.ts": "e18287816eab3e8fe8e5a73417d9d1937d908eeaa8df259750f9ce24ab2bc8c4",
+    "supabase/functions/bingx-account-read/index.ts": "97b414e1dbd49fb1c7b05121b094cc19f8d472c4063244659a8290005960204f",
     "supabase/functions/bingx-order-execute/index.ts": "e07a83562fa4103a6e5a1d6fc0aa4ccb918bb8122df740b1e789481efee72f0e",
     "supabase/functions/bingx-order-submit/index.ts": "b1f6afa9fafd2dadcc4b5e7f4b6c564e161726b1160ac14d5f827d0e9d3b4c59",
     "supabase/functions/coin-collector/answer_trees.ts": "9a483fd33c540f6601b01901143313b81c89e8c3a9ccd257141f86694f34e31b",
