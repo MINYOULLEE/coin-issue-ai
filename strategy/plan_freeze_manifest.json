@@ -127,7 +127,7 @@
     "supabase/functions/plan-b-stage26-preflight/index.ts": "e19e1eb4433b0b64ff0647024af4574db1db82ddafdcf8a2bf29ce08dfb85ad5",
     "supabase/functions/plan-b-strategy/index.ts": "31a6e516b3b870d05a4d8423d22f1e228feffbcfad79d13361e72a1e9f719caa",
     "supabase/functions/rlcd-shadow/index.ts": "8ab2ff5b7fe6e2dcc655b850641ca12db4371b8770d9a5689e0e37f8d03bbe8e",
-    "supabase/functions/telegram-bot-webhook/index.ts": "acb4249c4221d8cc1b7953831e8a7b74231f85fc2324e85a6c2159edc680d8c9",
+    "supabase/functions/telegram-bot-webhook/index.ts": "b858f4a8a7833de6c88f9ad05afc1648227fe90fe6361f96980b5e993a936ecb",
     "supabase/functions/telegram-trade-notify/index.ts": "31417077461566762129b15a60fe6d38b418a669d83e0748f74a116bc00293c3",
     "supabase/migrations/20260921163000_create_rlcd_shadow_lab.sql": "d018784527cb2c6f50a14ceb13a7661e784c86e245a25f699ef027039f5896a3",
     "supabase/functions/weekly-snapshot/index.ts": "48289bc438e8c1b6d5d31ef841a99f7a87d3871769cfc89a6ad83de0d1c09b44",
@@ -181,6 +181,9 @@
     "strategy/B_STAGE170_APPROVED_20261012.md": "8d91d3bff414d7212638213262043e517aa4578542d0a48dc19559b349353874",
     "strategy/B_STAGE170_DEPLOYMENT_20261012.json": "744b5609c1171c3992aa868c8313d6fc90a6c7c16de55efb258139e7676920a6",
     "supabase/functions/_shared/plan_b_icp_continuation.mjs": "da418b1f607cd04053afb87f5740f4c092e49a41bba080841d65e816387c534d",
-    "supabase/migrations/20261012102923_plan_b_stage170_icp_continuation.sql": "765664227a5661fd42811553406a36d22203fbc178f85797e903a956020827ef"
+    "supabase/migrations/20261012102923_plan_b_stage170_icp_continuation.sql": "765664227a5661fd42811553406a36d22203fbc178f85797e903a956020827ef",
+    "supabase/functions/_shared/managed_telegram_balances.mjs": "598e3c509f654080a2d89b75f165d9820c1da591259cd398156ff158205d1616",
+    "research/scripts/test_managed_telegram_balances.mjs": "4d064e4fe6c13e236362511e37c3aab7cb05275b263e70a93f9af2c8b68361d9",
+    "strategy/MANAGED_TELEGRAM_BALANCES_20261013.json": "b4404fa9225d5db9c7b1118c4411f359d9bf813e6fb0fe5f98c092ca5cc42c3a"
   }
 }

@@ -1,0 +1,16 @@
+{
+  "scope":"Restore read-only managed-account money summaries in Telegram overview and account trade callback",
+  "deployed_webhook_version":39,
+  "bundled_files_matched":6,
+  "summary_fields":["starting capital","realized basis: start plus confirmed net closed-trade PnL","current equity: stored exchange observation"],
+  "full_closed_history_pagination":true,
+  "detail_trade_limit":20,
+  "detail_limit_does_not_limit_summary":true,
+  "unsettled_closed_pnl":"explicit pending count, excluded from confirmed net",
+  "null_equity_or_start":"unavailable, never invented zero",
+  "fees":"already included in stored net PnL; no second subtraction",
+  "verification":{"node_cases_passed":6,"deployed_source_mismatches":0,"db_confirmed_closed_count":33,"sample_start":110,"sample_realized_net":-2.46762651,"sample_realized_basis":107.53237349},
+  "writes_to_trading_accounts_or_ledgers":0,
+  "strategy_or_switch_changes":false,
+  "telegram_auth_and_alert_switches_preserved":true
+}
