@@ -1,5 +1,6 @@
 import { ANSWER_FEATURES, evaluateAnswerTree } from "./answer_trees.ts";
 import { aEntryAdmission, currentADecision, completeAClose } from "../_shared/a_recovery_policy.mjs";
+import { aRebalanceOrder, aAdjustmentPending } from "../_shared/a_rebalance_order.mjs";
 
 const PROJECT_URL = Deno.env.get("SUPABASE_URL");
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -532,7 +533,7 @@ async function manageSignals(market,old){
     candidates.force_mdd30_rebalance=false;candidates.force_mdd30_symbols=[];const audit=[];
     const answerBreadth=ANSWER_ASSETS.filter(x=>Number(market[x]?.answer_mdd30?.return_168h||0)>0).length;
     const solShortBlocked=Number(market.BTC?.answer_mdd30?.return_168h||0)>=.035&&Number(market.SOL?.answer_mdd30?.return_168h||0)>=.12&&answerBreadth>=3;
-    for(const symbol of ANSWER_ASSETS){
+    for(const symbol of aRebalanceOrder(ANSWER_ASSETS,open(),legacyActive)){
       if(forceAnswerRebalance&&forceAnswerSymbols.length&&!forceAnswerSymbols.includes(symbol))continue;
       const priorAudit:any=priorAuditAssets.get(symbol);
       if(retryAnswerDecision&&!forceAnswerRebalance&&priorAudit?.status==="manual_held"){
@@ -568,6 +569,7 @@ async function manageSignals(market,old){
         if(!resize?.ok){audit.push({symbol,status:"resize_failed",answer,reason:resize?.error||"Stage75 수량 차이 조정 실패"});continue}
       }
       const freezeUntil=Date.parse(String(candidates.a_c_controller?.freeze_until||""))||0;
+      if(answer?.side&&!stillOpen&&aAdjustmentPending(audit)){audit.push({symbol,status:"entry_pending",answer,reason:"기존 조정/선행 진입 확인 대기 · 다음 주기 재평가"});continue;}
       const entered=answer?.side&&!stillOpen&&Date.now()>=freezeUntil?await enter(symbol,"answer_mdd30",answer.side,Number(answer.exposure)*(7/3),5,24,[`${symbol} Stage184 답안지 방향`,`판단 노드 ${answer.leaf}`,`확신도 ${(Number(answer.confidence)*100).toFixed(2)}%`,`기본 목표 ${Number(answer.exposure).toFixed(3)}배 × 5배 단일 정상배율 2.3333`],.15,Number(answer.confidence)*100,forceAnswerRebalance):null;
       audit.push({symbol,signal_id:entered?.id||stillOpen?.id||null,status:entered?.manual_held?"manual_held":entered?(liveOpenSignalIds.has(Number(entered.id))?"entered":"entry_pending"):stillOpen?(resize?.resized?"resized":"held"):answer?.side?"entry_failed":"cash",resize,answer:answer?{side:answer.side,exposure:answer.exposure,confidence:answer.confidence,leaf:answer.leaf}:null});
     }

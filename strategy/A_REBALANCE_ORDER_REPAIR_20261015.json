@@ -1,0 +1,15 @@
+{
+  "status": "deployed_source_verified_pending_natural_rebalance_validation",
+  "user_approval": "2026-10-15 explicit approval for existing-position adjustment first, new entry second, sizing diagnostics; live switches must stay ON",
+  "deployment": {"bingx-order-execute": 76, "coin-collector": 93, "bundled_files_verified": 8},
+  "observed_signal_ids": [714, 715],
+  "observed_trade_ids": [423, 424],
+  "observed_sequence": "XRP minimum rejection, TRX reduction of 152, SOL increase of 0.44, next-minute XRP fill of 2",
+  "limitation": "First attempt equity, available margin and rounded quantity were not persisted; exact shortfall cannot be reconstructed.",
+  "repair": "Stable partition existing automatic/legacy holdings before new entries. Do not admit later entries while preceding adjustments remain unconfirmed. Preserve sizing, targets, manual ownership and all guards.",
+  "diagnostic": "Persist sizing inputs on future minimum-size rejections without credentials.",
+  "gateway_findings": "One HTTP400 Project not specified and separate HTTP502 during A trade read; configured cron URLs contain correct project ref; subsequent scheduled requests recovered. Upstream root cause unconfirmed, no blind order retry or alert suppression added.",
+  "tests": "20 policy/recovery/ordering tests passed; both modified TypeScript sources parse",
+  "production_deployed": true,
+  "switch_changes": false
+}

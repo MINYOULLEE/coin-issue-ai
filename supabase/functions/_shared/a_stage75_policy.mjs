@@ -61,3 +61,10 @@ export function transitionCapacity({equity,currentGross,targetGross}){
   return {targetMargin,targetMarginRatio:targetMargin/e,withinEntryCap:targetMargin<=e*.80,
     reductionsFirst:target<current,additionalMarginNeeded:Math.max(0,targetMargin-current/A_STAGE75.leverage)};
 }
+
+export function availableMarginEntryCap({availableMargin,reserveFraction=.05}){
+  const available=Number(availableMargin),reserve=Number(reserveFraction);
+  if(!Number.isFinite(available)||available<0)throw Error('invalid A available margin');
+  if(!Number.isFinite(reserve)||reserve<0||reserve>=1)throw Error('invalid A margin reserve');
+  return Math.max(0,available*(1-reserve));
+}

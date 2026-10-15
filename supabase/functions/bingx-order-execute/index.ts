@@ -15,7 +15,7 @@
 
 import { createHmac } from "node:crypto";
 import JSONBig from "npm:json-bigint@1.0.0";
-import { selectiveResizeHold } from "../_shared/a_stage75_policy.mjs";
+import { availableMarginEntryCap, selectiveResizeHold } from "../_shared/a_stage75_policy.mjs";
 import { aEntryAdmission } from "../_shared/a_recovery_policy.mjs";
 import {hasAnyOppositePosition,manualOppositeQuantity} from "../_shared/a_manual_conflict_guard.mjs";
 
@@ -700,7 +700,8 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     const balances = Array.isArray(balanceData) ? balanceData : (Array.isArray(balanceData?.balance) ? balanceData.balance : [balanceData?.balance || balanceData || {}]);
     const usdt = balances.find((x: any) => String(x?.asset || "").toUpperCase() === "USDT") || balances[0] || {};
     const equity = Number(usdt.equity ?? usdt.balance ?? 0);
-    if (!(equity > 0)) throw Error("invalid live equity");
+    const availableMargin=Number(usdt.availableMargin ?? 0);
+    if (!(equity > 0)||!Number.isFinite(availableMargin)||availableMargin<0) throw Error("invalid live equity or available margin");
     const peak = Math.max(Number(state.a_equity_peak_usd || 0), equity);
     const drawdown = peak > 0 ? (peak - equity) / peak : 0;
     let guard = !!state.a_drawdown_guard_active;
@@ -717,7 +718,9 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     const currentQty = Math.abs(Number(position?.positionAmt ?? position?.positionAmount ?? 0));
     if (!(currentQty > 0)) throw Error("exchange position missing");
     const mark = Number(position?.markPrice ?? position?.price ?? row.entry_price);
-    const targetQty = roundDown(equity * baseExposure * scale / mark, qtyPrecision);
+    const desiredTargetQty = roundDown(equity * baseExposure * scale / mark, qtyPrecision);
+    const maxAdditionalQty=roundDown(availableMarginEntryCap({availableMargin})*MDD30_EXCHANGE_LEVERAGE/mark,qtyPrecision);
+    const targetQty=desiredTargetQty>currentQty?Math.min(desiredTargetQty,roundDown(currentQty+maxAdditionalQty,qtyPrecision)):desiredTargetQty;
     const delta = roundDown(Math.abs(targetQty - currentQty), qtyPrecision);
     const minQty = Number(contract.tradeMinQuantity ?? 0), minUsdt = Number(contract.tradeMinUSDT ?? 2);
     const selective = selectiveResizeHold({ symbol: String(row.symbol || bxSymbol.replace("-USDT", "")), side: String(row.side), actualQuantity: currentQty, targetQuantity: targetQty, price: mark, equity });
@@ -727,7 +730,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     }
     if (!(delta > 0) || delta < minQty || delta * mark < minUsdt) {
       await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: new Date().toISOString() }) });
-      return Response.json({ ok: true, resized: false, skipped: "quantity delta below exchange minimum", current_quantity: currentQty, target_quantity: targetQty, scale });
+      return Response.json({ ok: true, resized: false, skipped: "quantity delta below exchange minimum", current_quantity: currentQty, target_quantity: targetQty, desired_target_quantity:desiredTargetQty, scale });
     }
     await fetchSigned(API_KEY, SECRET_KEY, "POST", "/openApi/swap/v2/trade/leverage", { symbol: bxSymbol, side: positionSide, leverage: MDD30_EXCHANGE_LEVERAGE, recvWindow: 5000 });
     const adding = targetQty > currentQty;
@@ -754,7 +757,7 @@ async function handleMdd30Resize(payload: any): Promise<Response> {
     const nowIso = new Date().toISOString(), notional = finalQty * avgPrice;
     await db(`real_trades?id=eq.${row.id}`, { method: "PATCH", body: JSON.stringify({ quantity: finalQty, entry_price: avgPrice, leverage: MDD30_EXCHANGE_LEVERAGE, notional_usd: notional, margin_usd: notional / MDD30_EXCHANGE_LEVERAGE, stop_price: stopPrice, stop_order_created_at: nowIso, protective_verified: true, strategy_config: { ...(row.strategy_config || {}), stage184: true, stage126_selective_resize: true, stage135_rally_guard: true, stage184_c_controller: true, base_exposure_multiplier: baseExposure, exposure_multiplier: baseExposure * scale, drawdown_guard_active: guard }, updated_at: nowIso }) });
     await db("real_trading_state?id=eq.singleton", { method: "PATCH", body: JSON.stringify({ a_equity_peak_usd: peak, a_drawdown_guard_active: guard, a_last_drawdown_pct: drawdown * 100, updated_at: nowIso }) });
-    return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, scale, stop_price: stopPrice });
+    return Response.json({ ok: true, resized: true, delta_quantity: delta, final_quantity: finalQty, target_quantity: targetQty, desired_target_quantity:desiredTargetQty, scale, stop_price: stopPrice });
   } catch (e) {
     return Response.json({ ok: false, error: e instanceof Error ? e.message : String(e) }, { status: 502 });
   }
@@ -960,16 +963,17 @@ Deno.serve(async (req: Request) => {
 
     // 6-1. 실시간 BingX 잔고 조회 — 담보금을 고정 달러가 아니라 "지금 이 순간의 실제 잔고 비율"로 계산한다.
     //      수익이 나서 잔고가 늘면 다음 신호부터 자동으로 담보금도 커진다.
-    let equity = 0;
+    let equity = 0, availableMargin = 0;
     try {
       const balanceData = await fetchSigned(API_KEY, SECRET_KEY, "GET", "/openApi/swap/v3/user/balance", { recvWindow: 5000 });
       const balRows = Array.isArray(balanceData) ? balanceData : (Array.isArray(balanceData?.balance) ? balanceData.balance : [balanceData?.balance || balanceData || {}]);
       const usdt = balRows.find((x: any) => String(x?.asset || "").toUpperCase() === "USDT") || balRows[0] || {};
       equity = Number(usdt?.equity ?? usdt?.balance ?? 0);
+      availableMargin = Number(usdt?.availableMargin ?? 0);
     } catch (e) {
       console.error("balance fetch failed:", e instanceof Error ? e.message : String(e));
     }
-    if (!(equity > 0)) {
+    if (!(equity > 0) || !Number.isFinite(availableMargin) || availableMargin < 0) {
       await insertRejected(signal, "실시간 잔고 조회 실패");
       return Response.json({ ok: true, skipped: "balance unavailable" });
     }
@@ -1148,6 +1152,7 @@ Deno.serve(async (req: Request) => {
     const rawMargin = candidateA ? equity * exposureMultiplier / leverage : riskUsd / (stopPct * leverage);
 
     let marginUsd = Math.min(rawMargin, remainingTotal, remainingSymbol, remainingGross / leverage);
+    if(candidateA)marginUsd=Math.min(marginUsd,availableMarginEntryCap({availableMargin}));
     if (state.test_mode) marginUsd = Math.min(marginUsd, Number(state.test_margin_usd || marginUsd));
     if (!(marginUsd > 0)) {
       await insertRejected(signal, "담보 여유 없음");
@@ -1169,7 +1174,7 @@ Deno.serve(async (req: Request) => {
     const rawQty = notional / entry;
     const quantity = roundDown(rawQty, qtyPrecision);
     if (quantity <= 0 || quantity < minQty || quantity * entry < minUsdt) {
-      await insertRejected(signal, "최소 주문 수량 미달");
+      await insertRejected(signal, "최소 주문 수량 미달", {strategy_config:{...(signal.entry_metrics?.strategy_config||{}),entry_sizing_diagnostic:{equity,available_margin:availableMargin,raw_margin:rawMargin,allocated_margin:marginUsd,remaining_total:remainingTotal,remaining_symbol:remainingSymbol,remaining_gross:remainingGross,exposure_multiplier:exposureMultiplier,leverage:finalLeverage,entry_price:entry,raw_quantity:rawQty,rounded_quantity:quantity,min_quantity:minQty,min_notional:minUsdt,quantity_precision:qtyPrecision}}});
       return Response.json({ ok: true, skipped: "below exchange minimum order size" });
     }
     const baseStopPrice = roundTo(Number(signal.invalidation_price), pricePrecision);
