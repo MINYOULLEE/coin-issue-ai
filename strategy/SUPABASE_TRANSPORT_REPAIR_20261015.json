@@ -1,0 +1,12 @@
+{
+  "status": "read_resilience_deployed_provider_root_cause_unresolved",
+  "project": "ljazcstmwtuhideaarti",
+  "evidence": [
+    {"request_id": "01a13cd2-e29b-742c-b1cc-a5aa5f56c943", "http_request_id": 343635, "utc": "2026-10-14T23:50:16.016354Z", "status": 400, "body": "Project not specified.", "cf_ray": "a4aa7c3dbcafce22-SIN", "response_project_ref": "ljazcstmwtuhideaarti", "runtime_execution_header_absent": true, "matching_function_log_absent": true, "assessment": "Gateway routing failure before observable function execution; incorrect configured project ref not supported by evidence. Provider internal cause requires Supabase support."},
+    {"request_id": "01a13cd6-d725-73ce-ab8b-6d95523d61fd", "http_request_id": 343656, "execution_id": "141762f8-7021-4926-bd48-beec99b2ded9", "utc": "2026-10-14T23:54:35.227762Z", "outer_status": 500, "inner_error": "supabase.co | 502: Bad gateway", "function": "telegram-trade-notify", "stage": "a-trade-read", "assessment": "Notifier REST read failure propagated through Supabase JS without bounded read retry; no exchange order submission involved."}
+  ],
+  "repair": {"function": "telegram-trade-notify", "deployment_version": 49, "max_attempts": 3, "per_attempt_timeout_ms": 3000, "backoff_ms": [250,750], "scope": "same-origin /rest/v1 GET/HEAD only excluding RPC", "retry_statuses": [502,503,504], "retry_400": "exact Project not specified. body only", "retry_network": "TypeError and own timeout only", "logging": "allowlisted path, attempt, status, sb-request-id and cf-ray only"},
+  "not_changed": ["A/B ON/LIVE", "strategies", "sizing", "schedules", "credentials", "order retries", "DB write retries", "Telegram send retries", "notification delivery markers", "operational alert policy"],
+  "verification": "8 targeted retry tests and 17 notification/monitoring regressions passed; notifier parses",
+  "limitations": "Historical gateway faults cannot be replayed safely against live orders. Exact provider routing/origin cause cannot be established from available tenant logs. Requests above are a support handoff, not proof of provider repair. No claim of exactly-once Telegram delivery or zero future outages."
+}

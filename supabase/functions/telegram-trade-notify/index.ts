@@ -2,6 +2,7 @@ import {healthProblems,healthTransitions,transportErrorDisposition} from "../_sh
 import {stableHealthAlerts} from "../_shared/news_alert_stability.mjs";
 import {webhookSecret} from "../_shared/telegram_webhook_auth.mjs";
 import {errorText} from "../_shared/error_text.mjs";
+import {supabaseReadFetch} from "../_shared/supabase_read_retry.mjs";
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.8";
 
@@ -11,7 +12,7 @@ const BOT=Deno.env.get("TELEGRAM_BOT_TOKEN")||"";
 const CHAT="6818439075";
 const COIN_ISSUE_URL="https://minyoullee.github.io/coin-issue-ai/";
 const MDD30_STANDARD="A Stage184 · 5배 단일 + C 급변 방어";
-const sb=createClient(URL,SERVICE);
+const sb=createClient(URL,SERVICE,{global:{fetch:supabaseReadFetch(URL,{onRetry:detail=>console.warn("supabase-read-retry",JSON.stringify(detail))})}});
 // Kept identical to telegram-bot-webhook's keyboard on purpose -- this function used to
 // carry its own older/different keyboard, so every automated notification it sent would
 // silently reset the user's menu back to that stale version. Keep all eight buttons aligned.

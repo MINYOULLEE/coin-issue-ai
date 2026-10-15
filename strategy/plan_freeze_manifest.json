@@ -128,7 +128,7 @@
     "supabase/functions/plan-b-strategy/index.ts": "31a6e516b3b870d05a4d8423d22f1e228feffbcfad79d13361e72a1e9f719caa",
     "supabase/functions/rlcd-shadow/index.ts": "8ab2ff5b7fe6e2dcc655b850641ca12db4371b8770d9a5689e0e37f8d03bbe8e",
     "supabase/functions/telegram-bot-webhook/index.ts": "b858f4a8a7833de6c88f9ad05afc1648227fe90fe6361f96980b5e993a936ecb",
-    "supabase/functions/telegram-trade-notify/index.ts": "31417077461566762129b15a60fe6d38b418a669d83e0748f74a116bc00293c3",
+    "supabase/functions/telegram-trade-notify/index.ts": "d91c3c3e81ecbed3698dbb67121c6bbf1fffde8ceded753069d8ac24af6e9c1b",
     "supabase/migrations/20260921163000_create_rlcd_shadow_lab.sql": "d018784527cb2c6f50a14ceb13a7661e784c86e245a25f699ef027039f5896a3",
     "supabase/functions/weekly-snapshot/index.ts": "48289bc438e8c1b6d5d31ef841a99f7a87d3871769cfc89a6ad83de0d1c09b44",
     "strategy/A_STAGE135_APPROVED_20260911.md": "8465157aaa85c6133544c1e574f3c049a2a48f941308bfc1a52668bc5b1aeb3a",
@@ -187,6 +187,9 @@
     "strategy/MANAGED_TELEGRAM_BALANCES_20261013.json": "b4404fa9225d5db9c7b1118c4411f359d9bf813e6fb0fe5f98c092ca5cc42c3a",
     "supabase/functions/_shared/a_rebalance_order.mjs": "3d210650abf4f0ecde57a60dc0209df158a482278c45f6df1a64919e86e03c91",
     "research/scripts/test_a_rebalance_order.mjs": "f9975ba5938a8d4286faa819c066185ad8610f3975193eced58852800b37d0fe",
-    "strategy/A_REBALANCE_ORDER_REPAIR_20261015.json": "b6fd1e0795ca41ff6d54dd6faf9c4f79f1fa448d95fbafa72c828af63c7cc812"
+    "strategy/A_REBALANCE_ORDER_REPAIR_20261015.json": "b6fd1e0795ca41ff6d54dd6faf9c4f79f1fa448d95fbafa72c828af63c7cc812",
+    "supabase/functions/_shared/supabase_read_retry.mjs": "23a6e32ea1b3b5294f2884c042ce28da5954f43fd8b4420d1676ccfa28c9605a",
+    "research/scripts/test_supabase_read_retry.mjs": "76449d0ac7eb9c7d24ae293724f57ccf9e1cf8bcfd1cd1ca6b03c5939e1cf360",
+    "strategy/SUPABASE_TRANSPORT_REPAIR_20261015.json": "f95aed0204db8e0c1f8b7858ba6de6e67f1b44c426db74872f609aa39bf57c41"
   }
 }
