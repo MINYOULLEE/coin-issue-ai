@@ -1,0 +1,13 @@
+{
+  "scope": "Owner-requested managed-account Telegram overview current positions display",
+  "deployment_webhook_version": 40,
+  "position_source": "Account-scoped Vault credentials; BingX GET /openApi/swap/v2/user/positions on menu click only",
+  "fields": ["symbol", "side", "leverage", "unrealized PnL USDT", "PnL divided by position margin percent", "liquidation price", "directional mark-to-liquidation distance percent", "Bangkok observation time"],
+  "all_account_positions": "Includes manual holdings, explicitly labelled; not inferred from managed automatic ledger",
+  "failure_behavior": "Unavailable distinct from confirmed empty; missing risk inputs unavailable, never fabricated zero",
+  "pagination": "Per-account messages split below Telegram limit, account-specific history callback preserved",
+  "security": "Existing authenticated webhook and owner chat gate unchanged; parameterized read-only account UUID query; no credentials/signatures/raw exchange responses emitted",
+  "unchanged": ["A/B strategies", "orders", "sizing", "live switches", "managed alerts OFF", "history aggregation"],
+  "verification": "18 Node tests passed; 7 deployed bundled sources matched; A/B enabled=true/test_mode=false; managed live_enabled=true/alerts_enabled=false",
+  "live_telegram_delivery": "Not manually triggered; user menu click is the end-to-end live check"
+}

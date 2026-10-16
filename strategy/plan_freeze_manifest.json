@@ -127,7 +127,7 @@
     "supabase/functions/plan-b-stage26-preflight/index.ts": "e19e1eb4433b0b64ff0647024af4574db1db82ddafdcf8a2bf29ce08dfb85ad5",
     "supabase/functions/plan-b-strategy/index.ts": "31a6e516b3b870d05a4d8423d22f1e228feffbcfad79d13361e72a1e9f719caa",
     "supabase/functions/rlcd-shadow/index.ts": "8ab2ff5b7fe6e2dcc655b850641ca12db4371b8770d9a5689e0e37f8d03bbe8e",
-    "supabase/functions/telegram-bot-webhook/index.ts": "b858f4a8a7833de6c88f9ad05afc1648227fe90fe6361f96980b5e993a936ecb",
+    "supabase/functions/telegram-bot-webhook/index.ts": "305e7203d7b590b48a1613cfe795bc339697524f62d2234ab4a18c2c87f79e02",
     "supabase/functions/telegram-trade-notify/index.ts": "d91c3c3e81ecbed3698dbb67121c6bbf1fffde8ceded753069d8ac24af6e9c1b",
     "supabase/migrations/20260921163000_create_rlcd_shadow_lab.sql": "d018784527cb2c6f50a14ceb13a7661e784c86e245a25f699ef027039f5896a3",
     "supabase/functions/weekly-snapshot/index.ts": "48289bc438e8c1b6d5d31ef841a99f7a87d3871769cfc89a6ad83de0d1c09b44",
@@ -183,13 +183,17 @@
     "supabase/functions/_shared/plan_b_icp_continuation.mjs": "da418b1f607cd04053afb87f5740f4c092e49a41bba080841d65e816387c534d",
     "supabase/migrations/20261012102923_plan_b_stage170_icp_continuation.sql": "765664227a5661fd42811553406a36d22203fbc178f85797e903a956020827ef",
     "supabase/functions/_shared/managed_telegram_balances.mjs": "598e3c509f654080a2d89b75f165d9820c1da591259cd398156ff158205d1616",
-    "research/scripts/test_managed_telegram_balances.mjs": "4d064e4fe6c13e236362511e37c3aab7cb05275b263e70a93f9af2c8b68361d9",
+    "research/scripts/test_managed_telegram_balances.mjs": "bc6da803b65183bc387628d1ea680a9b6b9bbd66973ce11ded764761aedaa5f2",
     "strategy/MANAGED_TELEGRAM_BALANCES_20261013.json": "b4404fa9225d5db9c7b1118c4411f359d9bf813e6fb0fe5f98c092ca5cc42c3a",
     "supabase/functions/_shared/a_rebalance_order.mjs": "3d210650abf4f0ecde57a60dc0209df158a482278c45f6df1a64919e86e03c91",
     "research/scripts/test_a_rebalance_order.mjs": "f9975ba5938a8d4286faa819c066185ad8610f3975193eced58852800b37d0fe",
     "strategy/A_REBALANCE_ORDER_REPAIR_20261015.json": "b6fd1e0795ca41ff6d54dd6faf9c4f79f1fa448d95fbafa72c828af63c7cc812",
     "supabase/functions/_shared/supabase_read_retry.mjs": "23a6e32ea1b3b5294f2884c042ce28da5954f43fd8b4420d1676ccfa28c9605a",
     "research/scripts/test_supabase_read_retry.mjs": "76449d0ac7eb9c7d24ae293724f57ccf9e1cf8bcfd1cd1ca6b03c5939e1cf360",
-    "strategy/SUPABASE_TRANSPORT_REPAIR_20261015.json": "f95aed0204db8e0c1f8b7858ba6de6e67f1b44c426db74872f609aa39bf57c41"
+    "strategy/SUPABASE_TRANSPORT_REPAIR_20261015.json": "f95aed0204db8e0c1f8b7858ba6de6e67f1b44c426db74872f609aa39bf57c41",
+    "supabase/functions/_shared/managed_telegram_positions.mjs": "d73e54b7d186bbf075fcc6c56d43b8f9423ce6c115f865768cfd3fba0463ba94",
+    "research/scripts/test_managed_telegram_positions.mjs": "b317d1fc6604a763380faffe4db4acbda68a5a23cda0250c86f912d8b8d0e550",
+    "strategy/MANAGED_TELEGRAM_POSITIONS_20261016.json": "5e53e56b75e0bb115b3c536641aa93685281b80b14a4760b55577a220a81e2c9",
+    "supabase/functions/_shared/telegram_position_status.mjs": "fd304fa06aee9b3143b74f3b11969417cacc3c3a2ce5f8e0381ae3cbfdfba9b7"
   }
 }
